@@ -1,7 +1,7 @@
 {
-  "rewrites": [
-    { "source": "/api/weather", "destination": "/api/weather" }
-  ],
+  "buildCommand": false,
+  "outputDirectory": ".",
+  "framework": null,
   "headers": [
     {
       "source": "/(.*)",
