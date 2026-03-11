@@ -1,4 +1,7 @@
 {
+  "rewrites": [
+    { "source": "/api/weather", "destination": "/api/weather" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
