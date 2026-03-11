@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weather Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="dashboard-header">
+    <h1 class="dashboard-title">Weather Dashboard</h1>
+    <div id="clock" class="clock" aria-live="polite"></div>
+  </header>
+
+  <main class="dashboard-main">
+    <section class="weather-section" aria-label="Weather forecasts">
+      <h2 class="section-title">City Forecasts</h2>
+      <div id="weather-grid" class="weather-grid">
+        <!-- Weather cards will be rendered here by app.js -->
+      </div>
+    </section>
+  </main>
+
+  <footer class="dashboard-footer">
+    <p>Powered by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a></p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
