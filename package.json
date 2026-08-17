@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node test/smoke.mjs"
+    "test": "node test/smoke.mjs && node test/parsers.mjs",
+    "verify": "node scripts/verify-providers.mjs"
   },
   "engines": {
     "node": ">=18"
@@ -15,6 +16,13 @@
   "dependencies": {
     "express": "^4.18.2"
   },
-  "keywords": ["weather", "dashboard", "forecast", "radar", "open-meteo", "self-hosted"],
+  "keywords": [
+    "weather",
+    "dashboard",
+    "forecast",
+    "radar",
+    "open-meteo",
+    "self-hosted"
+  ],
   "license": "MIT"
 }

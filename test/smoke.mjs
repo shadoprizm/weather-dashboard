@@ -178,6 +178,30 @@ for (const [name, markup] of Object.entries(rendered)) {
 assert.ok(rendered.hero.includes('&lt;img'), 'hero did not escape place name');
 assert.ok(rendered.briefing.includes('&lt;img'), 'briefing did not escape place name');
 
+// Alert providers hand over different amounts of detail; both shapes must render.
+const vmEccc = { ...vm, alerts: { alerts: [{
+  id: 'eccc:s0000430:Rainfall warning', event: 'Rainfall warning',
+  headline: null, description: null, instruction: null,
+  severity: 'Severe', area: 'Ottawa, ON', sender: 'ECCC',
+  onset: '2026-08-17T12:34:00Z', expires: null,
+  url: 'https://weather.gc.ca/warnings/report_e.html?on31', source: 'ECCC',
+}] } };
+const ecccMarkup = panels.renderAlerts(vmEccc);
+assert.ok(ecccMarkup.includes('Official · ECCC'), 'ECCC badge missing');
+assert.ok(ecccMarkup.includes('Rainfall warning'));
+assert.ok(ecccMarkup.includes('Read the full bulletin'), 'bulletin link missing');
+assert.ok(ecccMarkup.includes('rel="noopener noreferrer"'), 'bulletin link is not rel-guarded');
+// No body text, so there must be no empty "Full text" disclosure.
+assert.ok(!ecccMarkup.includes('Full text'), 'rendered an empty details block');
+// The NWS shape still gets its full-text disclosure.
+assert.ok(rendered.alerts.includes('Full text'), 'NWS alert lost its details block');
+
+// A hostile bulletin URL must be dropped, not rendered as an href.
+const vmEvil = { ...vmEccc, alerts: { alerts: [{ ...vmEccc.alerts.alerts[0], url: 'javascript:alert(1)' }] } };
+const evilMarkup = panels.renderAlerts(vmEvil);
+assert.ok(!evilMarkup.includes('javascript:'), 'javascript: URL reached the output');
+assert.ok(!evilMarkup.includes('Read the full bulletin'), 'link rendered for a rejected URL');
+
 // Selected-day mode.
 const vmDay = { ...vm, selectedDay: daily[2].time, dayHours: series.filter((h) => h.time.startsWith(daily[2].time)) };
 assert.ok(views.renderHourly(vmDay).includes('clear-day'));

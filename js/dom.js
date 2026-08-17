@@ -59,3 +59,16 @@ export function scale(value, inMin, inMax, outMin, outMax) {
     Math.max(outMin, outMax)
   );
 }
+
+/**
+ * Allow only http(s) URLs through to an `href`.
+ *
+ * Alert bulletin links come from third-party XML, so a `javascript:` URL is a
+ * realistic injection path. Anything else resolves to null and the caller
+ * omits the link entirely.
+ */
+export function safeUrl(value) {
+  if (!value) return null;
+  const trimmed = String(value).trim();
+  return /^https?:\/\/[^\s"'<>]+$/i.test(trimmed) ? trimmed : null;
+}

@@ -61,6 +61,45 @@ async function fetchJsonSoft(url, fallback = null, options) {
   }
 }
 
+/**
+ * Same contract as fetchJson, but for text payloads (XML, CSV). Environment
+ * Canada publishes both, and neither has a JSON equivalent.
+ */
+async function fetchText(url, { timeoutMs = 10000, headers = {} } = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: { 'User-Agent': USER_AGENT, Accept: 'text/plain, application/xml, text/xml, */*', ...headers },
+    });
+
+    if (!response.ok) {
+      throw new UpstreamError(
+        `Upstream responded ${response.status}`,
+        response.status >= 400 && response.status < 500 ? response.status : 502
+      );
+    }
+
+    return await response.text();
+  } catch (error) {
+    if (error instanceof UpstreamError) throw error;
+    if (error.name === 'AbortError') throw new UpstreamError('Upstream timed out', 504);
+    throw new UpstreamError(`Upstream request failed: ${error.message}`, 502);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function fetchTextSoft(url, fallback = null, options) {
+  try {
+    return await fetchText(url, options);
+  } catch (error) {
+    return fallback;
+  }
+}
+
 function buildUrl(base, params) {
   const url = new URL(base);
   for (const [key, value] of Object.entries(params)) {
@@ -70,4 +109,7 @@ function buildUrl(base, params) {
   return url.toString();
 }
 
-module.exports = { fetchJson, fetchJsonSoft, buildUrl, UpstreamError, USER_AGENT };
+module.exports = {
+  fetchJson, fetchJsonSoft, fetchText, fetchTextSoft,
+  buildUrl, UpstreamError, USER_AGENT,
+};

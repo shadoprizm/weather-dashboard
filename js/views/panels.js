@@ -3,7 +3,7 @@
  * the almanac and the multi-location comparison.
  */
 
-import { esc } from '../dom.js';
+import { esc, safeUrl } from '../dom.js';
 import { describe } from '../wmo.js';
 import { weatherIcon, moonPhaseIcon, glyph } from '../icons.js';
 import * as fmt from '../format.js';
@@ -27,7 +27,13 @@ export function renderAlerts(vm) {
   if (!official.length && !watches.length) return '';
 
   return `
-    ${official.map((alert) => `
+    ${official.map((alert) => {
+      // Providers differ in how much they hand over: the NWS ships the full
+      // bulletin text, ECCC's citypage feed ships a headline plus a link.
+      const bulletin = safeUrl(alert.url);
+      const hasBody = Boolean(alert.description || alert.instruction);
+
+      return `
       <article class="alert alert-official is-${esc((alert.severity || 'unknown').toLowerCase())}">
         <header class="alert-head">
           <span class="alert-badge">Official · ${esc(alert.source)}</span>
@@ -35,13 +41,19 @@ export function renderAlerts(vm) {
           ${alert.expires ? `<span class="alert-time">until ${esc(fmt.timeLabel(alert.expires, vm.units))}</span>` : ''}
         </header>
         ${alert.headline ? `<p class="alert-headline">${esc(alert.headline)}</p>` : ''}
-        <details class="alert-details">
-          <summary>Full text</summary>
-          <p>${esc(alert.description || '')}</p>
-          ${alert.instruction ? `<p class="alert-instruction">${esc(alert.instruction)}</p>` : ''}
-          ${alert.area ? `<p class="alert-area">${esc(alert.area)}</p>` : ''}
-        </details>
-      </article>`).join('')}
+        ${hasBody ? `
+          <details class="alert-details">
+            <summary>Full text</summary>
+            ${alert.description ? `<p>${esc(alert.description)}</p>` : ''}
+            ${alert.instruction ? `<p class="alert-instruction">${esc(alert.instruction)}</p>` : ''}
+            ${alert.area ? `<p class="alert-area">${esc(alert.area)}</p>` : ''}
+          </details>` : `
+          <p class="alert-meta">
+            ${alert.area ? `<span>${esc(alert.area)}</span>` : ''}
+            ${bulletin ? `<a href="${esc(bulletin)}" target="_blank" rel="noopener noreferrer">Read the full bulletin</a>` : ''}
+          </p>`}
+      </article>`;
+    }).join('')}
 
     ${watches.map((watch) => `
       <article class="alert alert-computed is-${esc(watch.level)}">

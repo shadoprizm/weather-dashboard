@@ -12,6 +12,7 @@
 
 const { fetchJson, fetchJsonSoft, buildUrl, UpstreamError } = require('./upstream');
 const cache = require('./cache');
+const alertRegistry = require('./alerts');
 
 const OPEN_METEO = 'https://api.open-meteo.com/v1/forecast';
 const OPEN_METEO_AIR = 'https://air-quality-api.open-meteo.com/v1/air-quality';
@@ -19,7 +20,6 @@ const OPEN_METEO_ARCHIVE = 'https://archive-api.open-meteo.com/v1/archive';
 const OPEN_METEO_GEOCODE = 'https://geocoding-api.open-meteo.com/v1/search';
 const BIGDATACLOUD_REVERSE =
   'https://api.bigdatacloud.net/data/reverse-geocode-client';
-const NWS_ALERTS = 'https://api.weather.gov/alerts/active';
 const RAINVIEWER_INDEX = 'https://api.rainviewer.com/public/weather-maps.json';
 const NOAA_KP = 'https://services.swpc.noaa.gov/json/planetary_k_index_1m.json';
 
@@ -279,55 +279,17 @@ async function reverse(query) {
 
 /* ----------------------------------------------------------------- alerts */
 
-const SEVERITY_RANK = { Extreme: 4, Severe: 3, Moderate: 2, Minor: 1, Unknown: 0 };
-
 /**
- * Official government alerts.
- *
- * Only the US National Weather Service is wired up today -- it is a clean,
- * key-free, point-queryable API. Other regions return an empty list, and the
- * client falls back to the locally computed watches in `js/insights.js`, which
- * work everywhere. See README "Alert coverage" for the state of play.
+ * Official government alerts, merged across every provider whose coverage
+ * area contains the point. Regions with no provider return an empty list and
+ * the client falls back to the locally computed watches in `js/insights.js`,
+ * which work everywhere. See `api/_lib/alerts/` to add a country.
  */
 async function alerts(query) {
   const { lat, lon } = coords(query);
   const key = `alerts:${lat},${lon}`;
 
-  const body = await cache.memo(key, 180, async () => {
-    const data = await fetchJsonSoft(
-      buildUrl(NWS_ALERTS, { point: `${lat},${lon}`, status: 'actual' }),
-      null,
-      { headers: { Accept: 'application/geo+json' } }
-    );
-
-    if (!data || !Array.isArray(data.features)) {
-      return { alerts: [], sources: [], coverage: 'unavailable' };
-    }
-
-    const items = data.features
-      .map((feature) => feature.properties || {})
-      .map((p) => ({
-        id: p.id,
-        event: p.event,
-        headline: p.headline,
-        description: p.description,
-        instruction: p.instruction,
-        severity: p.severity || 'Unknown',
-        urgency: p.urgency,
-        certainty: p.certainty,
-        area: p.areaDesc,
-        sender: p.senderName,
-        onset: p.onset || p.effective,
-        expires: p.ends || p.expires,
-        source: 'NWS',
-      }))
-      .sort(
-        (a, b) =>
-          (SEVERITY_RANK[b.severity] || 0) - (SEVERITY_RANK[a.severity] || 0)
-      );
-
-    return { alerts: items, sources: ['NWS'], coverage: 'us' };
-  });
+  const body = await cache.memo(key, 180, () => alertRegistry.collect(lat, lon));
 
   return { status: 200, body, maxAge: 180 };
 }

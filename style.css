@@ -986,3 +986,8 @@ body.is-loading .layout { opacity: .72; transition: opacity .2s ease; }
     scroll-behavior: auto !important;
   }
 }
+
+.alert-meta {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin-top: 8px; font-size: 0.8rem; color: var(--text-faint);
+}
