@@ -1,0 +1,73 @@
+'use strict';
+
+/**
+ * Upstream HTTP helpers.
+ *
+ * Every outbound call goes through here so timeouts, the User-Agent (required
+ * by api.weather.gov) and error shapes stay consistent across handlers.
+ */
+
+const USER_AGENT =
+  'skywatch-dashboard/2.0 (self-hosted personal weather dashboard)';
+
+class UpstreamError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = 'UpstreamError';
+    this.status = status || 502;
+  }
+}
+
+async function fetchJson(url, { timeoutMs = 10000, headers = {} } = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: { 'User-Agent': USER_AGENT, Accept: 'application/json', ...headers },
+    });
+
+    if (!response.ok) {
+      throw new UpstreamError(
+        `Upstream responded ${response.status}`,
+        // Pass client errors through; collapse upstream 5xx into 502.
+        response.status >= 400 && response.status < 500 ? response.status : 502
+      );
+    }
+
+    return await response.json();
+  } catch (error) {
+    if (error instanceof UpstreamError) throw error;
+    if (error.name === 'AbortError') {
+      throw new UpstreamError('Upstream timed out', 504);
+    }
+    throw new UpstreamError(`Upstream request failed: ${error.message}`, 502);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Like fetchJson but resolves to `fallback` instead of throwing. Used for the
+ * optional panels (air quality, aurora, alerts) so one flaky provider never
+ * takes down the whole dashboard.
+ */
+async function fetchJsonSoft(url, fallback = null, options) {
+  try {
+    return await fetchJson(url, options);
+  } catch (error) {
+    return fallback;
+  }
+}
+
+function buildUrl(base, params) {
+  const url = new URL(base);
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null || value === '') continue;
+    url.searchParams.set(key, Array.isArray(value) ? value.join(',') : String(value));
+  }
+  return url.toString();
+}
+
+module.exports = { fetchJson, fetchJsonSoft, buildUrl, UpstreamError, USER_AGENT };

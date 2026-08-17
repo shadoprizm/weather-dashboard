@@ -2,30 +2,132 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Weather Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="A detailed, ad-free personal weather dashboard: hourly and 16-day forecasts, animated radar, air quality, almanac normals and activity planning.">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#0b1220">
+  <title>SkyWatch — your own weather service</title>
   <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://basemaps.cartocdn.com" crossorigin>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="dashboard-header">
-    <h1 class="dashboard-title">Weather Dashboard</h1>
-    <div id="clock" class="clock" aria-live="polite"></div>
+  <div class="sky" data-sky="clear-day" aria-hidden="true">
+    <div class="sky-glow"></div>
+    <div class="sky-grain"></div>
+  </div>
+
+  <a class="skip-link" href="#main">Skip to forecast</a>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-name">SkyWatch</span>
+      </div>
+
+      <div class="search" role="search">
+        <label class="visually-hidden" for="search-input">Search for a city</label>
+        <input
+          id="search-input"
+          class="search-input"
+          type="search"
+          placeholder="Search any city…"
+          autocomplete="off"
+          spellcheck="false"
+          aria-expanded="false"
+          aria-controls="search-results"
+          aria-autocomplete="list">
+        <button type="button" class="icon-button" id="geolocate" title="Use my location" aria-label="Use my location">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="3.2"/>
+            <circle cx="12" cy="12" r="7.4" class="ring"/>
+            <line x1="12" y1="1.4" x2="12" y2="4.4"/><line x1="12" y1="19.6" x2="12" y2="22.6"/>
+            <line x1="1.4" y1="12" x2="4.4" y2="12"/><line x1="19.6" y1="12" x2="22.6" y2="12"/>
+          </svg>
+        </button>
+        <ul id="search-results" class="search-results" role="listbox" hidden></ul>
+      </div>
+
+      <div class="topbar-actions">
+        <div class="unit-toggle" role="group" aria-label="Unit system">
+          <button type="button" data-units="metric" class="unit-button">°C</button>
+          <button type="button" data-units="imperial" class="unit-button">°F</button>
+        </div>
+        <button type="button" class="icon-button" id="theme-toggle" title="Switch theme" aria-label="Switch theme">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M12 3.5a8.5 8.5 0 1 0 8.5 8.5A6.8 6.8 0 0 1 12 3.5z"/>
+          </svg>
+        </button>
+        <button type="button" class="icon-button" id="refresh" title="Refresh (r)" aria-label="Refresh forecast">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 3.5V9h-5.5"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <nav class="places" id="places" aria-label="Saved locations"></nav>
   </header>
 
-  <main class="dashboard-main">
-    <section class="weather-section" aria-label="Weather forecasts">
-      <h2 class="section-title">City Forecasts</h2>
-      <div id="weather-grid" class="weather-grid">
-        <!-- Weather cards will be rendered here by app.js -->
-      </div>
+  <main id="main" class="layout">
+    <section id="alerts" class="stack" aria-label="Alerts and watches"></section>
+
+    <section id="hero" class="panel panel-hero" aria-label="Current conditions">
+      <div class="skeleton skeleton-hero" aria-hidden="true"></div>
     </section>
+
+    <section id="briefing" class="panel" aria-label="Forecast briefing"></section>
+
+    <section id="hourly" class="panel" aria-label="Hourly forecast"></section>
+
+    <section id="details" class="panel" aria-label="Current conditions detail"></section>
+
+    <section id="daily" class="panel" aria-label="Extended forecast"></section>
+
+    <section id="radar-panel" class="panel" aria-label="Precipitation radar">
+      <header class="panel-head">
+        <h2>Live radar</h2>
+        <p class="panel-sub">Drag to pan, scroll to zoom. Dotted frames are the nowcast.</p>
+      </header>
+      <div id="radar-mount"></div>
+    </section>
+
+    <section id="activities" class="panel" aria-label="Activity planner"></section>
+
+    <div class="panel-row">
+      <section id="astro" class="panel" aria-label="Sun and moon"></section>
+      <section id="air" class="panel" aria-label="Air quality"></section>
+    </div>
+
+    <div class="panel-row">
+      <section id="almanac" class="panel" aria-label="Almanac"></section>
+      <section id="compare" class="panel" aria-label="Your locations compared"></section>
+    </div>
   </main>
 
-  <footer class="dashboard-footer">
-    <p>Powered by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a></p>
+  <footer class="footer">
+    <p>
+      Forecast data <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> ·
+      Radar <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> ·
+      Alerts <a href="https://www.weather.gov/" target="_blank" rel="noopener">NWS</a> ·
+      Space weather <a href="https://www.swpc.noaa.gov/" target="_blank" rel="noopener">NOAA SWPC</a>
+    </p>
+    <p class="footer-note">
+      Watches marked <em>computed</em> are generated on this site from forecast thresholds and are
+      not official warnings. Always defer to your national weather service.
+    </p>
+    <p class="footer-keys">
+      <kbd>/</kbd> search · <kbd>u</kbd> units · <kbd>r</kbd> refresh · <kbd>1</kbd>–<kbd>9</kbd> switch location
+    </p>
   </footer>
 
-  <script src="app.js"></script>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <noscript>
+    <p class="noscript">SkyWatch needs JavaScript to render forecasts.</p>
+  </noscript>
+
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>
