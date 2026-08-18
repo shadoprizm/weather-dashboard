@@ -212,14 +212,30 @@ console.log('All parser tests passed.');
 /* ------------------------------------------- ECCC Datamart root fallback */
 // MSC moved citypage_weather under /today/ once already; the resolver must
 // keep trying candidates rather than trusting a single hardcoded path.
-const { ROOTS, siteListUrl, citypageUrl } = eccc._internals;
+const { ROOTS, siteListUrl, hourDirUrl, SITE_DOC_PATTERN } = eccc._internals;
 assert.ok(Array.isArray(ROOTS) && ROOTS.length >= 2, 'need more than one candidate root');
 assert.ok(ROOTS[0].includes('/today/'), 'current Datamart root must be tried first');
 assert.equal(siteListUrl(ROOTS[0]), 'https://dd.weather.gc.ca/today/citypage_weather/docs/site_list_en.csv');
 assert.equal(
-  citypageUrl(ROOTS[0], 'ON', 's0000430'),
-  'https://dd.weather.gc.ca/today/citypage_weather/xml/ON/s0000430_e.xml'
+  hourDirUrl(ROOTS[0], 'ON', '01'),
+  'https://dd.weather.gc.ca/today/citypage_weather/ON/01/'
 );
+
+// Site documents are timestamped, so the filename must be discovered from
+// the hour directory listing rather than constructed. This is a real excerpt.
+const LISTING = `<a href="/today/citypage_weather/ON/">Parent Directory</a>
+<a href="20260818T010026.748Z_MSC_CitypageWeather_s0000455_en.xml">2026...</a>
+<a href="20260818T010031.220Z_MSC_CitypageWeather_s0000430_en.xml">2026...</a>
+<a href="20260818T013045.101Z_MSC_CitypageWeather_s0000430_en.xml">2026...</a>
+<a href="20260818T010044.900Z_MSC_CitypageWeather_s0000430_fr.xml">2026...</a>`;
+
+const found = [...LISTING.matchAll(SITE_DOC_PATTERN('s0000430'))].map((m) => m[1]);
+assert.equal(found.length, 2, 'must match both English revisions and skip the French one');
+// The newest revision in the hour is the last entry.
+assert.equal(found[found.length - 1], '20260818T013045.101Z_MSC_CitypageWeather_s0000430_en.xml');
+// A different site's document must not be picked up.
+assert.equal([...LISTING.matchAll(SITE_DOC_PATTERN('s0000455'))].length, 1);
+assert.equal([...LISTING.matchAll(SITE_DOC_PATTERN('s9999999'))].length, 0);
 // The legacy root stays as a fallback in case the move is reverted.
 assert.ok(ROOTS.some((r) => !r.includes('/today/')), 'legacy root must remain a fallback');
 

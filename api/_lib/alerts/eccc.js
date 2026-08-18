@@ -41,11 +41,20 @@ const ROOTS = [
 ];
 
 const siteListUrl = (root) => `${root}/docs/site_list_en.csv`;
-const citypageUrl = (root, province, code) => `${root}/xml/${province}/${code}_e.xml`;
+const hourDirUrl = (root, province, hour) => `${root}/${province}/${hour}/`;
 
-// Kept for the diagnostics and tests, which report a representative URL.
+/**
+ * Per-site documents are NOT addressable by site code. They live under
+ * {root}/{PROV}/{HH}/ with timestamped names like
+ *   20260818T010026.748Z_MSC_CitypageWeather_s0000430_en.xml
+ * so the filename has to be discovered from the hour's directory listing
+ * rather than constructed.
+ */
+const SITE_DOC_PATTERN = (code) =>
+  new RegExp(`href="([^"]*_MSC_CitypageWeather_${code}_(?:en|e)\\.xml)"`, 'gi');
+
+// Kept for diagnostics and tests, which report a representative URL.
 const SITE_LIST = siteListUrl(ROOTS[0]);
-const CITYPAGE = (province, code) => citypageUrl(ROOTS[0], province, code);
 
 const BOUNDS = { minLat: 41, maxLat: 84, minLon: -142, maxLon: -52 };
 const MAX_SITE_DISTANCE_KM = 150;
@@ -177,6 +186,35 @@ function nearestSite(sites, lat, lon) {
   return { ...best, distanceKm: bestDistance };
 }
 
+
+const LISTING_TTL = 300;   // hour directories gain files continuously
+const HOURS_BACK = 4;      // a given site is not republished every hour
+
+function loadListing(root, province, hour) {
+  return cache.memo(`eccc:listing:${province}:${hour}`, LISTING_TTL, () =>
+    fetchTextSoft(hourDirUrl(root, province, hour), null, { timeoutMs: 10000 })
+  );
+}
+
+/**
+ * Walk back from the current UTC hour until the site's document turns up.
+ * Returns its absolute URL, or null if it is not published in the window.
+ */
+async function findSiteDocument(root, site, now = new Date()) {
+  for (let back = 0; back < HOURS_BACK; back += 1) {
+    const hour = String(new Date(now.getTime() - back * 3600000).getUTCHours()).padStart(2, '0');
+    const listing = await loadListing(root, site.province, hour);
+    if (!listing) continue;
+
+    // Several revisions can share an hour; the last entry is the newest.
+    const matches = [...listing.matchAll(SITE_DOC_PATTERN(site.code))];
+    if (matches.length) {
+      return `${hourDirUrl(root, site.province, hour)}${matches[matches.length - 1][1]}`;
+    }
+  }
+  return null;
+}
+
 /* ---------------------------------------------------------------- events */
 
 /**
@@ -303,8 +341,8 @@ async function diagnose(lat, lon) {
   let parsed = null;
 
   if (site) {
-    const url = citypageUrl(root, site.province, site.code);
-    const xml = await fetchTextSoft(url, null, { timeoutMs: 12000 });
+    const url = await findSiteDocument(root, site);
+    const xml = url ? await fetchTextSoft(url, null, { timeoutMs: 12000 }) : null;
     citypage = xml
       ? {
           ok: true,
@@ -313,7 +351,7 @@ async function diagnose(lat, lon) {
           hasWarningsElement: /<warnings/i.test(xml),
           eventElements: (xml.match(/<event\b/gi) || []).length,
         }
-      : { ok: false, url, probe: await probeUrl(url), layouts: await probeLayouts(root, site) };
+      : { ok: false, url, discovered: Boolean(url), layouts: await probeLayouts(root, site) };
     if (xml) parsed = parseWarnings(xml, site);
   }
 
@@ -344,7 +382,10 @@ async function fetchAlerts(lat, lon) {
   const site = nearestSite(sites, lat, lon);
   if (!site) return [];
 
-  const xml = await fetchTextSoft(citypageUrl(root, site.province, site.code), null, { timeoutMs: 12000 });
+  const documentUrl = await findSiteDocument(root, site);
+  if (!documentUrl) return [];
+
+  const xml = await fetchTextSoft(documentUrl, null, { timeoutMs: 12000 });
   if (!xml) return [];
 
   return parseWarnings(xml, site);
@@ -357,5 +398,5 @@ module.exports = {
   fetchAlerts,
   diagnose,
   // Exported for the test suite and the live verification script.
-  _internals: { parseSiteList, parseWarnings, nearestSite, severityOf, timeStampToIso, distanceKm, SITE_LIST, CITYPAGE, ROOTS, siteListUrl, citypageUrl },
+  _internals: { parseSiteList, parseWarnings, nearestSite, severityOf, timeStampToIso, distanceKm, SITE_LIST, ROOTS, siteListUrl, hourDirUrl, SITE_DOC_PATTERN, findSiteDocument },
 };
