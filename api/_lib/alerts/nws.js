@@ -67,15 +67,24 @@ async function diagnose(lat, lon) {
     ? await probeUrl(url, { headers: { Accept: 'application/geo+json' } })
     : null;
 
+  // The bounding box is deliberately generous so border cities are covered.
+  // NWS answers an out-of-area point with 400 "out of bounds" rather than an
+  // empty list, so treat that as coverage information, not a fault.
+  const outOfArea = Boolean(
+    failureProbe && failureProbe.status === 400 && /out of bounds/i.test(failureProbe.snippet || '')
+  );
+
   return {
     provider: 'NWS',
     inBounds,
+    covered: inBounds && !outOfArea,
     endpoint: inBounds
       ? {
-          ok: Boolean(data),
+          ok: Boolean(data) || outOfArea,
           features: data && Array.isArray(data.features) ? data.features.length : 0,
           url,
-          probe: failureProbe || undefined,
+          note: outOfArea ? 'point is outside NWS coverage; ECCC handles it' : undefined,
+          probe: outOfArea ? undefined : failureProbe || undefined,
         }
       : null,
     activeAlerts: data && Array.isArray(data.features) ? data.features.length : 0,

@@ -208,3 +208,19 @@ assert.equal(safeUrl(''), null);
 assert.equal(safeUrl(null), null);
 
 console.log('All parser tests passed.');
+
+/* ------------------------------------------- ECCC Datamart root fallback */
+// MSC moved citypage_weather under /today/ once already; the resolver must
+// keep trying candidates rather than trusting a single hardcoded path.
+const { ROOTS, siteListUrl, citypageUrl } = eccc._internals;
+assert.ok(Array.isArray(ROOTS) && ROOTS.length >= 2, 'need more than one candidate root');
+assert.ok(ROOTS[0].includes('/today/'), 'current Datamart root must be tried first');
+assert.equal(siteListUrl(ROOTS[0]), 'https://dd.weather.gc.ca/today/citypage_weather/docs/site_list_en.csv');
+assert.equal(
+  citypageUrl(ROOTS[0], 'ON', 's0000430'),
+  'https://dd.weather.gc.ca/today/citypage_weather/xml/ON/s0000430_e.xml'
+);
+// The legacy root stays as a fallback in case the move is reverted.
+assert.ok(ROOTS.some((r) => !r.includes('/today/')), 'legacy root must remain a fallback');
+
+console.log('Datamart root fallback checks passed.');

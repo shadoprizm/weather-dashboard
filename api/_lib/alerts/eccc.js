@@ -27,9 +27,25 @@ const { fetchTextSoft, probeUrl } = require('../upstream');
 const { findTags, findTag, textOf } = require('../xml');
 const cache = require('../cache');
 
-const SITE_LIST = 'https://dd.weather.gc.ca/citypage_weather/docs/site_list_en.csv';
-const CITYPAGE = (province, code) =>
-  `https://dd.weather.gc.ca/citypage_weather/xml/${province}/${code}_e.xml`;
+/**
+ * Datamart roots, most current first.
+ *
+ * MSC moved citypage_weather under a `/today/` prefix, which 404'd the
+ * previously correct URL in production. Rather than hardcode the new path and
+ * wait to be broken again, we try each root until one yields a parseable site
+ * list, then remember it for both the list and the per-site documents.
+ */
+const ROOTS = [
+  'https://dd.weather.gc.ca/today/citypage_weather',
+  'https://dd.weather.gc.ca/citypage_weather',
+];
+
+const siteListUrl = (root) => `${root}/docs/site_list_en.csv`;
+const citypageUrl = (root, province, code) => `${root}/xml/${province}/${code}_e.xml`;
+
+// Kept for the diagnostics and tests, which report a representative URL.
+const SITE_LIST = siteListUrl(ROOTS[0]);
+const CITYPAGE = (province, code) => citypageUrl(ROOTS[0], province, code);
 
 const BOUNDS = { minLat: 41, maxLat: 84, minLon: -142, maxLon: -52 };
 const MAX_SITE_DISTANCE_KM = 150;
@@ -111,22 +127,30 @@ const SITES_TTL_OK = 7 * 86400;   // the list is near-static
 const SITES_TTL_FAIL = 60;        // do not let one bad fetch blind us for a week
 
 /**
- * The site list, cached.
+ * The site list plus the Datamart root it came from, cached.
  *
  * Success is cached for a week. Failure is cached for a minute: caching an
  * empty list for the success TTL would mean a single transient outage
  * silently disabled Canadian alerts long after the upstream recovered, while
  * still absorbing a burst of retries.
  */
-async function loadSites() {
+async function loadSiteIndex() {
   const cached = cache.get('eccc:sites');
-  if (cached && cached.length) return cached;
-  if (cached) return cached; // a recent failure; the short TTL will expire it
+  if (cached) return cached;
 
-  const csv = await fetchTextSoft(SITE_LIST, null, { timeoutMs: 15000 });
-  const sites = parseSiteList(csv);
-  cache.set('eccc:sites', sites, sites.length ? SITES_TTL_OK : SITES_TTL_FAIL);
-  return sites;
+  for (const root of ROOTS) {
+    const csv = await fetchTextSoft(siteListUrl(root), null, { timeoutMs: 15000 });
+    const sites = parseSiteList(csv);
+    if (sites.length) {
+      const index = { root, sites };
+      cache.set('eccc:sites', index, SITES_TTL_OK);
+      return index;
+    }
+  }
+
+  const empty = { root: null, sites: [] };
+  cache.set('eccc:sites', empty, SITES_TTL_FAIL);
+  return empty;
 }
 
 const EARTH_RADIUS_KM = 6371;
@@ -239,25 +263,32 @@ function parseWarnings(xml, site) {
 async function diagnose(lat, lon) {
   const started = Date.now();
   const inBounds = covers(lat, lon);
-  const sites = await loadSites();
-  const site = sites && sites.length ? nearestSite(sites, lat, lon) : null;
+  const { root, sites } = await loadSiteIndex();
+  const site = sites.length ? nearestSite(sites, lat, lon) : null;
 
-  // When the list is empty, go straight at the URL to find out why.
-  const siteListProbe = (!sites || !sites.length) ? await probeUrl(SITE_LIST) : null;
+  // When nothing resolved, probe every candidate root so the reason is visible.
+  const siteListProbe = sites.length
+    ? null
+    : await Promise.all(ROOTS.map(async (candidate) => ({
+        url: siteListUrl(candidate),
+        ...(await probeUrl(siteListUrl(candidate))),
+      })));
 
   let citypage = null;
   let parsed = null;
 
   if (site) {
-    const xml = await fetchTextSoft(CITYPAGE(site.province, site.code), null, { timeoutMs: 12000 });
+    const url = citypageUrl(root, site.province, site.code);
+    const xml = await fetchTextSoft(url, null, { timeoutMs: 12000 });
     citypage = xml
       ? {
           ok: true,
+          url,
           bytes: xml.length,
           hasWarningsElement: /<warnings/i.test(xml),
           eventElements: (xml.match(/<event\b/gi) || []).length,
         }
-      : { ok: false };
+      : { ok: false, url, probe: await probeUrl(url) };
     if (xml) parsed = parseWarnings(xml, site);
   }
 
@@ -265,10 +296,10 @@ async function diagnose(lat, lon) {
     provider: 'ECCC',
     inBounds,
     siteList: {
-      ok: Boolean(sites && sites.length),
-      parsedSites: sites ? sites.length : 0,
-      url: SITE_LIST,
-      probe: siteListProbe || undefined,
+      ok: sites.length > 0,
+      parsedSites: sites.length,
+      resolvedRoot: root,
+      candidates: siteListProbe || undefined,
     },
     nearestSite: site
       ? { name: site.name, province: site.province, code: site.code, distanceKm: Number(site.distanceKm.toFixed(1)) }
@@ -282,13 +313,13 @@ async function diagnose(lat, lon) {
 /* ---------------------------------------------------------------- public */
 
 async function fetchAlerts(lat, lon) {
-  const sites = await loadSites();
-  if (!sites || !sites.length) return [];
+  const { root, sites } = await loadSiteIndex();
+  if (!root || !sites.length) return [];
 
   const site = nearestSite(sites, lat, lon);
   if (!site) return [];
 
-  const xml = await fetchTextSoft(CITYPAGE(site.province, site.code), null, { timeoutMs: 12000 });
+  const xml = await fetchTextSoft(citypageUrl(root, site.province, site.code), null, { timeoutMs: 12000 });
   if (!xml) return [];
 
   return parseWarnings(xml, site);
@@ -301,5 +332,5 @@ module.exports = {
   fetchAlerts,
   diagnose,
   // Exported for the test suite and the live verification script.
-  _internals: { parseSiteList, parseWarnings, nearestSite, severityOf, timeStampToIso, distanceKm, SITE_LIST, CITYPAGE },
+  _internals: { parseSiteList, parseWarnings, nearestSite, severityOf, timeStampToIso, distanceKm, SITE_LIST, CITYPAGE, ROOTS, siteListUrl, citypageUrl },
 };
