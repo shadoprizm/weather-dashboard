@@ -53,7 +53,7 @@ export function renderHero(vm) {
 
       <div class="hero-body">
         <div class="hero-now">
-          ${weatherIcon(condition.icon, { size: 128, className: 'hero-icon', title: condition.label })}
+          ${weatherIcon(condition.icon, { size: 108, className: 'hero-icon', title: condition.label })}
           <div class="hero-readout">
             <p class="hero-temp">${esc(fmt.temp(current.temperature_2m, units))}</p>
             <p class="hero-condition">${esc(condition.label)}</p>
@@ -88,6 +88,8 @@ export function renderHero(vm) {
         </div>
       </div>
 
+      ${renderBriefingBody(vm)}
+
       <ul class="hero-stats">
         ${stat('wind', 'Wind', `${fmt.wind(current.wind_speed_10m, units)} ${fmt.compass(current.wind_direction_10m)}`)}
         ${stat('drop', 'Humidity', fmt.percent(current.relative_humidity_2m))}
@@ -116,7 +118,14 @@ function comfortBand(score) {
 
 /* ------------------------------------------------------------ briefing */
 
-export function renderBriefing(vm) {
+/**
+ * The briefing body: prose plus a couple of context chips.
+ *
+ * Rendered inside the hero rather than as its own panel — "what is it doing
+ * and what is it about to do" is one thought, and the hub should read as one
+ * card. Still exported separately so it can be tested in isolation.
+ */
+export function renderBriefingBody(vm) {
   const sentences = buildNarrative({
     current: vm.current,
     series: vm.series,
@@ -133,17 +142,28 @@ export function renderBriefing(vm) {
   const trend = pressureTrend(vm.series, vm.nowIndex);
 
   return `
+    <div class="briefing">
+      <p class="briefing-text">${sentences.map((s) => esc(s)).join(' ')}</p>
+      <ul class="briefing-chips">
+        ${trend ? `<li class="chip">Pressure ${esc(trend.direction)} ${esc(trend.rate)}
+          <span>${esc(fmt.pressure(trend.current, vm.units))}</span></li>` : ''}
+        ${streak.hours >= 6 ? `<li class="chip">${streak.capped ? '48h+' : `${streak.hours}h`} since rain</li>` : ''}
+        ${trend && trend.sensitive ? '<li class="chip chip-flag">Sharp pressure swing</li>' : ''}
+      </ul>
+    </div>
+  `;
+}
+
+/** Standalone panel form, kept for anyone rendering the briefing on its own. */
+export function renderBriefing(vm) {
+  const body = renderBriefingBody(vm);
+  if (!body) return '';
+  return `
     <header class="panel-head">
       <h2>The briefing</h2>
       <p class="panel-sub">Written from the raw forecast, not a press release.</p>
     </header>
-    <p class="briefing-text">${sentences.map((s) => esc(s)).join(' ')}</p>
-    <ul class="briefing-chips">
-      ${trend ? `<li class="chip">Pressure ${esc(trend.direction)} ${esc(trend.rate)}
-        <span>${esc(fmt.pressure(trend.current, vm.units))}</span></li>` : ''}
-      ${streak.hours >= 6 ? `<li class="chip">${streak.capped ? '48h+' : `${streak.hours}h`} since rain</li>` : ''}
-      ${trend && trend.sensitive ? '<li class="chip chip-flag">Sharp pressure swing — barometric sensitivity likely</li>' : ''}
-    </ul>
+    ${body}
   `;
 }
 

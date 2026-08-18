@@ -58,7 +58,32 @@ and the odds of a wet day. This is what makes "18°" mean something.
 **Your locations, ranked** — saved cities sorted by how pleasant it is to be
 outside in each of them right now.
 
-Keyboard: `/` search · `u` units · `r` refresh · `1`–`9` switch location.
+## Layout
+
+The page is a **hub plus five sections**, not one long scroll.
+
+The hub is always visible and never tabbed: active alerts, current conditions,
+today's high and low, how that compares with normal, an outdoor-comfort score,
+and the plain-language briefing. That is what almost every visit is actually
+asking, and it answers without scrolling.
+
+Everything else sits behind a tab bar that pins below the header as you scroll:
+
+| Section | Contents |
+|---|---|
+| **Today** | Hourly strip, condition detail tiles, air quality |
+| **Week** | 14-day outlook (pick a day to load it hour by hour in Today) |
+| **Radar** | Animated precipitation map |
+| **Plan** | Best-time-to activity windows, sun and moon |
+| **Almanac** | 20-year records, your locations ranked |
+
+Sections render lazily, so opening the page costs one section's work rather
+than ten panels', and the radar does not request a single map tile until you
+open it. The active section lives in the URL (`?view=radar`), so a shared link
+opens where it was shared from.
+
+Keyboard: `/` search · `u` units · `r` refresh · `1`–`9` location ·
+`←` `→` section.
 
 ## Architecture
 

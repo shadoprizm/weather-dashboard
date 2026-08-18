@@ -306,8 +306,8 @@ kbd {
 
 .panel {
   padding: 22px;
-  /* Keeps scrollIntoView from parking a panel under the sticky header. */
-  scroll-margin-top: 108px;
+  /* Keeps scrollIntoView from parking a panel under the sticky bars. */
+  scroll-margin-top: calc(var(--topbar-h, 104px) + 78px);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -381,7 +381,7 @@ kbd {
 
 /* ---------------------------------------------------------------- hero --- */
 
-.panel-hero { padding: 26px; }
+.panel-hero { padding: 22px 26px; }
 
 .hero-place {
   font-size: clamp(1.5rem, 3.4vw, 2rem);
@@ -397,14 +397,14 @@ kbd {
 .hero-body {
   display: flex; align-items: center; justify-content: space-between;
   gap: 28px; flex-wrap: wrap;
-  margin: 20px 0 4px;
+  margin: 14px 0 2px;
 }
 
 .hero-now { display: flex; align-items: center; gap: 18px; }
 .hero-icon { filter: drop-shadow(0 8px 20px rgba(0, 0, 0, .28)); }
 
 .hero-temp {
-  font-size: clamp(3.4rem, 10vw, 5.4rem);
+  font-size: clamp(3.2rem, 9vw, 4.8rem);
   font-weight: 250; line-height: .95; letter-spacing: -0.045em;
   font-variant-numeric: tabular-nums;
 }
@@ -457,7 +457,7 @@ kbd {
 
 .hero-stats {
   display: flex; flex-wrap: wrap; gap: 8px;
-  padding-top: 18px; margin-top: 14px;
+  padding-top: 14px; margin-top: 12px;
   border-top: 1px solid var(--border);
 }
 .hero-stat {
@@ -470,9 +470,60 @@ kbd {
 .stat-label { color: var(--text-dim); }
 .stat-value { font-weight: 600; font-variant-numeric: tabular-nums; }
 
+/* ---------------------------------------------------------------- tabs --- */
+
+.tabs {
+  /* Sticks BELOW the topbar, whose height varies with the saved-location row
+     and wraps on narrow screens, so main.js measures it into --topbar-h. */
+  position: sticky; top: calc(var(--topbar-h, 104px) + 8px); z-index: 30;
+  display: flex; gap: 2px; align-items: center;
+  padding: 5px;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-margin-top: 8px;
+}
+.tabs::-webkit-scrollbar { display: none; }
+
+.tab {
+  flex: 1 0 auto;
+  padding: 9px 18px;
+  font-size: 0.88rem; font-weight: 600; white-space: nowrap;
+  color: var(--text-dim);
+  background: none; border: 0; border-radius: 999px;
+  transition: color .16s ease, background .16s ease;
+}
+.tab:hover { color: var(--text); }
+.tab[aria-selected='true'] {
+  color: var(--text);
+  background: var(--surface-strong);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .18);
+}
+
+.views { margin-top: var(--gap); }
+
+.view {
+  display: flex; flex-direction: column; gap: var(--gap);
+  /* Clear both sticky bars when focused or scrolled to. */
+  scroll-margin-top: calc(var(--topbar-h, 104px) + 78px);
+}
+.view:focus { outline: none; }
+.view:focus-visible { outline: 2px solid var(--accent); outline-offset: 6px; border-radius: var(--radius); }
+.view[hidden] { display: none; }
+
 /* ------------------------------------------------------------ briefing --- */
 
-.briefing-text { font-size: 1.04rem; line-height: 1.62; max-width: 68ch; }
+/* Lives inside the hero card, between the readout and the stat chips. */
+.briefing {
+  padding-top: 14px; margin-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.briefing-text { font-size: 1rem; line-height: 1.6; max-width: 68ch; }
 
 .briefing-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .chip {
@@ -956,8 +1007,7 @@ body.is-loading .layout { opacity: .72; transition: opacity .2s ease; }
   .topbar-actions { margin-left: auto; }
   .places { padding: 0 14px 10px; }
   .layout { padding: 16px 14px 40px; }
-  /* The topbar is taller here because the search field wraps to its own row. */
-  .panel { padding: 17px; border-radius: 18px; scroll-margin-top: 168px; }
+  .panel { padding: 17px; border-radius: 18px; }
   .panel-hero { padding: 19px; }
 
   .hero-body { flex-direction: column; align-items: flex-start; }
@@ -972,6 +1022,10 @@ body.is-loading .layout { opacity: .72; transition: opacity .2s ease; }
 
   .compare-row { grid-template-columns: 18px 24px 1fr 48px 28px; }
   .c-meter { display: none; }
+
+  .tabs { border-radius: 16px; padding: 4px; top: calc(var(--topbar-h, 168px) + 6px); }
+  .tab { flex: 0 0 auto; padding: 8px 13px; font-size: 0.82rem; }
+
 
   .radar-viewport { height: 320px; }
   .radar-time { min-width: 96px; font-size: 0.76rem; }

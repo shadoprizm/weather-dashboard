@@ -71,38 +71,56 @@
   </header>
 
   <main id="main" class="layout">
+    <!-- The hub: what almost every visit is actually asking. Never tabbed. -->
     <section id="alerts" class="stack" aria-label="Alerts and watches"></section>
 
     <section id="hero" class="panel panel-hero" aria-label="Current conditions">
       <div class="skeleton skeleton-hero" aria-hidden="true"></div>
     </section>
 
-    <section id="briefing" class="panel" aria-label="Forecast briefing"></section>
+    <nav class="tabs" role="tablist" aria-label="Forecast sections">
+      <button class="tab" role="tab" id="tab-today" data-view="today"
+              aria-controls="view-today" aria-selected="true" tabindex="0">Today</button>
+      <button class="tab" role="tab" id="tab-week" data-view="week"
+              aria-controls="view-week" aria-selected="false" tabindex="-1">Week</button>
+      <button class="tab" role="tab" id="tab-radar" data-view="radar"
+              aria-controls="view-radar" aria-selected="false" tabindex="-1">Radar</button>
+      <button class="tab" role="tab" id="tab-plan" data-view="plan"
+              aria-controls="view-plan" aria-selected="false" tabindex="-1">Plan</button>
+      <button class="tab" role="tab" id="tab-almanac" data-view="almanac"
+              aria-controls="view-almanac" aria-selected="false" tabindex="-1">Almanac</button>
+    </nav>
 
-    <section id="hourly" class="panel" aria-label="Hourly forecast"></section>
+    <div class="views">
+      <div class="view" id="view-today" role="tabpanel" aria-labelledby="tab-today" tabindex="0">
+        <section id="hourly" class="panel" aria-label="Hourly forecast"></section>
+        <section id="details" class="panel" aria-label="Current conditions detail"></section>
+        <section id="air" class="panel" aria-label="Air quality"></section>
+      </div>
 
-    <section id="details" class="panel" aria-label="Current conditions detail"></section>
+      <div class="view" id="view-week" role="tabpanel" aria-labelledby="tab-week" tabindex="0" hidden>
+        <section id="daily" class="panel" aria-label="Extended forecast"></section>
+      </div>
 
-    <section id="daily" class="panel" aria-label="Extended forecast"></section>
+      <div class="view" id="view-radar" role="tabpanel" aria-labelledby="tab-radar" tabindex="0" hidden>
+        <section id="radar-panel" class="panel" aria-label="Precipitation radar">
+          <header class="panel-head">
+            <h2>Live radar</h2>
+            <p class="panel-sub">Drag to pan, scroll to zoom. Dotted frames are the nowcast.</p>
+          </header>
+          <div id="radar-mount"></div>
+        </section>
+      </div>
 
-    <section id="radar-panel" class="panel" aria-label="Precipitation radar">
-      <header class="panel-head">
-        <h2>Live radar</h2>
-        <p class="panel-sub">Drag to pan, scroll to zoom. Dotted frames are the nowcast.</p>
-      </header>
-      <div id="radar-mount"></div>
-    </section>
+      <div class="view" id="view-plan" role="tabpanel" aria-labelledby="tab-plan" tabindex="0" hidden>
+        <section id="activities" class="panel" aria-label="Activity planner"></section>
+        <section id="astro" class="panel" aria-label="Sun and moon"></section>
+      </div>
 
-    <section id="activities" class="panel" aria-label="Activity planner"></section>
-
-    <div class="panel-row">
-      <section id="astro" class="panel" aria-label="Sun and moon"></section>
-      <section id="air" class="panel" aria-label="Air quality"></section>
-    </div>
-
-    <div class="panel-row">
-      <section id="almanac" class="panel" aria-label="Almanac"></section>
-      <section id="compare" class="panel" aria-label="Your locations compared"></section>
+      <div class="view" id="view-almanac" role="tabpanel" aria-labelledby="tab-almanac" tabindex="0" hidden>
+        <section id="almanac" class="panel" aria-label="Almanac"></section>
+        <section id="compare" class="panel" aria-label="Your locations compared"></section>
+      </div>
     </div>
   </main>
 
@@ -119,7 +137,8 @@
       not official warnings. Always defer to your national weather service.
     </p>
     <p class="footer-keys">
-      <kbd>/</kbd> search · <kbd>u</kbd> units · <kbd>r</kbd> refresh · <kbd>1</kbd>–<kbd>9</kbd> switch location
+      <kbd>/</kbd> search · <kbd>u</kbd> units · <kbd>r</kbd> refresh ·
+      <kbd>1</kbd>–<kbd>9</kbd> location · <kbd>←</kbd><kbd>→</kbd> section
     </p>
   </footer>
 

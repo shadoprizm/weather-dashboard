@@ -157,6 +157,7 @@ const vm = {
 const rendered = {
   hero: views.renderHero(vm),
   briefing: views.renderBriefing(vm),
+  briefingBody: views.renderBriefingBody(vm),
   hourly: views.renderHourly(vm),
   details: views.renderDetails(vm),
   daily: views.renderDaily(vm),
@@ -177,6 +178,17 @@ for (const [name, markup] of Object.entries(rendered)) {
 }
 assert.ok(rendered.hero.includes('&lt;img'), 'hero did not escape place name');
 assert.ok(rendered.briefing.includes('&lt;img'), 'briefing did not escape place name');
+
+// The hub is one card: the hero carries the briefing rather than it being a
+// separate panel the user has to scroll past.
+assert.ok(rendered.hero.includes('briefing-text'), 'hero must embed the briefing');
+assert.ok(
+  rendered.hero.includes(rendered.briefingBody.trim().slice(0, 60)),
+  'hero must embed the same briefing body that renders standalone'
+);
+// The standalone panel form keeps its heading; the embedded form must not.
+assert.ok(rendered.briefing.includes('The briefing'));
+assert.ok(!rendered.briefingBody.includes('panel-head'), 'embedded briefing must not carry panel chrome');
 
 // Alert providers hand over different amounts of detail; both shapes must render.
 const vmEccc = { ...vm, alerts: { alerts: [{

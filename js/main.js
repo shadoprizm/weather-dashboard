@@ -14,7 +14,7 @@ import { weatherIcon } from './icons.js';
 import { hourlySeries, dailySeries, upcoming } from './insights.js';
 import { createRadarMap } from './radar.js';
 import {
-  renderHero, renderBriefing, renderHourly, renderDetails, renderDaily, errorPanel,
+  renderHero, renderHourly, renderDetails, renderDaily, errorPanel,
 } from './views/forecast.js';
 import {
   renderAlerts, renderActivities, renderAstro, renderAir, renderAlmanac, renderCompare,
@@ -22,6 +22,38 @@ import {
 
 const REFRESH_MS = 10 * 60 * 1000;
 const MAX_COMPARISONS = 8;
+
+/**
+ * Sections behind the tab bar.
+ *
+ * The hub above them — alerts and the hero, which now carries the briefing —
+ * is never tabbed: it answers the question almost every visit is actually
+ * asking, and hiding it behind a click would trade one problem for a worse
+ * one. Everything here is rendered lazily, so opening the page costs one
+ * view's worth of work instead of ten panels', and the radar does not fetch a
+ * single map tile until you ask for it.
+ */
+const VIEWS = {
+  today: ['hourly', 'details', 'air'],
+  week: ['daily'],
+  radar: [],
+  plan: ['activities', 'astro'],
+  almanac: ['almanac', 'compare'],
+};
+
+const VIEW_ORDER = Object.keys(VIEWS);
+const DEFAULT_VIEW = 'today';
+
+const RENDERERS = {
+  hourly: renderHourly,
+  details: renderDetails,
+  air: renderAir,
+  daily: renderDaily,
+  activities: renderActivities,
+  astro: renderAstro,
+  almanac: renderAlmanac,
+  compare: renderCompare,
+};
 
 const session = {
   place: null,
@@ -33,6 +65,9 @@ const session = {
   selectedDay: null,
   radar: null,
   loading: false,
+  view: DEFAULT_VIEW,
+  // Views already painted for the current data; cleared whenever it changes.
+  painted: new Set(),
 };
 
 /* ------------------------------------------------------------ view model */
@@ -88,22 +123,65 @@ function buildViewModel() {
 
 function render() {
   if (!session.data) return;
+
+  // New data or new units invalidate every painted view.
+  session.painted.clear();
+
   const vm = buildViewModel();
-
   setHTML('#hero', renderHero(vm));
-  setHTML('#briefing', renderBriefing(vm));
-  setHTML('#hourly', renderHourly(vm));
-  setHTML('#details', renderDetails(vm));
-  setHTML('#daily', renderDaily(vm));
   setHTML('#alerts', renderAlerts(vm));
-  setHTML('#activities', renderActivities(vm));
-  setHTML('#astro', renderAstro(vm));
-  setHTML('#air', renderAir(vm));
-  setHTML('#almanac', renderAlmanac(vm));
-  setHTML('#compare', renderCompare(vm));
 
+  paintView();
   applySky(vm);
   renderPlaces();
+}
+
+/** Render the active view's panels, once per data revision. */
+function paintView() {
+  if (!session.data) return;
+  const view = session.view;
+
+  if (view === 'radar') {
+    mountRadar(session.place);
+    return;
+  }
+
+  if (session.painted.has(view)) return;
+  const vm = buildViewModel();
+  for (const id of VIEWS[view]) {
+    setHTML(`#${id}`, RENDERERS[id](vm));
+  }
+  session.painted.add(view);
+}
+
+/** Repaint one panel in place if its view is currently painted. */
+function refreshPanel(id) {
+  if (!session.data) return;
+  const owner = VIEW_ORDER.find((view) => VIEWS[view].includes(id));
+  if (!owner || !session.painted.has(owner)) return;
+  setHTML(`#${id}`, RENDERERS[id](buildViewModel()));
+}
+
+function setView(view, { focusPanel = false } = {}) {
+  if (!VIEWS[view] || view === session.view) {
+    if (view === session.view && focusPanel) $(`#view-${view}`).focus();
+    return;
+  }
+
+  session.view = view;
+
+  for (const name of VIEW_ORDER) {
+    const tab = $(`#tab-${name}`);
+    const panel = $(`#view-${name}`);
+    const active = name === view;
+    tab.setAttribute('aria-selected', String(active));
+    tab.tabIndex = active ? 0 : -1;
+    panel.hidden = !active;
+  }
+
+  paintView();
+  syncUrl(session.place);
+  if (focusPanel) $(`#view-${view}`).focus();
 }
 
 /** Drive the page gradient and the auto light/dark decision from the sky. */
@@ -169,7 +247,9 @@ async function loadPlace(place, { silent = false } = {}) {
     session.almanac = null;
     render();
     syncUrl(place);
-    mountRadar(place);
+    // The radar map is mounted by paintView() when its tab is opened; if it is
+    // already on screen, just recentre it.
+    if (session.radar) session.radar.setCenter(place.latitude, place.longitude);
     loadSecondary(place);
   } catch (error) {
     setHTML('#hero', errorPanel(`Could not load the forecast: ${error.message}`));
@@ -195,16 +275,15 @@ function loadSecondary(place) {
   api.soft(api.fetchAlmanac(place.latitude, place.longitude, localDate)).then((almanac) => {
     if (session.place !== place || !almanac) return;
     session.almanac = almanac;
-    const vm = buildViewModel();
-    setHTML('#almanac', renderAlmanac(vm));
-    setHTML('#hero', renderHero(vm));
+    setHTML('#hero', renderHero(buildViewModel()));
+    refreshPanel('almanac');
   });
 
   if (!session.space) {
     api.soft(api.fetchSpaceWeather()).then((space) => {
       if (!space) return;
       session.space = space;
-      if (session.data) setHTML('#astro', renderAstro(buildViewModel()));
+      refreshPanel('astro');
     });
   }
 
@@ -224,7 +303,7 @@ async function loadComparisons() {
 
   session.comparisons = results.filter((entry) => entry.data);
   if (session.data) {
-    setHTML('#compare', renderCompare(buildViewModel()));
+    refreshPanel('compare');
     renderPlaces();
   }
 }
@@ -252,9 +331,16 @@ function mountRadar(place) {
 
 function syncUrl(place) {
   const url = new URL(window.location.href);
-  url.searchParams.set('lat', place.latitude.toFixed(4));
-  url.searchParams.set('lon', place.longitude.toFixed(4));
-  url.searchParams.set('name', place.name);
+
+  // setView() can run before the first forecast has loaded, so the place is
+  // optional here; the location params are filled in once it arrives.
+  if (place) {
+    url.searchParams.set('lat', place.latitude.toFixed(4));
+    url.searchParams.set('lon', place.longitude.toFixed(4));
+    url.searchParams.set('name', place.name);
+  }
+  if (session.view && session.view !== DEFAULT_VIEW) url.searchParams.set('view', session.view);
+  else url.searchParams.delete('view');
   window.history.replaceState(null, '', url);
 }
 
@@ -383,18 +469,42 @@ document.addEventListener('click', (event) => {
   if (action === 'select-day') {
     const day = trigger.dataset.day;
     session.selectedDay = session.selectedDay === day ? null : day;
-    const vm = buildViewModel();
-    setHTML('#hourly', renderHourly(vm));
-    setHTML('#daily', renderDaily(vm));
-    $('#hourly').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // The hourly strip lives in Today, so picking a day in Week hops there.
+    session.painted.delete('today');
+    session.painted.delete('week');
+    setView('today');
+    paintView();
   }
 
   if (action === 'clear-day') {
     session.selectedDay = null;
-    const vm = buildViewModel();
-    setHTML('#hourly', renderHourly(vm));
-    setHTML('#daily', renderDaily(vm));
+    session.painted.delete('today');
+    session.painted.delete('week');
+    paintView();
   }
+});
+
+const tablist = $('.tabs');
+
+tablist.addEventListener('click', (event) => {
+  const tab = event.target.closest('[data-view]');
+  if (tab) setView(tab.dataset.view);
+});
+
+// Standard tablist keyboard model: arrows move between tabs, Home/End jump.
+tablist.addEventListener('keydown', (event) => {
+  const index = VIEW_ORDER.indexOf(session.view);
+  let next = null;
+
+  if (event.key === 'ArrowRight') next = VIEW_ORDER[(index + 1) % VIEW_ORDER.length];
+  else if (event.key === 'ArrowLeft') next = VIEW_ORDER[(index - 1 + VIEW_ORDER.length) % VIEW_ORDER.length];
+  else if (event.key === 'Home') next = VIEW_ORDER[0];
+  else if (event.key === 'End') next = VIEW_ORDER[VIEW_ORDER.length - 1];
+
+  if (!next) return;
+  event.preventDefault();
+  setView(next);
+  $(`#tab-${next}`).focus();
 });
 
 $('#refresh').addEventListener('click', () => {
@@ -452,6 +562,9 @@ $('#geolocate').addEventListener('click', () => {
 document.addEventListener('keydown', (event) => {
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName);
   if (typing || event.metaKey || event.ctrlKey || event.altKey) return;
+  // The tab bar runs the standard roving-focus model itself; without this the
+  // global shortcut fires too and each press skips two sections.
+  if (event.target.closest('.tabs')) return;
 
   if (event.key === '/') { event.preventDefault(); searchInput.focus(); }
   if (event.key === 'r') { event.preventDefault(); if (session.place) loadPlace(session.place, { silent: true }); }
@@ -461,11 +574,42 @@ document.addEventListener('keydown', (event) => {
     syncUnitButtons();
     render();
   }
+  if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+    const index = VIEW_ORDER.indexOf(session.view);
+    const step = event.key === 'ArrowRight' ? 1 : -1;
+    setView(VIEW_ORDER[(index + step + VIEW_ORDER.length) % VIEW_ORDER.length]);
+    return;
+  }
   if (/^[1-9]$/.test(event.key)) {
     const place = state.getState().locations[Number(event.key) - 1];
     if (place) { state.setActive(place.id); loadPlace(place); }
   }
 });
+
+/* ------------------------------------------------------- sticky offsets */
+
+/**
+ * Publish the topbar's height so the tab bar can stick directly beneath it.
+ * It changes with the saved-location row and wraps on narrow screens, so a
+ * hardcoded offset would leave the tabs sliding under the header.
+ */
+function syncTopbarOffset() {
+  const topbar = document.querySelector('.topbar');
+  if (!topbar) return;
+  const height = Math.round(topbar.getBoundingClientRect().height);
+  document.documentElement.style.setProperty('--topbar-h', `${height}px`);
+}
+
+let offsetFrame = null;
+function scheduleOffsetSync() {
+  cancelAnimationFrame(offsetFrame);
+  offsetFrame = requestAnimationFrame(syncTopbarOffset);
+}
+
+window.addEventListener('resize', scheduleOffsetSync);
+if ('ResizeObserver' in window) {
+  new ResizeObserver(scheduleOffsetSync).observe(document.querySelector('.topbar'));
+}
 
 /* ------------------------------------------------------------- toast */
 
@@ -480,9 +624,23 @@ function toast(message) {
 
 /* ------------------------------------------------------------- startup */
 
+function viewFromUrl() {
+  const requested = new URLSearchParams(window.location.search).get('view');
+  return VIEWS[requested] ? requested : DEFAULT_VIEW;
+}
+
 function start() {
   syncUnitButtons();
   renderPlaces();
+  syncTopbarOffset();
+
+  // Restore the section from the URL before the first paint, so a shared
+  // link opens on the section it was shared from.
+  const initialView = viewFromUrl();
+  if (initialView !== DEFAULT_VIEW) {
+    session.view = DEFAULT_VIEW;
+    setView(initialView);
+  }
 
   const deepLink = placeFromUrl();
   const place = deepLink ? state.addLocation(deepLink) : state.getActiveLocation();
@@ -495,7 +653,7 @@ function start() {
     }
   }, REFRESH_MS);
 
-  // The hero shows a local clock; nudge it every minute so it stays honest.
+  // The hero shows a live local clock; nudge it every minute so it stays honest.
   setInterval(() => {
     if (session.data) setHTML('#hero', renderHero(buildViewModel()));
   }, 60000);
