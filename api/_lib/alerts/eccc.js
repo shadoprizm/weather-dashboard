@@ -236,6 +236,25 @@ function severityOf(type, priority, description) {
   return byPriority[String(priority).toLowerCase()] || 'Unknown';
 }
 
+const MINOR_WORDS = new Set(['a', 'an', 'and', 'de', 'des', 'for', 'in', 'of', 'or', 'the', 'to']);
+
+/**
+ * ECCC writes some event descriptions in caps ("YELLOW WARNING - AIR
+ * QUALITY") and others in sentence case ("Rainfall warning"). Shouting looks
+ * wrong on a card, so all-caps titles get title-cased; anything already mixed
+ * case is left exactly as the agency wrote it.
+ */
+function titleCase(value) {
+  const text = String(value || '').trim();
+  if (!text || text !== text.toUpperCase()) return text;
+
+  return text
+    .toLowerCase()
+    .replace(/[\p{L}\p{N}']+/gu, (word, offset) =>
+      offset > 0 && MINOR_WORDS.has(word) ? word : word.charAt(0).toUpperCase() + word.slice(1)
+    );
+}
+
 /** ECCC stamps times as YYYYMMDDHHMMSS; the eventIssue block is UTC. */
 function timeStampToIso(stamp) {
   const match = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})?$/.exec(String(stamp || '').trim());
@@ -255,7 +274,7 @@ function parseWarnings(xml, site) {
 
   for (const event of findTags(warnings.inner, 'event')) {
     const { type, priority, description } = event.attributes;
-    const title = description || type;
+    const title = titleCase(description || type);
     if (!title) continue;
 
     const severity = severityOf(type, priority, description);
@@ -398,5 +417,5 @@ module.exports = {
   fetchAlerts,
   diagnose,
   // Exported for the test suite and the live verification script.
-  _internals: { parseSiteList, parseWarnings, nearestSite, severityOf, timeStampToIso, distanceKm, SITE_LIST, ROOTS, siteListUrl, hourDirUrl, SITE_DOC_PATTERN, findSiteDocument },
+  _internals: { parseSiteList, parseWarnings, nearestSite, severityOf, timeStampToIso, distanceKm, SITE_LIST, ROOTS, siteListUrl, hourDirUrl, SITE_DOC_PATTERN, findSiteDocument, titleCase },
 };

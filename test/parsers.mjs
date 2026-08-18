@@ -239,4 +239,27 @@ assert.equal([...LISTING.matchAll(SITE_DOC_PATTERN('s9999999'))].length, 0);
 // The legacy root stays as a fallback in case the move is reverted.
 assert.ok(ROOTS.some((r) => !r.includes('/today/')), 'legacy root must remain a fallback');
 
-console.log('Datamart root fallback checks passed.');
+/* --------------------------------------------------- ECCC title casing */
+// A real production alert: ECCC shouts some descriptions and not others.
+const { titleCase } = eccc._internals;
+assert.equal(titleCase('YELLOW WARNING - AIR QUALITY'), 'Yellow Warning - Air Quality');
+assert.equal(titleCase('SEVERE THUNDERSTORM WATCH'), 'Severe Thunderstorm Watch');
+// Minor words stay lowercase, except when they lead.
+assert.equal(titleCase('RISK OF FROST'), 'Risk of Frost');
+assert.equal(titleCase('THE RIDGE'), 'The Ridge');
+// Already-cased text is the agency's wording; leave it alone.
+assert.equal(titleCase('Rainfall warning'), 'Rainfall warning');
+assert.equal(titleCase('Snow squall watch'), 'Snow squall watch');
+assert.equal(titleCase(''), '');
+assert.equal(titleCase(null), '');
+// Accented characters survive, and French minor words stay lowercase.
+assert.equal(titleCase('AVERTISSEMENT DE CHALEUR À MONTRÉAL'), 'Avertissement de Chaleur À Montréal');
+
+// The parser must apply it end to end.
+const shouty = parseWarnings(
+  '<warnings url="https://x.test/a"><event type="warning" priority="high" description="YELLOW WARNING - AIR QUALITY"/></warnings>',
+  site
+);
+assert.equal(shouty[0].event, 'Yellow Warning - Air Quality');
+
+console.log('Datamart root fallback and title-casing checks passed.');

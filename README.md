@@ -121,7 +121,7 @@ responses, and means no third party sees your visitors' IP addresses.
 
 | Region | Provider | How |
 |---|---|---|
-| Canada | Environment and Climate Change Canada | Nearest citypage site's `<warnings>` block |
+| Canada | Environment and Climate Change Canada | Nearest site's citypage document, discovered from the Datamart |
 | United States | National Weather Service | Point-queryable GeoJSON alerts API |
 | Everywhere else | — | Locally computed watches only |
 
@@ -132,13 +132,27 @@ onset, expires, area, sender, url, source }`. `alerts/index.js` queries every
 provider whose bounds contain the point, concurrently, and merges the results.
 Adding a country is one module plus one line in the registry.
 
-**How the Canadian lookup works.** ECCC has no point-queryable alert API.
-Warnings ship either as CAP XML in a date/office/hour directory tree on the
-MSC Datamart — which would mean crawling directories and testing polygons on
-every request — or inside the per-site citypage XML. SkyWatch uses the
-citypage route: it fetches `site_list_en.csv` once a week, finds the nearest
-of the ~880 named sites, and reads the `<warnings>` block from that site's
-document. Two cacheable requests instead of a crawl.
+**How the Canadian lookup works.** ECCC has no point-queryable alert API, and
+the Datamart layout is not what its own documentation describes — the paths
+below were established by probing the live service. Warnings ship either as
+CAP XML in a date/office/hour tree, or inside the per-site citypage documents.
+SkyWatch uses the citypage route:
+
+1. `today/citypage_weather/docs/site_list_en.csv` — ~844 named sites with
+   coordinates, cached for a week.
+2. Find the nearest site to your point.
+3. Per-site documents are **not addressable by site code**. They live under
+   `today/citypage_weather/{PROV}/{HH}/` with timestamped filenames like
+   `20260818T013045.101Z_MSC_CitypageWeather_s0000430_en.xml`, so the filename
+   has to be discovered from the hour's directory listing rather than
+   constructed. The resolver walks back from the current UTC hour until the
+   site turns up, and takes the newest revision. Listings are cached for five
+   minutes and amortise across every site in a province.
+4. Read the `<warnings>` block from that document.
+
+Because MSC has already moved this tree once (everything gained a `/today/`
+prefix), the root is resolved from a candidate list rather than hardcoded, and
+the legacy path remains a fallback.
 
 Two consequences worth knowing:
 
@@ -149,7 +163,8 @@ Two consequences worth knowing:
 - Border cities legitimately match both providers. Detroit sits 5 km from
   Windsor, so you may see an ECCC warning next to an NWS one. Each card is
   labelled with its source and area, and that cross-border view is usually
-  what you want.
+  what you want. NWS answers an out-of-area point with HTTP 400 rather than an
+  empty list, which the registry treats as coverage information, not a fault.
 
 The citypage feed carries the warning headline and a link to the full
 bulletin, not the bulletin text, so Canadian alerts render as a headline plus
