@@ -445,12 +445,28 @@ async function space() {
 
 /* ----------------------------------------------------------------- health */
 
-async function health() {
-  return {
-    status: 200,
-    body: { status: 'ok', cache: cache.stats(), time: new Date().toISOString() },
-    maxAge: 0,
-  };
+/**
+ * Liveness, plus an optional alert-provider probe.
+ *
+ * `/api/health?probe=1&lat=&lon=` reports what each alert provider can
+ * actually see, which is the only way to tell "no warnings in effect" apart
+ * from "the upstream feed broke" -- they return identical alert lists.
+ */
+async function health(query = {}) {
+  const body = { status: 'ok', cache: cache.stats(), time: new Date().toISOString() };
+
+  if (query.probe) {
+    const lat = Number.parseFloat(query.lat);
+    const lon = Number.parseFloat(query.lon);
+    const point = Number.isFinite(lat) && Number.isFinite(lon)
+      ? { lat, lon }
+      : { lat: 45.4215, lon: -75.6972 };
+
+    body.point = point;
+    body.alertProviders = await alertRegistry.diagnose(point.lat, point.lon);
+  }
+
+  return { status: 200, body, maxAge: 0 };
 }
 
 module.exports = {

@@ -213,6 +213,50 @@ function parseWarnings(xml, site) {
   return alerts;
 }
 
+/**
+ * Report what this provider can actually see right now.
+ *
+ * "No alerts" and "the feed broke" look identical from the outside, which is
+ * exactly the failure a silent provider produces. This distinguishes them.
+ * It reuses the cached site list rather than refetching, so it reports the
+ * state the app is really operating on and cannot be used to amplify traffic
+ * at the upstream.
+ */
+async function diagnose(lat, lon) {
+  const started = Date.now();
+  const inBounds = covers(lat, lon);
+  const sites = await loadSites();
+  const site = sites && sites.length ? nearestSite(sites, lat, lon) : null;
+
+  let citypage = null;
+  let parsed = null;
+
+  if (site) {
+    const xml = await fetchTextSoft(CITYPAGE(site.province, site.code), null, { timeoutMs: 12000 });
+    citypage = xml
+      ? {
+          ok: true,
+          bytes: xml.length,
+          hasWarningsElement: /<warnings/i.test(xml),
+          eventElements: (xml.match(/<event\b/gi) || []).length,
+        }
+      : { ok: false };
+    if (xml) parsed = parseWarnings(xml, site);
+  }
+
+  return {
+    provider: 'ECCC',
+    inBounds,
+    siteList: { ok: Boolean(sites && sites.length), parsedSites: sites ? sites.length : 0 },
+    nearestSite: site
+      ? { name: site.name, province: site.province, code: site.code, distanceKm: Number(site.distanceKm.toFixed(1)) }
+      : null,
+    citypage,
+    activeAlerts: parsed ? parsed.length : 0,
+    ms: Date.now() - started,
+  };
+}
+
 /* ---------------------------------------------------------------- public */
 
 async function fetchAlerts(lat, lon) {
@@ -233,6 +277,7 @@ module.exports = {
   label: 'Environment and Climate Change Canada',
   covers,
   fetchAlerts,
+  diagnose,
   // Exported for the test suite and the live verification script.
   _internals: { parseSiteList, parseWarnings, nearestSite, severityOf, timeStampToIso, distanceKm, SITE_LIST, CITYPAGE },
 };

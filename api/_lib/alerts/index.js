@@ -53,4 +53,20 @@ async function collect(lat, lon) {
   };
 }
 
-module.exports = { collect, PROVIDERS, SEVERITY_RANK };
+/** Run every provider's self-check for a point. Used by /api/health?probe=1. */
+async function diagnose(lat, lon) {
+  return Promise.all(
+    PROVIDERS.map(async (provider) => {
+      if (typeof provider.diagnose !== 'function') {
+        return { provider: provider.id, inBounds: provider.covers(lat, lon), diagnostics: 'not implemented' };
+      }
+      try {
+        return await provider.diagnose(lat, lon);
+      } catch (error) {
+        return { provider: provider.id, error: error.message };
+      }
+    })
+  );
+}
+
+module.exports = { collect, diagnose, PROVIDERS, SEVERITY_RANK };

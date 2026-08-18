@@ -49,4 +49,26 @@ async function fetchAlerts(lat, lon) {
     }));
 }
 
-module.exports = { id: 'NWS', label: 'US National Weather Service', covers, fetchAlerts };
+/** Counterpart to the ECCC probe: prove the feed is reachable, not just quiet. */
+async function diagnose(lat, lon) {
+  const started = Date.now();
+  const inBounds = covers(lat, lon);
+
+  const data = inBounds
+    ? await fetchJsonSoft(
+        buildUrl(ENDPOINT, { point: `${lat},${lon}`, status: 'actual' }),
+        null,
+        { headers: { Accept: 'application/geo+json' } }
+      )
+    : null;
+
+  return {
+    provider: 'NWS',
+    inBounds,
+    endpoint: inBounds ? { ok: Boolean(data), features: data && Array.isArray(data.features) ? data.features.length : 0 } : null,
+    activeAlerts: data && Array.isArray(data.features) ? data.features.length : 0,
+    ms: Date.now() - started,
+  };
+}
+
+module.exports = { id: 'NWS', label: 'US National Weather Service', covers, fetchAlerts, diagnose };

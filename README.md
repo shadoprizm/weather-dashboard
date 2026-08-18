@@ -165,7 +165,18 @@ npm run verify                    # defaults to Ottawa
 npm run verify -- 43.65 -79.38    # any lat/lon
 ```
 
-It checks every field the UI reads, confirms a radar tile actually renders at
+There is also a probe on the live service itself:
+
+```
+/api/health?probe=1&lat=45.42&lon=-75.70
+```
+
+It reports, per provider, whether the upstream is reachable, how many ECCC
+sites parsed, which site your point resolved to and how far away it is. This
+matters because "no warnings in effect" and "the feed broke" both return an
+empty alert list — the probe is what tells them apart.
+
+The offline verifier checks every field the UI reads, confirms a radar tile actually renders at
 the URL template the app builds, and exits non-zero if a required assumption
 broke. Optional providers only warn, because the app already degrades
 gracefully when they are down. Worth running after any upstream outage, or on
@@ -183,6 +194,7 @@ a schedule.
 | `GET /api/almanac?lat=&lon=&date=` | 20-year normals and records | 24 h |
 | `GET /api/space` | Planetary K index | 15 min |
 | `GET /api/health` | Health and cache stats | — |
+| `GET /api/health?probe=1&lat=&lon=` | Alert-provider self-check | — |
 
 ## Deploying
 
