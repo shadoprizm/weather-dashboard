@@ -252,6 +252,31 @@ function parseWarnings(xml, site) {
 }
 
 /**
+ * MSC has reorganised this tree before, so when the expected per-site
+ * document is missing we probe the plausible layouts and report what each
+ * one returns. Directory listings come back with a body snippet so the real
+ * filename convention is visible rather than guessed at.
+ */
+async function probeLayouts(root, site) {
+  if (!root || !site) return undefined;
+  const hour = String(new Date().getUTCHours()).padStart(2, '0');
+  const prev = String((new Date().getUTCHours() + 23) % 24).padStart(2, '0');
+
+  const candidates = [
+    `${root}/${site.province}/${site.code}_e.xml`,
+    `${root}/${site.province}/${hour}/`,
+    `${root}/${site.province}/${prev}/`,
+    `${root}/xml/${site.province}/${hour}/`,
+    `${root}/`,
+  ];
+
+  return Promise.all(candidates.map(async (url) => ({
+    url,
+    ...(await probeUrl(url, { keepBody: 700, timeoutMs: 8000 })),
+  })));
+}
+
+/**
  * Report what this provider can actually see right now.
  *
  * "No alerts" and "the feed broke" look identical from the outside, which is
@@ -288,7 +313,7 @@ async function diagnose(lat, lon) {
           hasWarningsElement: /<warnings/i.test(xml),
           eventElements: (xml.match(/<event\b/gi) || []).length,
         }
-      : { ok: false, url, probe: await probeUrl(url) };
+      : { ok: false, url, probe: await probeUrl(url), layouts: await probeLayouts(root, site) };
     if (xml) parsed = parseWarnings(xml, site);
   }
 

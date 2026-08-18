@@ -107,7 +107,7 @@ async function fetchTextSoft(url, fallback = null, options) {
  * cannot break a page. That is right for serving traffic and useless for
  * debugging, so the health probe uses this instead.
  */
-async function probeUrl(url, { timeoutMs = 12000, headers = {} } = {}) {
+async function probeUrl(url, { timeoutMs = 12000, headers = {}, keepBody = 0 } = {}) {
   const started = Date.now();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -125,7 +125,7 @@ async function probeUrl(url, { timeoutMs = 12000, headers = {} } = {}) {
       bytes: body.length,
       contentType: response.headers.get('content-type'),
       // A rejection page is usually short and explains itself.
-      snippet: response.ok ? undefined : body.slice(0, 300),
+      snippet: response.ok ? (keepBody ? body.slice(0, keepBody) : undefined) : body.slice(0, 300),
       ms: Date.now() - started,
     };
   } catch (error) {
