@@ -6,7 +6,7 @@
  * The easy case: a public, key-free, point-queryable GeoJSON API.
  */
 
-const { fetchJsonSoft, buildUrl } = require('../upstream');
+const { fetchJsonSoft, buildUrl, probeUrl } = require('../upstream');
 
 const ENDPOINT = 'https://api.weather.gov/alerts/active';
 
@@ -62,10 +62,22 @@ async function diagnose(lat, lon) {
       )
     : null;
 
+  const url = buildUrl(ENDPOINT, { point: `${lat},${lon}`, status: 'actual' });
+  const failureProbe = (inBounds && !data)
+    ? await probeUrl(url, { headers: { Accept: 'application/geo+json' } })
+    : null;
+
   return {
     provider: 'NWS',
     inBounds,
-    endpoint: inBounds ? { ok: Boolean(data), features: data && Array.isArray(data.features) ? data.features.length : 0 } : null,
+    endpoint: inBounds
+      ? {
+          ok: Boolean(data),
+          features: data && Array.isArray(data.features) ? data.features.length : 0,
+          url,
+          probe: failureProbe || undefined,
+        }
+      : null,
     activeAlerts: data && Array.isArray(data.features) ? data.features.length : 0,
     ms: Date.now() - started,
   };

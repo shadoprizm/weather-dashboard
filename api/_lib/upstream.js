@@ -100,6 +100,47 @@ async function fetchTextSoft(url, fallback = null, options) {
   }
 }
 
+/**
+ * Diagnostic fetch: never throws, and reports WHY it failed.
+ *
+ * The soft-fetch helpers deliberately swallow errors so one flaky provider
+ * cannot break a page. That is right for serving traffic and useless for
+ * debugging, so the health probe uses this instead.
+ */
+async function probeUrl(url, { timeoutMs = 12000, headers = {} } = {}) {
+  const started = Date.now();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: { 'User-Agent': USER_AGENT, ...headers },
+    });
+    const body = await response.text();
+
+    return {
+      ok: response.ok,
+      status: response.status,
+      bytes: body.length,
+      contentType: response.headers.get('content-type'),
+      // A rejection page is usually short and explains itself.
+      snippet: response.ok ? undefined : body.slice(0, 300),
+      ms: Date.now() - started,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: null,
+      error: `${error.name}: ${error.message}`,
+      cause: error.cause ? String(error.cause.code || error.cause.message || error.cause) : undefined,
+      ms: Date.now() - started,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function buildUrl(base, params) {
   const url = new URL(base);
   for (const [key, value] of Object.entries(params)) {
@@ -110,6 +151,6 @@ function buildUrl(base, params) {
 }
 
 module.exports = {
-  fetchJson, fetchJsonSoft, fetchText, fetchTextSoft,
+  fetchJson, fetchJsonSoft, fetchText, fetchTextSoft, probeUrl,
   buildUrl, UpstreamError, USER_AGENT,
 };

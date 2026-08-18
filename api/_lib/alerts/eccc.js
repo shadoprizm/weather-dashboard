@@ -23,7 +23,7 @@
  * `nearestSite` refuses beyond MAX_SITE_DISTANCE_KM.
  */
 
-const { fetchTextSoft } = require('../upstream');
+const { fetchTextSoft, probeUrl } = require('../upstream');
 const { findTags, findTag, textOf } = require('../xml');
 const cache = require('../cache');
 
@@ -228,6 +228,9 @@ async function diagnose(lat, lon) {
   const sites = await loadSites();
   const site = sites && sites.length ? nearestSite(sites, lat, lon) : null;
 
+  // When the list is empty, go straight at the URL to find out why.
+  const siteListProbe = (!sites || !sites.length) ? await probeUrl(SITE_LIST) : null;
+
   let citypage = null;
   let parsed = null;
 
@@ -247,7 +250,12 @@ async function diagnose(lat, lon) {
   return {
     provider: 'ECCC',
     inBounds,
-    siteList: { ok: Boolean(sites && sites.length), parsedSites: sites ? sites.length : 0 },
+    siteList: {
+      ok: Boolean(sites && sites.length),
+      parsedSites: sites ? sites.length : 0,
+      url: SITE_LIST,
+      probe: siteListProbe || undefined,
+    },
     nearestSite: site
       ? { name: site.name, province: site.province, code: site.code, distanceKm: Number(site.distanceKm.toFixed(1)) }
       : null,
