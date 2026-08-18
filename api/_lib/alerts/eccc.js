@@ -107,12 +107,26 @@ function parseSiteList(csv) {
   return sites;
 }
 
-function loadSites() {
-  // A week: the list is near-static, and a stale entry only costs one 404.
-  return cache.memo('eccc:sites', 7 * 86400, async () => {
-    const csv = await fetchTextSoft(SITE_LIST, null, { timeoutMs: 15000 });
-    return parseSiteList(csv);
-  });
+const SITES_TTL_OK = 7 * 86400;   // the list is near-static
+const SITES_TTL_FAIL = 60;        // do not let one bad fetch blind us for a week
+
+/**
+ * The site list, cached.
+ *
+ * Success is cached for a week. Failure is cached for a minute: caching an
+ * empty list for the success TTL would mean a single transient outage
+ * silently disabled Canadian alerts long after the upstream recovered, while
+ * still absorbing a burst of retries.
+ */
+async function loadSites() {
+  const cached = cache.get('eccc:sites');
+  if (cached && cached.length) return cached;
+  if (cached) return cached; // a recent failure; the short TTL will expire it
+
+  const csv = await fetchTextSoft(SITE_LIST, null, { timeoutMs: 15000 });
+  const sites = parseSiteList(csv);
+  cache.set('eccc:sites', sites, sites.length ? SITES_TTL_OK : SITES_TTL_FAIL);
+  return sites;
 }
 
 const EARTH_RADIUS_KM = 6371;
