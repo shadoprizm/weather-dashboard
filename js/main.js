@@ -1,5 +1,5 @@
 /**
- * SkyWatch — application shell.
+ * WeatherView — application shell.
  *
  * Owns data loading, state wiring and render orchestration. The views stay
  * pure; everything that touches the network, the DOM or the URL lives here.
@@ -11,7 +11,7 @@ import * as fmt from './format.js';
 import { esc, $, delegate, setHTML } from './dom.js';
 import { skyTheme } from './wmo.js';
 import { weatherIcon } from './icons.js';
-import { hourlySeries, dailySeries, upcoming } from './insights.js';
+import { buildViewModel as toViewModel } from './viewmodel.js';
 import { createRadarMap } from './radar.js';
 import {
   renderHero, renderHourly, renderDetails, renderDaily, errorPanel,
@@ -22,6 +22,27 @@ import {
 
 const REFRESH_MS = 10 * 60 * 1000;
 const MAX_COMPARISONS = 8;
+
+/**
+ * What the server already knows about this page.
+ *
+ * City pages under `/weather/` arrive fully rendered, with a JSON block saying
+ * which place they are showing and which section is open. Reading it means
+ * hydration continues the page rather than restarting it: no flash of a
+ * different location, no bounce back to the default view, and the clean URL
+ * survives because the app stops appending `?lat=&lon=` to it.
+ */
+function readBootstrap() {
+  const node = document.getElementById('wv-bootstrap');
+  if (!node) return { page: 'app' };
+  try {
+    return JSON.parse(node.textContent) || { page: 'app' };
+  } catch (error) {
+    return { page: 'app' };
+  }
+}
+
+const page = readBootstrap();
 
 /**
  * Sections behind the tab bar.
@@ -70,56 +91,24 @@ const session = {
   painted: new Set(),
 };
 
-/* ------------------------------------------------------------ view model */
-
-/** Locate "now" in the hourly array, falling back to the nearest hour. */
-function resolveNowIndex(data, series) {
-  if (data.index && data.index.hourly >= 0) return data.index.hourly;
-  const now = Date.now();
-  let best = 0;
-  let bestDelta = Infinity;
-  series.forEach((hour, i) => {
-    if (!hour.date) return;
-    const delta = Math.abs(hour.date.getTime() - now);
-    if (delta < bestDelta) { bestDelta = delta; best = i; }
-  });
-  return best;
-}
+/* ---------------------------------------------------------------- render */
 
 function buildViewModel() {
-  const { data, place } = session;
-  const series = hourlySeries(data);
-  const days = dailySeries(data);
-  const nowIndex = resolveNowIndex(data, series);
-  const currentDay = data.current ? data.current.time.slice(0, 10) : null;
-  const todayIndex = data.index && data.index.daily >= 0
-    ? data.index.daily
-    : Math.max(0, days.findIndex((d) => d.time === currentDay));
-
-  return {
-    place,
+  const vm = toViewModel({
+    data: session.data,
+    place: session.place,
     units: state.getUnits(),
-    utcOffsetSeconds: data.location ? data.location.utcOffsetSeconds : 0,
-    current: data.current,
-    air: data.air,
-    series,
-    days,
-    nowIndex,
-    todayIndex: todayIndex >= 0 ? todayIndex : 0,
-    next48: upcoming(series, nowIndex, 48),
-    selectedDay: session.selectedDay,
-    dayHours: session.selectedDay
-      ? series.filter((h) => h.time.startsWith(session.selectedDay))
-      : [],
     alerts: session.alerts,
     almanac: session.almanac,
     space: session.space,
     comparisons: session.comparisons,
-    updatedAt: data.fetchedAt,
-  };
+    selectedDay: session.selectedDay,
+  });
+  // Keep the server's H1 ("Toronto Weather", not "Toronto"): it is what the
+  // page was indexed as, and swapping it after load would be a bait-and-switch.
+  if (page.heading) vm.heading = page.heading;
+  return vm;
 }
-
-/* ---------------------------------------------------------------- render */
 
 function render() {
   if (!session.data) return;
@@ -246,6 +235,7 @@ async function loadPlace(place, { silent = false } = {}) {
     session.alerts = null;
     session.almanac = null;
     render();
+    syncSaveButton();
     syncUrl(place);
     // The radar map is mounted by paintView() when its tab is opened; if it is
     // already on screen, just recentre it.
@@ -330,6 +320,19 @@ function mountRadar(place) {
 /* ------------------------------------------------------------------ URL */
 
 function syncUrl(place) {
+  // On a city page the URL is the canonical one the page was indexed under.
+  // Switching sections moves along its own clean paths; nothing appends query
+  // parameters to it, and following the search box away from the city drops
+  // back to the dashboard rather than pretending the city page is showing
+  // somewhere else.
+  if (page.page === 'city') {
+    const path = page.sectionPaths[session.view] || page.basePath;
+    if (path && window.location.pathname !== path) {
+      window.history.replaceState(null, '', path + window.location.search);
+    }
+    return;
+  }
+
   const url = new URL(window.location.href);
 
   // setView() can run before the first forecast has loaded, so the place is
@@ -342,6 +345,32 @@ function syncUrl(place) {
   if (session.view && session.view !== DEFAULT_VIEW) url.searchParams.set('view', session.view);
   else url.searchParams.delete('view');
   window.history.replaceState(null, '', url);
+}
+
+/**
+ * Switch to another place.
+ *
+ * On the dashboard that is a fetch. On a city page the URL *is* the place, so
+ * changing place means navigating — otherwise `/weather/toronto` would sit
+ * there showing Calgary, which is exactly the mismatch between URL and content
+ * that a canonical tag is supposed to prevent.
+ */
+function goToPlace(place) {
+  if (page.page !== 'app') {
+    window.location.assign(appUrl(place, session.view));
+    return;
+  }
+  loadPlace(place);
+}
+
+/** The dashboard URL for a place, used when leaving a city page. */
+function appUrl(place, view) {
+  const url = new URL('/', window.location.origin);
+  url.searchParams.set('lat', place.latitude.toFixed(4));
+  url.searchParams.set('lon', place.longitude.toFixed(4));
+  url.searchParams.set('name', place.name);
+  if (view && view !== DEFAULT_VIEW) url.searchParams.set('view', view);
+  return url.toString();
 }
 
 function placeFromUrl() {
@@ -406,7 +435,7 @@ function pickPlace(place) {
   closeSearch();
   searchInput.value = '';
   searchInput.blur();
-  loadPlace(added);
+  goToPlace(added);
 }
 
 searchInput.addEventListener('input', () => {
@@ -454,7 +483,7 @@ document.addEventListener('click', (event) => {
 
   if (action === 'select-place') {
     const place = state.getState().locations.find((l) => l.id === trigger.dataset.id);
-    if (place) { state.setActive(place.id); loadPlace(place); }
+    if (place) { state.setActive(place.id); goToPlace(place); }
   }
 
   if (action === 'remove-place') {
@@ -535,6 +564,80 @@ $('#theme-toggle').addEventListener('click', () => {
   if (session.data) applySky(buildViewModel());
 });
 
+/* ------------------------------------------------------- saved locations */
+
+/**
+ * The single highest-leverage thing a visitor can do: keep the place.
+ *
+ * Someone who arrives from a search result and saves their city has stopped
+ * needing a search engine tomorrow. City pages deliberately do *not* save
+ * themselves on arrival -- a saved-locations bar that fills up with every city
+ * you ever glanced at is noise, and noise is the thing this site is against.
+ */
+/**
+ * Saved locations are identified by coordinates, not by id.
+ *
+ * `addLocation` dedupes that way, and the same city can arrive with different
+ * ids depending on whether it came from the geocoder, a deep link or a city
+ * page — so anything else would show an unsaved star over a saved city.
+ */
+function savedMatch(place) {
+  if (!place) return null;
+  const id = state.locationId(place);
+  return state.getState().locations.find((l) => state.locationId(l) === id) || null;
+}
+
+function isSaved(place) {
+  return Boolean(savedMatch(place));
+}
+
+function syncSaveButton() {
+  const button = $('#save-place');
+  if (!button) return;
+  const saved = isSaved(session.place);
+  button.setAttribute('aria-pressed', String(saved));
+  button.classList.toggle('is-active', saved);
+  button.title = saved ? 'Saved — click to remove (s)' : 'Save this location (s)';
+  button.setAttribute('aria-label', button.title);
+}
+
+function toggleSaved() {
+  if (!session.place) return;
+  const saved = savedMatch(session.place);
+
+  if (saved) {
+    if (state.getState().locations.length === 1) {
+      toast('Keep at least one saved location.');
+      return;
+    }
+    state.removeLocation(saved.id);
+    session.comparisons = session.comparisons.filter((c) => c.place.id !== saved.id);
+    toast(`Removed ${session.place.name}`);
+  } else {
+    const added = state.addLocation(session.place);
+    state.setActive(added.id);
+    toast(`Saved ${session.place.name} — it will be here next time`);
+    loadComparisons();
+  }
+
+  syncSaveButton();
+  renderPlaces();
+}
+
+const saveButton = $('#save-place');
+if (saveButton) saveButton.addEventListener('click', toggleSaved);
+
+const shareButton = $('#share');
+if (shareButton) {
+  shareButton.addEventListener('click', async () => {
+    if (!session.data) return;
+    // Loaded on demand: the canvas renderer is dead weight for the majority of
+    // visits that never press it.
+    const { shareForecast } = await import('./share.js');
+    shareForecast(buildViewModel(), { toast });
+  });
+}
+
 $('#geolocate').addEventListener('click', () => {
   if (!navigator.geolocation) { toast('Geolocation is not available in this browser.'); return; }
   toast('Finding your location…');
@@ -582,8 +685,9 @@ document.addEventListener('keydown', (event) => {
   }
   if (/^[1-9]$/.test(event.key)) {
     const place = state.getState().locations[Number(event.key) - 1];
-    if (place) { state.setActive(place.id); loadPlace(place); }
+    if (place) { state.setActive(place.id); goToPlace(place); }
   }
+  if (event.key === 's') { event.preventDefault(); toggleSaved(); }
 });
 
 /* ------------------------------------------------------- sticky offsets */
@@ -629,6 +733,23 @@ function viewFromUrl() {
   return VIEWS[requested] ? requested : DEFAULT_VIEW;
 }
 
+/**
+ * Offline support and installability.
+ *
+ * Registered after first paint so it never competes with the forecast for
+ * bandwidth, and skipped entirely on a city page render that has no JS budget
+ * to spare -- it will register on the next navigation.
+ */
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') return;
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      /* An unavailable service worker costs nothing; the app works without it. */
+    });
+  });
+}
+
 function start() {
   syncUnitButtons();
   renderPlaces();
@@ -642,9 +763,33 @@ function start() {
     setView(initialView);
   }
 
-  const deepLink = placeFromUrl();
-  const place = deepLink ? state.addLocation(deepLink) : state.getActiveLocation();
-  if (place) loadPlace(place);
+  if (page.page === 'city') {
+    // The page already shows this city, rendered on the server. Adopt its unit
+    // system for first-time visitors, then refresh quietly in the background
+    // so nothing on screen is replaced by a skeleton.
+    if (state.adoptUnits(page.units)) syncUnitButtons();
+    session.place = state.normalizePlace(page.place);
+    syncSaveButton();
+    loadPlace(session.place, { silent: true });
+  } else if (page.page === 'app') {
+    const deepLink = placeFromUrl();
+    const place = deepLink ? state.addLocation(deepLink) : state.getActiveLocation();
+    if (place) loadPlace(place);
+  } else {
+    // The directory, the widget builder, a 404: server-rendered content that
+    // is not a forecast. The header still works -- search, units, theme -- but
+    // nothing here may paint over the page.
+    for (const id of ['#save-place', '#share', '#refresh']) {
+      const button = $(id);
+      if (button) button.hidden = true;
+    }
+
+    if (page.page === 'widgets') {
+      import('./widgets.js')
+        .then((m) => m.setupWidgetBuilder({ origin: page.origin, toast }))
+        .catch(() => {});
+    }
+  }
 
   // Keep the dashboard live without hammering the API.
   setInterval(() => {
@@ -657,6 +802,9 @@ function start() {
   setInterval(() => {
     if (session.data) setHTML('#hero', renderHero(buildViewModel()));
   }, 60000);
+
+  registerServiceWorker();
+  import('./install.js').then((m) => m.setupInstallPrompt({ toast })).catch(() => {});
 }
 
 start();

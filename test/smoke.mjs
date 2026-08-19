@@ -14,6 +14,8 @@ const icons = await import(base + 'icons.js');
 const ins = await import(base + 'insights.js');
 const views = await import(base + 'views/forecast.js');
 const panels = await import(base + 'views/panels.js');
+const tables = await import(base + 'views/tables.js');
+const viewmodel = await import(base + 'viewmodel.js');
 const { buildFixture } = await import(new URL('./fixture.mjs', import.meta.url).href);
 
 const units = { temp: 'c', wind: 'kmh', precip: 'mm', pressure: 'hpa', distance: 'km', clock: '12' };
@@ -232,5 +234,62 @@ assert.doesNotThrow(() => panels.renderAlerts(empty));
 const vmF = { ...vm, units: imperial };
 assert.notEqual(views.renderHero(vmF), rendered.hero);
 assert.ok(views.renderHero(vmF).includes('°'));
+
+/* --- view model ---------------------------------------------------------- */
+
+// The server builds this from the same function the browser does; if the two
+// ever diverged, a city page would render something the app then replaced.
+const built = viewmodel.buildViewModel({ data: buildFixture(), place: vm.place, units });
+assert.equal(built.series.length, series.length);
+assert.equal(built.nowIndex, vm.nowIndex);
+assert.equal(built.todayIndex, vm.todayIndex);
+assert.equal(built.next48.length, vm.next48.length);
+assert.equal(built.dayHours.length, 0, 'no day is selected by default');
+assert.equal(
+  viewmodel.buildViewModel({ data: buildFixture(), place: vm.place, units, selectedDay: daily[2].time }).dayHours.length,
+  series.filter((h) => h.time.startsWith(daily[2].time)).length
+);
+
+/* --- section tables ------------------------------------------------------ */
+
+const hourlyTable = tables.renderHourlyTable(vm);
+assert.ok(hourlyTable.includes('<table'), 'the hourly page renders a real table');
+assert.ok(hourlyTable.includes('Hour-by-hour forecast for'), 'and says what it is');
+assert.equal(
+  (hourlyTable.match(/<tr>\s*<th scope="row">/g) || []).length,
+  vm.next48.length,
+  'one row per forecast hour'
+);
+
+const dailyTable = tables.renderDailyTable(vm);
+assert.ok(dailyTable.includes('Sunrise') && dailyTable.includes('Sunset'));
+assert.ok(dailyTable.includes('Today') && dailyTable.includes('Tomorrow'));
+
+assert.ok(tables.renderRadarSummary(vm).includes('Rain and snow timing for'));
+
+// The questions block and the structured data behind it come from one source.
+const questions = tables.forecastQuestions(vm);
+assert.ok(questions.length >= 4, 'the page answers real questions');
+const questionsMarkup = tables.renderQuestions(vm);
+const { esc } = await import(base + 'dom.js');
+for (const qa of questions) {
+  assert.ok(qa.answer.length > 20, `answer is substantive: ${qa.question}`);
+  assert.ok(questionsMarkup.includes(esc(qa.question)), `question is on the page: ${qa.question}`);
+  assert.ok(questionsMarkup.includes(esc(qa.answer)), `answer is on the page: ${qa.question}`);
+}
+
+// Escaping still applies: a place name is attacker-influenced on a deep link.
+const vmXss = { ...vm, place: { ...vm.place, name: '<img src=x onerror=alert(1)>' } };
+for (const markup of [tables.renderHourlyTable(vmXss), tables.renderDailyTable(vmXss),
+  tables.renderRadarSummary(vmXss), tables.renderQuestions(vmXss)]) {
+  assert.ok(!markup.includes('<img src=x'), 'unescaped place name reached the output');
+}
+
+// Degenerate input, same rule as the other views.
+assert.doesNotThrow(() => tables.renderHourlyTable(empty));
+assert.doesNotThrow(() => tables.renderDailyTable(empty));
+assert.doesNotThrow(() => tables.renderRadarSummary(empty));
+assert.doesNotThrow(() => tables.renderQuestions(empty));
+assert.equal(tables.forecastQuestions(empty).length, 0);
 
 console.log('All smoke checks passed.');

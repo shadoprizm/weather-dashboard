@@ -1,0 +1,25 @@
+{
+  "name": "WeatherView — fast, ad-free weather",
+  "short_name": "WeatherView",
+  "description": "Current conditions, hourly and 14-day forecasts, live radar, air quality, official alerts and 20-year normals. No ads, no popups, no autoplay video.",
+  "id": "/",
+  "start_url": "/?source=homescreen",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "categories": ["weather", "utilities", "news"],
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Radar", "short_name": "Radar", "url": "/?view=radar" },
+    { "name": "Weather by city", "short_name": "Cities", "url": "/weather" }
+  ]
+}

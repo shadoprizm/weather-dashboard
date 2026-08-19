@@ -3,11 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="description" content="A detailed, ad-free personal weather dashboard: hourly and 16-day forecasts, animated radar, air quality, almanac normals and activity planning.">
   <meta name="color-scheme" content="dark light">
   <meta name="theme-color" content="#0b1220">
-  <title>SkyWatch — your own weather service</title>
-  <link rel="icon" href="data:,">
+  <!--wv:head-->
+  <title>WeatherView — fast, ad-free weather</title>
+  <meta name="description" content="Fast, ad-free weather. Current conditions, hourly and 14-day forecasts, live radar, air quality, official alerts and 20-year normals — plus a plain-English read on what the day actually holds.">
+  <link rel="canonical" href="https://www.weatherview.cloud/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="WeatherView">
+  <meta property="og:title" content="WeatherView — fast, ad-free weather">
+  <meta property="og:description" content="Weather without the ads, popups and autoplay video. Just the forecast.">
+  <meta property="og:url" content="https://www.weatherview.cloud/">
+  <meta name="twitter:card" content="summary_large_image">
+  <!--/wv:head-->
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="manifest" href="/manifest.webmanifest">
   <link rel="preconnect" href="https://basemaps.cartocdn.com" crossorigin>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -19,11 +30,13 @@
 
   <a class="skip-link" href="#main">Skip to forecast</a>
 
+  <!--wv:bootstrap-->
+
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand">
         <span class="brand-mark" aria-hidden="true"></span>
-        <span class="brand-name">SkyWatch</span>
+        <a class="brand-name" href="/">WeatherView</a>
       </div>
 
       <div class="search" role="search">
@@ -57,6 +70,17 @@
         <button type="button" class="icon-button" id="theme-toggle" title="Switch theme" aria-label="Switch theme">
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path d="M12 3.5a8.5 8.5 0 1 0 8.5 8.5A6.8 6.8 0 0 1 12 3.5z"/>
+          </svg>
+        </button>
+        <button type="button" class="icon-button" id="save-place" title="Save this location (s)" aria-label="Save this location" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/>
+          </svg>
+        </button>
+        <button type="button" class="icon-button" id="share" title="Share this forecast" aria-label="Share this forecast">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="18" cy="5.5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="18.5" r="2.6"/>
+            <line x1="8.3" y1="10.8" x2="15.7" y2="6.7"/><line x1="8.3" y1="13.2" x2="15.7" y2="17.3"/>
           </svg>
         </button>
         <button type="button" class="icon-button" id="refresh" title="Refresh (r)" aria-label="Refresh forecast">
@@ -122,6 +146,13 @@
         <section id="compare" class="panel" aria-label="Your locations compared"></section>
       </div>
     </div>
+    <!--
+      Server-rendered regions. Empty on the app shell; the city pages under
+      /weather/ fill them with the section's detail table and its context and
+      internal links, so the whole forecast is in the HTML a crawler receives.
+    -->
+    <section id="page-detail" class="stack" aria-label="Forecast detail"></section>
+    <section id="page-context" class="stack" aria-label="About this forecast"></section>
   </main>
 
   <footer class="footer">
@@ -136,16 +167,22 @@
       Watches marked <em>computed</em> are generated on this site from forecast thresholds and are
       not official warnings. Always defer to your national weather service.
     </p>
+    <p class="footer-links">
+      <a href="/weather">Weather by city</a> ·
+      <a href="/widgets">Free website widget</a> ·
+      <a href="/">Dashboard</a>
+    </p>
     <p class="footer-keys">
       <kbd>/</kbd> search · <kbd>u</kbd> units · <kbd>r</kbd> refresh ·
-      <kbd>1</kbd>–<kbd>9</kbd> location · <kbd>←</kbd><kbd>→</kbd> section
+      <kbd>s</kbd> save · <kbd>1</kbd>–<kbd>9</kbd> location ·
+      <kbd>←</kbd><kbd>→</kbd> section
     </p>
   </footer>
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
   <noscript>
-    <p class="noscript">SkyWatch needs JavaScript to render forecasts.</p>
+    <p class="noscript">The live dashboard needs JavaScript. Every city page under <a href="/weather">/weather</a> is served fully rendered without it.</p>
   </noscript>
 
   <script type="module" src="js/main.js"></script>

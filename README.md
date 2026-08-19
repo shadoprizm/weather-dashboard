@@ -1,12 +1,13 @@
-# SkyWatch
+# WeatherView
 
-A self-hosted weather service. No ads, no autoplay video, no cookie wall, no
-"unlock the 14-day forecast" upsell — just a dense, fast, detailed forecast
-that belongs to you.
+A weather service. No ads, no autoplay video, no cookie wall, no "unlock the
+14-day forecast" upsell — just a dense, fast, detailed forecast.
 
 Vanilla JavaScript ES modules, one dependency (Express, and only for local
 dev), no build step. Deploys to Vercel as static files plus a handful of
 serverless functions.
+
+Live at **[weatherview.cloud](https://www.weatherview.cloud)**.
 
 ```bash
 npm install
@@ -58,9 +59,59 @@ and the odds of a wet day. This is what makes "18°" mean something.
 **Your locations, ranked** — saved cities sorted by how pleasant it is to be
 outside in each of them right now.
 
+**Share cards** — the forecast as a picture: where, how warm, and what the sky
+is about to do. The share button renders it on a canvas and hands it to the OS
+share sheet; `/api/og` renders the same card server-side so a pasted link
+previews as the actual weather. The PNG encoder and the stroke font it draws
+with are in `api/_lib/og/` — about 600 lines, no dependencies.
+
+**A free website widget** — `/widget` is a small server-rendered forecast panel
+any site can embed, with a builder and documentation at `/widgets`. A plain
+`<iframe>` embed runs no JavaScript at all, sets no cookies, and shows no ads.
+It carries one link back.
+
+**Install it** — a web app manifest and a service worker, so it opens from the
+home screen instantly and still shows the last forecast with no signal. The
+install prompt waits for a second visit before it says anything.
+
+## Pages
+
+Three kinds of URL, and the difference between them matters.
+
+**`/` — the dashboard.** The app: your saved locations, live radar, the unit
+toggle, keyboard shortcuts. Client-rendered, because it is a tool you come back
+to rather than a page you land on.
+
+**`/weather/{city}` — the city pages.** 149 cities, each with three sections:
+
+```
+/weather/toronto              current conditions, briefing, hourly, air, alerts, answers
+/weather/toronto/hourly       every hour of the next 48, as a table
+/weather/toronto/10-day       14 days, as a table, with sunrise and sunset
+/weather/toronto/radar        live radar plus when the precipitation reaches you
+```
+
+These are **rendered on the server**. The complete forecast is in the first
+HTTP response — no JavaScript needed to read it, nothing fetched afterwards to
+make it make sense — and then the same markup hydrates into the dashboard, so
+the tab bar, the radar and the unit toggle all come alive in place. A crawler,
+a screen reader and a phone on a train platform all get the same page.
+
+Each section exists because it is a distinct thing people search for *and*
+carries content the overview does not. A section that could not justify both
+would just be the overview under a second URL.
+
+The catalogue in `api/_lib/cities.js` is curated rather than generated. Every
+city on Earth is searchable in the dashboard; a *published page* is a promise
+that the place is worth one. See [docs/GROWTH.md](docs/GROWTH.md) for how the
+list grows.
+
+**`/weather`, `/widgets`** — the directory of every published city, and the
+widget builder.
+
 ## Layout
 
-The page is a **hub plus five sections**, not one long scroll.
+The dashboard is a **hub plus five sections**, not one long scroll.
 
 The hub is always visible and never tabbed: active alerts, current conditions,
 today's high and low, how that compares with normal, an outdoor-comfort score,
@@ -82,8 +133,8 @@ than ten panels', and the radar does not request a single map tile until you
 open it. The active section lives in the URL (`?view=radar`), so a shared link
 opens where it was shared from.
 
-Keyboard: `/` search · `u` units · `r` refresh · `1`–`9` location ·
-`←` `→` section.
+Keyboard: `/` search · `u` units · `r` refresh · `s` save this location ·
+`1`–`9` location · `←` `→` section.
 
 ## Architecture
 
@@ -93,7 +144,12 @@ style.css             Design system: tokens, sky themes, components
 js/
   main.js             Data loading, state wiring, render orchestration
   api.js              Client for this app's own /api/* proxy
+  viewmodel.js        Payloads -> the shape every view reads (shared with the server)
   state.js            Units, saved locations, theme (localStorage)
+  share.js            Canvas share card + Web Share
+  install.js          Add-to-home-screen prompt
+  widgets.js          The widget builder on /widgets
+  widget-frame.js     Height reporting, inside an embedded widget only
   format.js           Unit conversion and display formatting
   wmo.js              WMO code → label, icon, sky theme, intensity
   icons.js            Hand-built SVG weather icons and glyphs
@@ -102,17 +158,29 @@ js/
   dom.js              Escaping, delegation, small helpers
   views/forecast.js   Hero, briefing, hourly, details, daily
   views/panels.js     Alerts, activities, astro, air, almanac, compare
+  views/tables.js     Full hourly/daily tables and the Q&A block
 api/
   _lib/handlers.js    Transport-agnostic request handlers
+  _lib/pages.js       Document handlers: city pages, directory, sitemap, robots
+  _lib/site.js        Brand and absolute origin, in one place
+  _lib/cities.js      The published city catalogue
+  _lib/seo.js         Titles, descriptions, canonicals, structured data
+  _lib/render/        Server rendering: shell injection, city, widget, sitemap
+  _lib/og/            PNG encoder, stroke font, raster surface, share card
   _lib/alerts/        Alert providers (nws, eccc) + merge registry
   _lib/xml.js         Minimal XML reader for ECCC's feeds
   _lib/upstream.js    Outbound fetch with timeouts and soft failure
   _lib/cache.js       In-process TTL cache
-  _lib/serve.js       Vercel function adapter
+  _lib/serve.js       Vercel function adapters (JSON and document)
   *.js                One thin file per route
+embed.js              The one-line widget loader for third-party sites
+sw.js                 Service worker: shell cache + last good forecast
+manifest.webmanifest  Web app manifest
+icons/                App icons (npm run build:icons regenerates the PNGs)
 server.js             Local dev server, mounts the same handlers
-scripts/              Live upstream verification (npm run verify)
-test/                 Smoke tests, parser tests, forecast fixture
+scripts/              Provider verification, icon build
+test/                 Smoke, parser and page-rendering tests
+docs/GROWTH.md        The growth plan, and what is left for a person to do
 ```
 
 Two things are worth calling out:
@@ -123,8 +191,16 @@ entire render path in Node against a synthetic forecast — no browser, no
 network, no mocking framework.
 
 **Local dev and production run the same code.** `server.js` and the Vercel
-functions both mount `api/_lib/handlers.js`. There is no "works locally,
-breaks on deploy" gap.
+functions both mount `api/_lib/handlers.js`, and both mount the same document
+handlers behind the same paths. There is no "works locally, breaks on deploy"
+gap.
+
+**The server renders with the browser's own views.** `api/_lib/render/views.js`
+imports the ES modules in `js/` and calls the identical functions — there is no
+second implementation of the hero, or the hourly strip, or the alert card to
+keep in step. The page shell comes from `index.html` itself: the server fills
+in its mount points rather than keeping a copy of the markup. That is why
+`npm test` can assert on a complete city page without a browser.
 
 ## Data sources
 
@@ -161,7 +237,7 @@ Adding a country is one module plus one line in the registry.
 the Datamart layout is not what its own documentation describes — the paths
 below were established by probing the live service. Warnings ship either as
 CAP XML in a date/office/hour tree, or inside the per-site citypage documents.
-SkyWatch uses the citypage route:
+WeatherView uses the citypage route:
 
 1. `today/citypage_weather/docs/site_list_en.csv` — ~844 named sites with
    coordinates, cached for a week.
@@ -235,22 +311,47 @@ a schedule.
 | `GET /api/space` | Planetary K index | 15 min |
 | `GET /api/health` | Health and cache stats | — |
 | `GET /api/health?probe=1&lat=&lon=` | Alert-provider self-check | — |
+| `GET /api/og?city=` | Share card as a 1200x630 PNG | 10 min |
+| `GET /widget?city=` | Embeddable forecast panel | 5 min |
+| `GET /weather/{city}` | Server-rendered city page | 5 min |
+| `GET /sitemap.xml`, `/robots.txt` | Crawl surfaces | 1 h |
 
 ## Deploying
 
 Push to a Vercel-connected repository. `vercel.json` sets the CSP and security
-headers and disables the build step; `api/*.js` are picked up as Node
-functions automatically. Nothing to configure, no environment variables, no
-API keys.
+headers, maps the clean URLs onto the functions, and disables the build step;
+`api/*.js` are picked up as Node functions automatically. Nothing to configure,
+no API keys.
+
+Two details worth knowing:
+
+- `functions["api/**/*.js"].includeFiles` ships `js/**` into the function
+  bundle. The server imports those modules dynamically, which the bundler
+  cannot trace on its own, so without that line the city pages would 500 in
+  production and work perfectly in local dev.
+- `SITE_ORIGIN` overrides the canonical origin. It defaults to
+  `https://www.weatherview.cloud`, which is the host the apex redirects to —
+  canonicals, the sitemap, share-card URLs and the widget embed snippet all
+  derive from it, so pointing it at a host that redirects would put a few
+  hundred redirecting URLs in the sitemap. Set it on preview deployments so
+  they do not claim production's canonicals.
+
+### After deploying, once
+
+Verify the domain in Google Search Console and submit `/sitemap.xml`. Nothing
+in this repository can do that for you, and until it is done the 599 URLs it
+generates are invisible. [docs/GROWTH.md](docs/GROWTH.md) has the rest.
 
 ## Ideas not yet built
 
 Roughly in order of value for effort:
 
-1. **Commute-cast** — save two times and two places; get a one-line verdict
+1. **Push alerts** — a Web Push subscription so severe watches reach your
+   phone. Needs VAPID keys, a subscription store and a cron function to
+   evaluate thresholds. The highest-value thing left: it is what turns a
+   return visitor into someone who never opens a search engine for weather.
+2. **Commute-cast** — save two times and two places; get a one-line verdict
    for each leg of the day.
-2. **Push alerts** — a Web Push subscription so severe watches reach your
-   phone. Needs a cron function and a small subscription store.
 3. **Lightning proximity** — strike density near the point, from a public
    sferics feed.
 4. **Snow-day / school-bus index** — a Canadian-winter composite of snowfall
@@ -261,8 +362,8 @@ Roughly in order of value for effort:
    backyard-rink index from consecutive sub-zero nights.
 7. **Model disagreement** — Open-Meteo exposes multiple weather models; a
    spread indicator would show when forecasters are actually guessing.
-8. **Shareable forecast cards** — render the hero panel to a PNG for sharing.
-9. **Offline mode** — a service worker caching the last good forecast.
+8. **More cities** — the catalogue is 149 places, grown from real query data
+   rather than generated. [docs/GROWTH.md](docs/GROWTH.md) explains the rule.
 
 ## Attribution and licence
 

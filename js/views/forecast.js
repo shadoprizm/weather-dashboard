@@ -42,7 +42,7 @@ export function renderHero(vm) {
   return `
     <div class="hero">
       <div class="hero-head">
-        <h1 class="hero-place">${esc(place.name)}</h1>
+        <h1 class="hero-place">${esc(vm.heading || place.name)}</h1>
         <p class="hero-meta">
           <span>${esc(place.admin1 || place.country || '')}</span>
           <span class="dot" aria-hidden="true">·</span>

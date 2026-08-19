@@ -5,6 +5,9 @@
  * -side profile, which is the point -- this is your dashboard on your device.
  */
 
+// Deliberately unchanged through the rename: this key holds real visitors'
+// saved locations and unit preferences, and a new one would quietly discard
+// them on the first load after deploy.
 const STORAGE_KEY = 'skywatch.v2';
 
 const DEFAULT_UNITS = {
@@ -83,6 +86,10 @@ const state = (() => {
 
   return {
     units: { ...DEFAULT_UNITS, ...(saved && saved.units) },
+    // Whether the visitor has ever picked a unit system themselves. Until they
+    // have, a page that arrives knowing where it is (a US city page, say) may
+    // set a sensible default without overriding anyone's choice.
+    unitsChosen: Boolean(saved && saved.unitsChosen),
     locations,
     activeId: (saved && saved.activeId) || locations[0].id,
     theme: (saved && saved.theme) || 'auto', // auto | dark | light
@@ -111,15 +118,34 @@ export function getActiveLocation() {
   return state.locations.find((l) => l.id === state.activeId) || state.locations[0] || null;
 }
 
+/**
+ * Take the units a server-rendered page chose, unless the visitor has chosen.
+ *
+ * Landing on /weather/chicago in Celsius, then watching it flip, is a worse
+ * first impression than simply arriving in Fahrenheit. Returns true if the
+ * preference actually changed.
+ */
+export function adoptUnits(units) {
+  if (!units || state.unitsChosen) return false;
+  const next = { ...state.units, ...units };
+  const changed = Object.keys(next).some((key) => next[key] !== state.units[key]);
+  if (!changed) return false;
+  state.units = next;
+  emit();
+  return true;
+}
+
 export function setUnit(key, value) {
   if (!(key in DEFAULT_UNITS)) return;
   state.units[key] = value;
+  state.unitsChosen = true;
   emit();
 }
 
 /** One-tap switch between the two systems most people actually want. */
 export function setUnitSystem(system) {
   state.units = { ...(system === 'imperial' ? IMPERIAL_UNITS : DEFAULT_UNITS), clock: state.units.clock };
+  state.unitsChosen = true;
   emit();
 }
 
