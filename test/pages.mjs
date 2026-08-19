@@ -133,6 +133,11 @@ assert.equal((await pages.cityPage({ slug: 'toronto', section: 'bogus' })).statu
 const index = await pages.cityIndex();
 assert.equal(index.status, 200);
 assert.match(index.body, /<h1>Weather by city<\/h1>/);
+// Countries we cover without a region breakdown must not repeat their own name
+// as a subheading under themselves.
+assert.ok(!/<h2 id="country-gb">United Kingdom<\/h2>[\s\S]{0,400}<h3>United Kingdom<\/h3>/.test(index.body),
+  'no region subheading that just repeats the country');
+assert.match(index.body, /<h3>Ontario<\/h3>/, 'countries with regions keep them');
 for (const city of cities.CITIES) {
   assert.ok(index.body.includes(`href="${seo.cityPath(city)}"`), `${city.name} is linked from /weather`);
 }

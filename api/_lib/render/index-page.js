@@ -40,7 +40,7 @@ function renderIndexPage() {
       </header>
       ${group(country.cities).map((region) => `
         <div class="directory-region">
-          <h3>${escapeHtml(region.region)}</h3>
+          ${region.region === country.name ? '' : `<h3>${escapeHtml(region.region)}</h3>`}
           <ul class="directory-list">
             ${region.cities.map((city) => `
               <li><a href="${escapeHtml(seo.cityPath(city))}">${escapeHtml(city.name)} weather</a></li>`).join('')}
