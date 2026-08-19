@@ -7,7 +7,7 @@ Vanilla JavaScript ES modules, one dependency (Express, and only for local
 dev), no build step. Deploys to Vercel as static files plus a handful of
 serverless functions.
 
-Live at **[weatherview.cloud](https://weatherview.cloud)**.
+Live at **[weatherview.cloud](https://www.weatherview.cloud)**.
 
 ```bash
 npm install
@@ -329,8 +329,12 @@ Two details worth knowing:
   bundle. The server imports those modules dynamically, which the bundler
   cannot trace on its own, so without that line the city pages would 500 in
   production and work perfectly in local dev.
-- `SITE_ORIGIN` overrides the canonical origin. Set it on preview deployments
-  so they do not emit canonicals and sitemaps pointing at production.
+- `SITE_ORIGIN` overrides the canonical origin. It defaults to
+  `https://www.weatherview.cloud`, which is the host the apex redirects to —
+  canonicals, the sitemap, share-card URLs and the widget embed snippet all
+  derive from it, so pointing it at a host that redirects would put a few
+  hundred redirecting URLs in the sitemap. Set it on preview deployments so
+  they do not claim production's canonicals.
 
 ### After deploying, once
 

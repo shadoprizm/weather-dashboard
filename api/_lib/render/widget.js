@@ -141,7 +141,7 @@ async function renderWidget(query = {}) {
       body: shell({
         theme: 'auto',
         accent: null,
-        body: `<div class="wv"><p class="wv-cond">Add <code>?city=toronto</code> — or <code>?lat=&amp;lon=</code> — to this widget's URL. See <a href="${escapeHtml(site.url('/widgets'))}">${escapeHtml(site.host)}/widgets</a>.</p></div>`,
+        body: `<div class="wv"><p class="wv-cond">Add <code>?city=toronto</code> — or <code>?lat=&amp;lon=</code> — to this widget's URL. See <a href="${escapeHtml(site.url('/widgets'))}">${escapeHtml(site.displayHost)}/widgets</a>.</p></div>`,
         refresh: false,
       }),
     };

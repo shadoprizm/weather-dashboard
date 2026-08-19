@@ -1,7 +1,7 @@
 /**
  * The one-line WeatherView embed.
  *
- * <script src="https://weatherview.cloud/embed.js" data-city="toronto" async></script>
+ * <script src="https://www.weatherview.cloud/embed.js" data-city="toronto" async></script>
  *
  * Replaces itself with a sandboxed iframe pointing at /widget, and resizes it
  * to whatever the widget actually needs. Everything it can do is bounded by
@@ -10,12 +10,12 @@
  * the host page, and never phones home about the host's visitors.
  *
  * Prefer a plain <iframe> if you would rather run no script at all — see
- * https://weatherview.cloud/widgets
+ * https://www.weatherview.cloud/widgets
  */
 (function () {
   'use strict';
 
-  var ORIGIN = 'https://weatherview.cloud';
+  var ORIGIN = 'https://www.weatherview.cloud';
 
   // `async` and `defer` both leave currentScript null, so fall back to the
   // last unclaimed embed tag on the page.

@@ -51,9 +51,14 @@ Nothing in the codebase can do them for you.
 ### 1. Verify the domain in Google Search Console
 
 Use the **DNS** verification method, not an HTML file — it survives redeploys
-and covers every subdomain.
+and covers every subdomain, including the `www.` host the site actually serves
+from. (The apex 308-redirects to `www.weatherview.cloud`, which is why every
+canonical, the sitemap and the share cards point there. If you would rather
+canonicalise on the bare apex, swap the primary domain in Vercel and set
+`SITE_ORIGIN=https://weatherview.cloud` — everything follows from that one
+variable.)
 
-Then submit the sitemap: `https://weatherview.cloud/sitemap.xml`
+Then submit the sitemap: `https://www.weatherview.cloud/sitemap.xml`
 
 Do the same in [Bing Webmaster Tools](https://www.bing.com/webmasters), which
 also feeds DuckDuckGo. It takes five minutes and doubles your coverage.
@@ -188,7 +193,7 @@ A cold email that works is short, specific, and already done:
 > Subject: A free weather panel for the <name> site
 >
 > I built a small forecast widget and made one pointed at <their town>:
-> https://weatherview.cloud/widget?city=<slug>
+> https://www.weatherview.cloud/widget?city=<slug>
 >
 > If it is useful, it is one line to embed and it is free — no account, no key,
 > no tracking, and it stays free. If not, no reply needed.

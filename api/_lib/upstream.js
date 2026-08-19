@@ -8,7 +8,7 @@
  */
 
 const USER_AGENT =
-  'weatherview/2.1 (+https://weatherview.cloud)';
+  'weatherview/2.1 (+https://www.weatherview.cloud)';
 
 class UpstreamError extends Error {
   constructor(message, status) {

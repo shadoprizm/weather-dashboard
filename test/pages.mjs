@@ -68,7 +68,7 @@ assert.ok(overview.maxAge > 0, 'city pages are cacheable at the edge');
 
 const html = overview.body;
 assert.match(html, /<title>Toronto, ON Weather — Hourly &amp; 10-Day Forecast \| WeatherView<\/title>/);
-assert.match(html, /<link rel="canonical" href="https:\/\/weatherview\.cloud\/weather\/toronto">/);
+assert.match(html, /<link rel="canonical" href="https:\/\/www\.weatherview\.cloud\/weather\/toronto">/);
 assert.match(html, /<h1 class="hero-place">Toronto Weather<\/h1>/);
 
 // The forecast itself must be in the HTML, not fetched afterwards.
@@ -96,7 +96,7 @@ for (const entry of blocks[2].mainEntity) {
 
 const hourly = await pages.cityPage({ slug: 'toronto', section: 'hourly' });
 assert.match(hourly.body, /<title>Toronto, ON Hourly Weather — Next 48 Hours/);
-assert.match(hourly.body, /<link rel="canonical" href="https:\/\/weatherview\.cloud\/weather\/toronto\/hourly">/);
+assert.match(hourly.body, /<link rel="canonical" href="https:\/\/www\.weatherview\.cloud\/weather\/toronto\/hourly">/);
 assert.match(hourly.body, /Hour-by-hour forecast for Toronto/);
 assert.match(hourly.body, /id="tab-today"[^>]*aria-selected="true"/);
 
@@ -205,7 +205,7 @@ assert.equal(widget.status, 200);
 assert.match(widget.body, /Weather powered by <a[^>]*>WeatherView<\/a>/, 'the credit link is not optional');
 assert.match(widget.body, /<meta name="robots" content="noindex">/, 'widgets never compete with city pages');
 assert.match(widget.body, /<meta http-equiv="refresh"/, 'the widget refreshes itself');
-assert.match(widget.body, /href="https:\/\/weatherview\.cloud\/weather\/toronto"/);
+assert.match(widget.body, /href="https:\/\/www\.weatherview\.cloud\/weather\/toronto"/);
 assert.ok(!widget.body.includes('<script'), 'a plain embed runs no script at all');
 assert.equal((widget.body.match(/class="wv-day"/g) || []).length, 3);
 
@@ -220,7 +220,7 @@ const widgets = await pages.widgetsPage();
 assert.equal(widgets.status, 200);
 assert.match(widgets.body, /<h1>Put the weather on your website. Free.<\/h1>/);
 assert.match(widgets.body, /id="widget-builder"/);
-assert.match(widgets.body, /<link rel="canonical" href="https:\/\/weatherview\.cloud\/widgets">/);
+assert.match(widgets.body, /<link rel="canonical" href="https:\/\/www\.weatherview\.cloud\/widgets">/);
 assert.ok(widgets.body.includes('value="toronto"'), 'every published city is offerable');
 assert.match(widgets.body, /<nav class="tabs" role="tablist" hidden/, 'no dead tab bar');
 

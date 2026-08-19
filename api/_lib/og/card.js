@@ -180,7 +180,7 @@ function renderCard(card) {
     });
   }
 
-  drawText(surface, site.host, {
+  drawText(surface, site.displayHost, {
     x: WIDTH - MARGIN, y: HEIGHT - 52, size: 30, rgb: WHITE, alpha: 0.9,
     weight: 0.085, align: 'right',
   });

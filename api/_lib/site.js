@@ -23,12 +23,18 @@ function normalizeOrigin(value) {
 const ORIGIN =
   normalizeOrigin(process.env.SITE_ORIGIN) ||
   normalizeOrigin(process.env.VERCEL_PROJECT_PRODUCTION_URL) ||
-  'https://weatherview.cloud';
+  // The canonical host is the one the apex redirects *to*. Getting this wrong
+  // puts a few hundred redirecting URLs in the sitemap and points every
+  // canonical and share card at a hop rather than at the page.
+  'https://www.weatherview.cloud';
 
 const site = {
   name: NAME,
   origin: ORIGIN,
   host: ORIGIN.replace(/^https?:\/\//, ''),
+  // What to *print* — on a share card, in the widget credit. Nobody reads the
+  // "www." and it costs a tenth of the card's width.
+  displayHost: ORIGIN.replace(/^https?:\/\//, '').replace(/^www\./, ''),
 
   tagline: 'Fast, ad-free weather',
   description:

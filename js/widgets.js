@@ -6,7 +6,7 @@
  * so a site owner never has to read documentation to get one.
  */
 
-const DEFAULT_ORIGIN = 'https://weatherview.cloud';
+const DEFAULT_ORIGIN = 'https://www.weatherview.cloud';
 
 function readForm(form) {
   const data = new FormData(form);
