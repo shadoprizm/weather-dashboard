@@ -45,5 +45,5 @@ for (const [route, handler] of Object.entries(ROUTES)) {
 }
 
 app.listen(PORT, () => {
-  console.log(`SkyWatch running on http://localhost:${PORT}`);
+  console.log(`Weatherview running on http://localhost:${PORT}`);
 });

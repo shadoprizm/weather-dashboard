@@ -8,7 +8,7 @@
  */
 
 const USER_AGENT =
-  'skywatch-dashboard/2.0 (self-hosted personal weather dashboard)';
+  'weatherview-dashboard/2.0 (self-hosted personal weather dashboard)';
 
 class UpstreamError extends Error {
   constructor(message, status) {

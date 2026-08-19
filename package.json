@@ -1,5 +1,5 @@
 {
-  "name": "skywatch",
+  "name": "weatherview",
   "version": "2.0.0",
   "private": true,
   "description": "A self-hosted, ad-free weather service: detailed forecasts, animated radar, air quality, almanac normals and activity planning.",

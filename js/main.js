@@ -1,5 +1,5 @@
 /**
- * SkyWatch — application shell.
+ * Weatherview — application shell.
  *
  * Owns data loading, state wiring and render orchestration. The views stay
  * pure; everything that touches the network, the DOM or the URL lives here.

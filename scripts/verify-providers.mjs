@@ -119,7 +119,7 @@ const { SITE_LIST, CITYPAGE, parseSiteList, parseWarnings, nearestSite } = eccc.
 let resolvedSite = null;
 
 await check('site list is reachable and parses', async () => {
-  const response = await fetch(SITE_LIST, { headers: { 'User-Agent': 'skywatch-verify/1.0' } });
+  const response = await fetch(SITE_LIST, { headers: { 'User-Agent': 'weatherview-verify/1.0' } });
   assert(response.ok, `HTTP ${response.status} from ${SITE_LIST}`);
 
   const csv = await response.text();
@@ -138,7 +138,7 @@ await check('site list is reachable and parses', async () => {
 });
 
 await check('nearest site resolves for the target point', async () => {
-  const response = await fetch(SITE_LIST, { headers: { 'User-Agent': 'skywatch-verify/1.0' } });
+  const response = await fetch(SITE_LIST, { headers: { 'User-Agent': 'weatherview-verify/1.0' } });
   const sites = parseSiteList(await response.text());
   resolvedSite = nearestSite(sites, LAT, LON);
 
@@ -151,7 +151,7 @@ await check('citypage XML is reachable and has the expected structure', async ()
   if (!resolvedSite) return 'no site resolved — skipped';
 
   const url = CITYPAGE(resolvedSite.province, resolvedSite.code);
-  const response = await fetch(url, { headers: { 'User-Agent': 'skywatch-verify/1.0' } });
+  const response = await fetch(url, { headers: { 'User-Agent': 'weatherview-verify/1.0' } });
   assert(response.ok, `HTTP ${response.status} from ${url}`);
 
   const doc = await response.text();

@@ -1,4 +1,4 @@
-# SkyWatch
+# Weatherview
 
 A self-hosted weather service. No ads, no autoplay video, no cookie wall, no
 "unlock the 14-day forecast" upsell — just a dense, fast, detailed forecast
@@ -161,7 +161,7 @@ Adding a country is one module plus one line in the registry.
 the Datamart layout is not what its own documentation describes — the paths
 below were established by probing the live service. Warnings ship either as
 CAP XML in a date/office/hour tree, or inside the per-site citypage documents.
-SkyWatch uses the citypage route:
+Weatherview uses the citypage route:
 
 1. `today/citypage_weather/docs/site_list_en.csv` — ~844 named sites with
    coordinates, cached for a week.

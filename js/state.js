@@ -5,7 +5,11 @@
  * -side profile, which is the point -- this is your dashboard on your device.
  */
 
-const STORAGE_KEY = 'skywatch.v2';
+const STORAGE_KEY = 'weatherview.v2';
+
+// The app was called SkyWatch before this key changed. Read the old one once
+// so the rename does not silently drop saved locations and unit preferences.
+const LEGACY_STORAGE_KEYS = ['skywatch.v2'];
 
 const DEFAULT_UNITS = {
   temp: 'c',        // c | f
@@ -28,7 +32,8 @@ export const STARTER_LOCATIONS = [
 
 function load() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY)
+      ?? LEGACY_STORAGE_KEYS.map((key) => localStorage.getItem(key)).find(Boolean);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return parsed && typeof parsed === 'object' ? parsed : null;
@@ -41,6 +46,8 @@ function load() {
 function persist(state) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    // The first write under the new key retires the old one.
+    for (const key of LEGACY_STORAGE_KEYS) localStorage.removeItem(key);
   } catch (error) {
     /* Storage full or blocked -- the session still works, it just won't stick. */
   }
