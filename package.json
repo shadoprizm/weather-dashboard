@@ -1,14 +1,15 @@
 {
-  "name": "skywatch",
+  "name": "weatherview",
   "version": "2.0.0",
   "private": true,
-  "description": "A self-hosted, ad-free weather service: detailed forecasts, animated radar, air quality, almanac normals and activity planning.",
+  "description": "WeatherView: a fast, ad-free weather service with server-rendered city pages, live radar, air quality, almanac normals and a free embeddable widget.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node test/smoke.mjs && node test/parsers.mjs",
-    "verify": "node scripts/verify-providers.mjs"
+    "test": "node test/smoke.mjs && node test/parsers.mjs && node test/pages.mjs",
+    "verify": "node scripts/verify-providers.mjs",
+    "build:icons": "node scripts/build-icons.mjs"
   },
   "engines": {
     "node": ">=18"
@@ -21,6 +22,7 @@
     "dashboard",
     "forecast",
     "radar",
+    "widget",
     "open-meteo",
     "self-hosted"
   ],

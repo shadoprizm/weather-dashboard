@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SkyWatch design system
+   WeatherView design system
    Dark-first, theme-aware, no external fonts or frameworks.
    ========================================================================== */
 
@@ -1044,4 +1044,350 @@ body.is-loading .layout { opacity: .72; transition: opacity .2s ease; }
 .alert-meta {
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
   margin-top: 8px; font-size: 0.8rem; color: var(--text-faint);
+}
+
+/* ==========================================================================
+   Pages under /weather, /widgets and the growth surfaces
+   Everything below styles content that is rendered on the server: the city
+   directory, the section tables, the widget builder, and the two controls
+   (save, share) that turn a visit into a return visit.
+   ========================================================================== */
+
+/* ------------------------------------------------------------- brand --- */
+
+a.brand-name { color: inherit; text-decoration: none; }
+a.brand-name:hover { color: var(--accent); }
+
+.icon-button.is-active { color: var(--accent); background: var(--accent-soft); }
+.icon-button.is-active svg { fill: currentColor; }
+
+/* ------------------------------------------------------------- tables --- */
+
+.panel-table { overflow: hidden; }
+
+.table-scroll {
+  overflow-x: auto;
+  margin: 0 -4px;
+  padding: 0 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.data-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  background: var(--surface-strong);
+  backdrop-filter: blur(8px);
+}
+
+.data-table tbody th,
+.data-table tbody td { padding: 7px 10px; border-top: 1px solid var(--border); }
+.data-table tbody th { text-align: left; font-weight: 600; color: var(--text); }
+.data-table tbody tr:hover td,
+.data-table tbody tr:hover th { background: var(--surface); }
+
+.data-table .muted { color: var(--text-faint); }
+
+.table-daybreak th {
+  padding: 14px 10px 6px;
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--accent);
+  border-top: 1px solid var(--border-strong);
+  background: none;
+}
+
+.cell-condition { display: flex; align-items: center; gap: 8px; }
+.cell-condition .wi { flex: none; }
+.cell-wind { display: flex; align-items: center; gap: 6px; }
+.cell-day { display: block; }
+.cell-date { display: block; font-size: 0.74rem; color: var(--text-faint); font-weight: 500; }
+
+/* --------------------------------------------------- radar page summary --- */
+
+.radar-verdict { font-size: 1.02rem; line-height: 1.5; margin-bottom: 14px; }
+
+.nowcast-strip {
+  display: flex;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+}
+
+.nowcast-hour {
+  flex: 1 0 62px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  text-align: center;
+  font-size: 0.78rem;
+}
+
+.nowcast-hour.is-wet { background: var(--accent-soft); }
+.nowcast-time { color: var(--text-faint); font-size: 0.72rem; }
+.nowcast-pop { font-weight: 650; }
+.nowcast-amount { color: var(--text-dim); font-size: 0.72rem; min-height: 1em; }
+
+/* ---------------------------------------------------------- questions --- */
+
+.qa { margin: 0; display: grid; gap: 14px; }
+.qa-item { padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+.qa-item:last-child { border-bottom: 0; padding-bottom: 0; }
+.qa dt { font-weight: 650; margin-bottom: 4px; }
+.qa dd { margin: 0; color: var(--text-dim); line-height: 1.55; }
+
+/* ------------------------------------------------- context and nearby --- */
+
+.panel-context p { color: var(--text-dim); font-size: 0.88rem; line-height: 1.6; margin-bottom: 10px; }
+
+.section-nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+}
+
+.section-link {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-dim);
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.section-link:hover { color: var(--text); background: var(--surface-hover); }
+.section-link.is-active { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+
+.nearby-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nearby-list li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.nearby-list a { font-weight: 600; text-decoration: none; color: var(--text); }
+.nearby-list a:hover { color: var(--accent); }
+.nearby-distance { font-size: 0.74rem; color: var(--text-faint); }
+.panel-foot { margin-top: 12px; font-size: 0.86rem; }
+
+/* ---------------------------------------------------------- directory --- */
+
+.panel-intro h1 { font-size: 1.9rem; letter-spacing: -0.02em; margin-bottom: 10px; }
+.panel-intro .lede { font-size: 1.06rem; color: var(--text-dim); line-height: 1.6; margin-bottom: 12px; }
+.panel-intro p { color: var(--text-dim); line-height: 1.6; }
+
+.directory-region { margin-top: 18px; }
+.directory-region h3 {
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 8px;
+}
+
+.directory-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 4px 16px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.directory-list a {
+  display: block;
+  padding: 5px 0;
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 0.92rem;
+}
+
+.directory-list a:hover { color: var(--accent); }
+
+/* ------------------------------------------------------------ widgets --- */
+
+.builder { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: var(--gap); align-items: start; }
+.builder-controls { display: grid; gap: 12px; }
+
+.field { display: grid; gap: 5px; }
+.field > span { font-size: 0.78rem; font-weight: 650; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-faint); }
+
+.field select,
+.field input[type='text'] {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.92rem;
+}
+
+.field input[type='color'] {
+  width: 64px;
+  height: 38px;
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.builder-preview {
+  position: sticky;
+  top: calc(var(--topbar-h, 64px) + 12px);
+  padding: 18px;
+  border-radius: var(--radius);
+  border: 1px dashed var(--border-strong);
+  background: var(--surface);
+}
+
+#widget-preview {
+  display: block;
+  width: 360px;
+  max-width: 100%;
+  height: 250px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  box-shadow: var(--shadow);
+}
+
+.snippet { margin-top: 22px; }
+.snippet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; }
+.snippet-head h3 { font-size: 0.95rem; font-weight: 650; }
+
+.snippet-copy {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.snippet-copy:hover { background: var(--surface-hover); border-color: var(--accent); color: var(--accent); }
+
+.snippet-code {
+  margin: 8px 0 0;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--border);
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.55;
+  white-space: pre;
+}
+
+:root[data-theme='light'] .snippet-code { background: rgba(15, 32, 64, 0.05); }
+
+.snippet-note { margin-top: 8px; font-size: 0.84rem; color: var(--text-dim); }
+
+.plain-list { margin: 0; padding-left: 20px; display: grid; gap: 9px; color: var(--text-dim); line-height: 1.6; }
+.plain-list strong { color: var(--text); }
+
+.chip-list { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.chip-list li {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+/* ---------------------------------------------------- install prompt --- */
+
+.install-banner {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  width: min(560px, calc(100vw - 28px));
+  padding: 14px 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-strong);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow);
+}
+
+.install-copy { display: grid; gap: 2px; font-size: 0.88rem; }
+.install-copy span { color: var(--text-dim); }
+.install-actions { display: flex; gap: 8px; margin-left: auto; flex: none; }
+
+.install-yes, .install-no {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.install-yes { background: var(--accent); color: #04101f; }
+.install-no { background: none; border-color: var(--border); color: var(--text-dim); }
+.install-no:hover { color: var(--text); }
+
+/* ------------------------------------------------------------ footer --- */
+
+.footer-links { margin-top: 6px; font-size: 0.84rem; }
+.footer-links a { color: var(--text-dim); text-decoration: none; }
+.footer-links a:hover { color: var(--accent); text-decoration: underline; }
+
+@media (max-width: 900px) {
+  .builder { grid-template-columns: 1fr; }
+  .builder-preview { position: static; }
+  .install-banner { flex-direction: column; align-items: stretch; gap: 12px; }
+  .install-actions { margin-left: 0; }
+  .data-table { font-size: 0.8rem; }
 }

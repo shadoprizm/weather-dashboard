@@ -11,12 +11,44 @@ const express = require('express');
 const path = require('path');
 
 const handlers = require('./api/_lib/handlers');
+const pages = require('./api/_lib/pages');
 const { UpstreamError } = require('./api/_lib/upstream');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.disable('x-powered-by');
+
+/**
+ * Document routes come first: they mirror the rewrites in `vercel.json`, and
+ * a couple of them (`/weather`, `/widget`) would otherwise be shadowed by a
+ * static file of the same name.
+ */
+const DOCUMENTS = [
+  ['/api/og', (req) => require('./api/_lib/og').ogCard(req.query)],
+  ['/sitemap.xml', () => pages.sitemap()],
+  ['/robots.txt', () => pages.robots()],
+  ['/widget', (req) => require('./api/_lib/render/widget').renderWidget(req.query)],
+  ['/widgets', () => pages.widgetsPage()],
+  ['/weather', () => pages.cityIndex()],
+  ['/weather/:slug', (req) => pages.cityPage({ slug: req.params.slug })],
+  ['/weather/:slug/:section', (req) => pages.cityPage({ slug: req.params.slug, section: req.params.section })],
+];
+
+for (const [route, handler] of DOCUMENTS) {
+  app.get(route, async (req, res) => {
+    try {
+      const { status, body, maxAge, contentType } = await handler(req);
+      res.set('Content-Type', contentType || 'text/html; charset=utf-8');
+      res.set('Cache-Control', maxAge > 0 ? `public, max-age=${maxAge}` : 'no-store');
+      res.status(status).send(body);
+    } catch (error) {
+      console.error(`[${route}]`, error.stack || error.message);
+      res.status(500).send('<!doctype html><meta charset="utf-8"><p>Page render failed.</p>');
+    }
+  });
+}
+
 app.use(express.static(path.join(__dirname), { extensions: ['html'] }));
 
 const ROUTES = {
@@ -45,5 +77,5 @@ for (const [route, handler] of Object.entries(ROUTES)) {
 }
 
 app.listen(PORT, () => {
-  console.log(`SkyWatch running on http://localhost:${PORT}`);
+  console.log(`WeatherView running on http://localhost:${PORT}`);
 });
