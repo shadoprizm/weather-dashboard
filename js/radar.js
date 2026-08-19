@@ -59,6 +59,9 @@ export function createRadarMap(container, options = {}) {
   let destroyed = false;
 
   container.classList.add('radar');
+  // Published before the first paint so the viewport never flashes the wrong
+  // backdrop while the first row of tiles is still in flight.
+  container.dataset.basemap = state.theme;
   container.innerHTML = `
     <div class="radar-viewport" role="application" aria-label="Precipitation radar map">
       <div class="radar-world">
@@ -149,6 +152,12 @@ export function createRadarMap(container, options = {}) {
   }
 
   function paintBase() {
+    // CARTO's two basemaps sit at opposite ends of the luminance range, and
+    // the dark one is built to disappear under bright data. Radar is not
+    // bright data -- light rain is pale blue -- so the stylesheet lifts the
+    // dark map back to a readable mid-grey. Publishing which one is on screen
+    // keeps that correction in CSS instead of hardcoding a filter here.
+    container.dataset.basemap = state.theme;
     paintLayer(baseLayer, baseTileUrl);
   }
 
@@ -322,7 +331,9 @@ export function createRadarMap(container, options = {}) {
       repaint();
     },
     setTheme(theme) {
-      state.theme = theme === 'light' ? 'light' : 'dark';
+      const next = theme === 'light' ? 'light' : 'dark';
+      if (next === state.theme) return;
+      state.theme = next;
       paintBase();
     },
     setUnits(units) {

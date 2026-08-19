@@ -862,13 +862,35 @@ kbd {
 
 /* --------------------------------------------------------------- radar --- */
 
+/*
+ * The map underneath the radar is a backdrop, not a data layer: it exists so
+ * you can tell where the precipitation is. CARTO's dark basemap is built for
+ * the opposite job -- to vanish under bright overlays -- so on a dark page it
+ * left rain floating on a black rectangle with no coastline under it.
+ *
+ * `--radar-lift` corrects that. Brightness is multiplicative, so land, water
+ * and roads keep their relative order and only the overall level moves; the
+ * slight contrast cut stops labels blowing out to pure white. Tune these two
+ * numbers to taste -- nothing else depends on them.
+ */
 .radar-viewport {
   position: relative; height: 420px;
   border-radius: var(--radius); overflow: hidden;
-  background: var(--surface-strong);
+  /* Shown while tiles load, so the panel does not flash black first. */
+  background: var(--radar-void, var(--surface-strong));
   cursor: grab; touch-action: none;
 }
+
 .radar-viewport.is-dragging { cursor: grabbing; }
+
+.radar[data-basemap='dark'] {
+  --radar-lift: brightness(1.8) contrast(0.92);
+  --radar-void: #1d222c;
+}
+.radar[data-basemap='light'] {
+  --radar-lift: none;
+  --radar-void: #e6ebf2;
+}
 
 .radar-world { position: absolute; inset: 0; will-change: transform; }
 .radar-layer { position: absolute; inset: 0; }
@@ -877,10 +899,11 @@ kbd {
   position: absolute; width: 256px; height: 256px;
   user-select: none; -webkit-user-drag: none;
 }
-.radar-base { opacity: .92; }
+/* Full strength: dimming the backdrop only made the geography harder to read. */
+.radar-base { opacity: 1; filter: var(--radar-lift, none); }
 
 .radar-frame { opacity: 0; transition: opacity .18s linear; pointer-events: none; }
-.radar-frame.is-current { opacity: .82; }
+.radar-frame.is-current { opacity: .92; }
 
 .radar-crosshair {
   position: absolute; top: 50%; left: 50%;
