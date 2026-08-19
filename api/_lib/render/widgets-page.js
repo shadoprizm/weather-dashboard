@@ -197,6 +197,7 @@ function renderWidgetsPage() {
       'page-context': docs,
     },
     tabs: false,
+    heroPanel: false,
     bootstrap: { page: 'widgets', origin: site.origin },
   });
 }

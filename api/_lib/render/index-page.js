@@ -106,6 +106,7 @@ function renderIndexPage() {
       'page-context': '',
     },
     tabs: false,
+    heroPanel: false,
     bootstrap: { page: 'directory' },
   });
 }

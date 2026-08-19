@@ -180,8 +180,13 @@ const directory = await pages.cityIndex();
 assert.equal(bootstrapOf(directory.body).page, 'directory');
 assert.equal(bootstrapOf(missing.body).page, 'not-found');
 
-// ...and must not leave a dead tab bar above content that has no sections.
+// ...and must not leave a dead tab bar above content that has no sections,
+// nor a styled hero card wrapped around a page that brings its own panel.
 assert.match(directory.body, /<nav class="tabs" role="tablist" hidden/);
+assert.match(directory.body, /<section id="hero" aria-label="Page introduction">/);
+assert.match(missing.body, /<section id="hero" aria-label="Page introduction">/);
+assert.match(overview.body, /<section id="hero" class="panel panel-hero"/,
+  'a city page keeps the hero card -- the forecast lives in it');
 assert.ok(!/<nav class="tabs" role="tablist" hidden/.test(overview.body), 'city pages keep their tabs');
 
 console.log('All page-rendering checks passed.');
@@ -223,6 +228,7 @@ assert.match(widgets.body, /id="widget-builder"/);
 assert.match(widgets.body, /<link rel="canonical" href="https:\/\/www\.weatherview\.cloud\/widgets">/);
 assert.ok(widgets.body.includes('value="toronto"'), 'every published city is offerable');
 assert.match(widgets.body, /<nav class="tabs" role="tablist" hidden/, 'no dead tab bar');
+assert.match(widgets.body, /<section id="hero" aria-label="Page introduction">/, 'no nested card');
 
 /* --- share cards --------------------------------------------------------- */
 

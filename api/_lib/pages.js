@@ -65,6 +65,7 @@ function notFound(slug) {
         'page-detail': '', 'page-context': '',
       },
       tabs: false,
+      heroPanel: false,
       bootstrap: { page: 'not-found' },
     }),
   };

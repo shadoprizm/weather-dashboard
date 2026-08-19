@@ -87,7 +87,7 @@ function selectView(html, view) {
  */
 function renderDocument({
   head, mounts = {}, view = 'today', bootstrap = null, sky = null, theme = null,
-  tabs = true,
+  tabs = true, heroPanel = true,
 }) {
   let html = shell();
 
@@ -102,6 +102,16 @@ function renderDocument({
   }
 
   html = selectView(html, view);
+
+  // The hero mount is a styled card because a forecast lives in it. Pages that
+  // put their own panel there would otherwise render a card inside a card, so
+  // they strip the outer one and keep the mount as a plain wrapper.
+  if (!heroPanel) {
+    html = html.replace(
+      '<section id="hero" class="panel panel-hero" aria-label="Current conditions">',
+      '<section id="hero" aria-label="Page introduction">'
+    );
+  }
 
   // Pages that are not a forecast -- the directory, the widget builder, a 404
   // -- keep the header and the footer but have nothing to put behind a tab
