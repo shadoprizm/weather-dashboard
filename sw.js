@@ -10,7 +10,7 @@
  * whole store is versioned so a deploy replaces it wholesale.
  */
 
-const VERSION = 'weatherview-v1';
+const VERSION = 'weatherview-v3';
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-data`;
 const PAGE_CACHE = `${VERSION}-pages`;

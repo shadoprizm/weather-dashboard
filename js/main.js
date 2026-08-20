@@ -402,10 +402,12 @@ function closeSearch() {
   searchItems = [];
 }
 
-function renderSearchResults(places) {
+function renderSearchResults(places, message = '') {
   searchItems = places;
-  if (!places.length) {
-    searchResults.innerHTML = '<li class="search-empty">No matching places</li>';
+  if (message) {
+    searchResults.innerHTML = `<li class="search-empty" role="status">${esc(message)}</li>`;
+  } else if (!places.length) {
+    searchResults.innerHTML = '<li class="search-empty" role="status">No matching places</li>';
   } else {
     searchResults.innerHTML = places.map((place, i) => `
       <li role="option" id="search-option-${i}" aria-selected="false">
@@ -444,10 +446,15 @@ searchInput.addEventListener('input', () => {
   if (term.length < 2) { closeSearch(); return; }
 
   searchTimer = setTimeout(async () => {
-    const response = await api.soft(api.searchPlaces(term), { results: [] });
-    // A slower earlier request must not overwrite a newer one.
-    if (searchInput.value.trim() !== term) return;
-    renderSearchResults(response.results || []);
+    try {
+      const response = await api.searchPlaces(term);
+      // A slower earlier request must not overwrite a newer one.
+      if (searchInput.value.trim() !== term) return;
+      renderSearchResults(response.results || []);
+    } catch (error) {
+      if (searchInput.value.trim() !== term) return;
+      renderSearchResults([], 'Location search is temporarily unavailable. Please try again.');
+    }
   }, 250);
 });
 

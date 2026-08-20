@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node test/smoke.mjs && node test/parsers.mjs && node test/pages.mjs",
+    "test": "node test/smoke.mjs && node test/parsers.mjs && node test/geocode.mjs && node test/pages.mjs",
     "verify": "node scripts/verify-providers.mjs",
     "build:icons": "node scripts/build-icons.mjs"
   },

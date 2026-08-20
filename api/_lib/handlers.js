@@ -23,6 +23,110 @@ const BIGDATACLOUD_REVERSE =
 const RAINVIEWER_INDEX = 'https://api.rainviewer.com/public/weather-maps.json';
 const NOAA_KP = 'https://services.swpc.noaa.gov/json/planetary_k_index_1m.json';
 
+/**
+ * Open-Meteo's geocoder is good at place names and surprisingly literal about
+ * unpunctuated region qualifiers: `Summerside PEI` returns nothing while
+ * `Summerside, Prince Edward Island` works. Recognise the common Canadian
+ * forms so the location picker accepts the way people actually type them.
+ */
+const CANADIAN_REGIONS = [
+  ['Alberta', 'AB', ['alberta', 'ab']],
+  ['British Columbia', 'BC', ['british columbia', 'bc']],
+  ['Manitoba', 'MB', ['manitoba', 'mb']],
+  ['New Brunswick', 'NB', ['new brunswick', 'nb']],
+  ['Newfoundland and Labrador', 'NL', ['newfoundland and labrador', 'newfoundland', 'labrador', 'nl', 'nfl', 'nfld']],
+  ['Northwest Territories', 'NT', ['northwest territories', 'north west territories', 'nwt', 'nt']],
+  ['Nova Scotia', 'NS', ['nova scotia', 'ns']],
+  ['Nunavut', 'NU', ['nunavut', 'nu']],
+  ['Ontario', 'ON', ['ontario', 'on']],
+  ['Prince Edward Island', 'PE', ['prince edward island', 'pei', 'pe']],
+  ['Quebec', 'QC', ['quebec', 'québec', 'qc', 'pq']],
+  ['Saskatchewan', 'SK', ['saskatchewan', 'sk']],
+  ['Yukon', 'YT', ['yukon territory', 'yukon', 'yt']],
+].map(([name, code, aliases]) => ({ name, code, aliases }));
+
+function normalizeLookupText(value) {
+  return String(value || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+const REGION_ALIASES = CANADIAN_REGIONS
+  .flatMap((region) => region.aliases.map((alias) => ({
+    alias: normalizeLookupText(alias),
+    words: normalizeLookupText(alias).split(' ').length,
+    region,
+  })))
+  // Try `Prince Edward Island` before the shorter aliases.
+  .sort((a, b) => b.words - a.words || b.alias.length - a.alias.length);
+
+/** Build ordered upstream queries and retain enough context to rank matches. */
+function geocodePlan(value) {
+  const term = String(value || '').trim().replace(/\s+/g, ' ');
+  if (!term) return { term: '', queries: [], city: '', qualifier: '', region: null };
+
+  const tokens = term.split(/\s+/);
+  const normalizedTokens = tokens.map(normalizeLookupText);
+  let city = '';
+  let qualifier = '';
+  let region = null;
+
+  for (const candidate of REGION_ALIASES) {
+    const tail = normalizedTokens.slice(-candidate.words).join(' ');
+    if (tail !== candidate.alias || tokens.length <= candidate.words) continue;
+    city = tokens.slice(0, -candidate.words).join(' ').replace(/[\s,]+$/, '');
+    qualifier = tokens.slice(-candidate.words).join(' ');
+    region = candidate.region;
+    break;
+  }
+
+  if (!city && term.includes(',')) {
+    const comma = term.indexOf(',');
+    city = term.slice(0, comma).trim();
+    qualifier = term.slice(comma + 1).trim();
+  }
+
+  // Unknown two/three-letter region abbreviations still get a city-only
+  // fallback. Ranking remains stable, so users can choose the right result.
+  if (!city && tokens.length > 1 && /^[A-Z]{2,3}[.]?$/.test(tokens.at(-1))) {
+    city = tokens.slice(0, -1).join(' ').replace(/[\s,]+$/, '');
+    qualifier = tokens.at(-1);
+  }
+
+  const queries = [];
+  const add = (name) => {
+    if (name && !queries.some((item) => normalizeLookupText(item) === normalizeLookupText(name))) {
+      queries.push(name);
+    }
+  };
+
+  // The canonical comma form is the most reliable upstream request when a
+  // Canadian province/territory was recognised.
+  if (region && city) add(`${city}, ${region.name}`);
+  add(term);
+  if (city) add(city);
+
+  return { term, queries, city, qualifier, region };
+}
+
+function rankGeocodeResults(results, plan) {
+  if (!plan.region) return results;
+
+  return results
+    .map((place, index) => {
+      let score = 0;
+      if (place.countryCode === 'CA') score += 100;
+      if (normalizeLookupText(place.admin1) === normalizeLookupText(plan.region.name)) score += 200;
+      return { place, index, score };
+    })
+    .sort((a, b) => b.score - a.score || a.index - b.index)
+    .map((entry) => entry.place);
+}
+
 // Everything is fetched in metric and converted in the browser, so the unit
 // toggle is instant and one cache entry serves every visitor.
 const CURRENT_FIELDS = [
@@ -218,18 +322,27 @@ async function geocode(query) {
     return { status: 200, body: { results: [] }, maxAge: 0 };
   }
 
-  const key = `geocode:${term.toLowerCase()}`;
-  const body = await cache.memo(key, 86400, async () => {
-    const data = await fetchJson(
-      buildUrl(OPEN_METEO_GEOCODE, {
-        name: term,
-        count: 10,
-        language: query.language || 'en',
-        format: 'json',
-      })
-    );
+  const plan = geocodePlan(term);
+  const key = `geocode:v2:${term.toLowerCase()}`;
+  let body = cache.get(key);
 
-    const results = (data.results || []).map((place) => ({
+  if (body === undefined) {
+    let rawResults = [];
+
+    for (const name of plan.queries) {
+      const data = await fetchJson(
+        buildUrl(OPEN_METEO_GEOCODE, {
+          name,
+          count: 10,
+          language: query.language || 'en',
+          format: 'json',
+        })
+      );
+      rawResults = Array.isArray(data.results) ? data.results : [];
+      if (rawResults.length) break;
+    }
+
+    const results = rawResults.map((place) => ({
       id: place.id,
       name: place.name,
       latitude: place.latitude,
@@ -243,10 +356,13 @@ async function geocode(query) {
       elevation: place.elevation,
     }));
 
-    return { results };
-  });
+    body = { results: rankGeocodeResults(results, plan) };
+    // A real result is geographically stable. An empty result may just be a
+    // transient upstream quirk, so do not make it sticky for a full day.
+    cache.set(key, body, body.results.length ? 86400 : 300);
+  }
 
-  return { status: 200, body, maxAge: 86400 };
+  return { status: 200, body, maxAge: body.results.length ? 86400 : 300 };
 }
 
 /** Turn the browser's geolocation fix into a place name. */
@@ -478,4 +594,5 @@ module.exports = {
   almanac,
   space,
   health,
+  _internals: { geocodePlan, rankGeocodeResults, normalizeLookupText },
 };

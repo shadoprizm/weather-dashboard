@@ -23,7 +23,9 @@ export function fetchForecast(lat, lon) {
 }
 
 export function searchPlaces(query) {
-  return get('/api/geocode', { q: query });
+  // Version the request URL so a newly improved parser is not shadowed by an
+  // older empty CDN response for the same text.
+  return get('/api/geocode', { q: query, v: 2 });
 }
 
 export function reverseGeocode(lat, lon) {
