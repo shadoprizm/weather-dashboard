@@ -112,11 +112,12 @@ function tag(name, content, { property = false } = {}) {
  * and any JSON-LD. Everything a search engine or a link preview reads.
  */
 function headTags({ title, description, canonical, image, imageAlt, type = 'website', jsonLd = [], alternates = [], robots = null }) {
+  const robotsDirective = robots || 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
   const lines = [
     `  <title>${escapeHtml(title)}</title>`,
     tag('description', description),
     canonical ? `  <link rel="canonical" href="${escapeHtml(canonical)}">` : '',
-    robots ? tag('robots', robots) : '',
+    tag('robots', robotsDirective),
     ...alternates.map((alt) => `  <link rel="${escapeHtml(alt.rel)}" href="${escapeHtml(alt.href)}"${alt.title ? ` title="${escapeHtml(alt.title)}"` : ''}>`),
     tag('og:type', type, { property: true }),
     tag('og:site_name', site.name, { property: true }),
@@ -154,11 +155,34 @@ function websiteJsonLd() {
     name: site.name,
     url: site.url('/'),
     description: site.description,
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: { '@type': 'EntryPoint', urlTemplate: site.url('/weather?q={search_term_string}') },
-      'query-input': 'required name=search_term_string',
-    },
+    publisher: organizationJsonLd({ context: false }),
+  };
+}
+
+function organizationJsonLd({ context = true } = {}) {
+  return {
+    ...(context ? { '@context': 'https://schema.org' } : {}),
+    '@type': 'Organization',
+    name: site.name,
+    url: site.url('/'),
+    logo: site.url('/icons/icon-512.png'),
+    description: site.description,
+  };
+}
+
+/** Page identity and freshness, tied to the same content the visitor sees. */
+function webPageJsonLd({ name, description, path, datePublished, dateModified, about = [] }) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name,
+    description,
+    url: site.url(path),
+    isPartOf: { '@type': 'WebSite', name: site.name, url: site.url('/') },
+    publisher: organizationJsonLd({ context: false }),
+    ...(datePublished ? { datePublished } : {}),
+    ...(dateModified ? { dateModified } : {}),
+    ...(about.length ? { about } : {}),
   };
 }
 
@@ -220,6 +244,8 @@ module.exports = {
   cityDescription,
   headTags,
   websiteJsonLd,
+  organizationJsonLd,
+  webPageJsonLd,
   breadcrumbJsonLd,
   placeJsonLd,
   faqJsonLd,

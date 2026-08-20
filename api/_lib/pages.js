@@ -14,6 +14,7 @@ const cities = require('./cities');
 const { renderCityPage } = require('./render/city');
 const { renderIndexPage } = require('./render/index-page');
 const { renderWidgetsPage } = require('./render/widgets-page');
+const { renderGuidePage } = require('./render/guide-page');
 const { renderSitemap, renderRobots } = require('./render/sitemap');
 const { renderDocument, escapeHtml } = require('./render/shell');
 
@@ -105,6 +106,11 @@ async function widgetsPage() {
   return { status: 200, contentType: HTML, body: renderWidgetsPage(), maxAge: 3600 };
 }
 
+/** `/weather-guide` — sourced explanations of the forecast's key numbers. */
+async function guidePage() {
+  return { status: 200, contentType: HTML, body: renderGuidePage(), maxAge: 86400 };
+}
+
 async function sitemap() {
   return {
     status: 200,
@@ -123,4 +129,4 @@ async function robots() {
   };
 }
 
-module.exports = { cityPage, cityIndex, widgetsPage, sitemap, robots, notFound };
+module.exports = { cityPage, cityIndex, widgetsPage, guidePage, sitemap, robots, notFound };

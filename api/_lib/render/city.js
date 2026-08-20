@@ -181,6 +181,8 @@ async function renderCityPage(city, section = 'overview') {
   const summary = summarize(vm, mods);
   const canonical = site.url(seo.cityPath(city, section));
   const ogImage = site.url(`/api/og?city=${city.slug}`);
+  const title = seo.cityTitle(city, section);
+  const description = seo.cityDescription(city, section, summary);
 
   const jsonLd = [
     seo.breadcrumbJsonLd([
@@ -190,6 +192,17 @@ async function renderCityPage(city, section = 'overview') {
       ...(section === 'overview' ? [] : [{ name: seo.SECTIONS[section].label, path: seo.cityPath(city, section) }]),
     ]),
     seo.placeJsonLd(city),
+    seo.webPageJsonLd({
+      name: title,
+      description,
+      path: seo.cityPath(city, section),
+      dateModified: data.fetchedAt,
+      about: [{
+        '@type': 'Place',
+        name: city.label,
+        geo: { '@type': 'GeoCoordinates', latitude: city.latitude, longitude: city.longitude },
+      }],
+    }),
   ];
 
   const questions = tables.forecastQuestions(vm);
@@ -199,8 +212,8 @@ async function renderCityPage(city, section = 'overview') {
   }
 
   const head = seo.headTags({
-    title: seo.cityTitle(city, section),
-    description: seo.cityDescription(city, section, summary),
+    title,
+    description,
     canonical,
     image: ogImage,
     imageAlt: summary ? `${city.name}: ${summary.temperature}, ${summary.condition}` : `${city.name} weather`,

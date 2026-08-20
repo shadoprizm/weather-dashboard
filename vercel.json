@@ -16,6 +16,7 @@
     { "source": "/robots.txt", "destination": "/api/robots" },
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/widgets", "destination": "/api/widgets" },
+    { "source": "/weather-guide", "destination": "/api/guide" },
     { "source": "/widget", "destination": "/api/widget" },
     { "source": "/weather", "destination": "/api/city" },
     { "source": "/weather/:slug", "destination": "/api/city?slug=:slug" },

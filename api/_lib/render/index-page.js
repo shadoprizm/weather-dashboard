@@ -63,6 +63,11 @@ function renderIndexPage() {
         page for a city once it is somewhere people actually look for, rather
         than generating one for every coordinate on the map.
       </p>
+      <p>
+        Not sure what a forecast number means? Read the
+        <a href="/weather-guide">plain-English weather guide</a> for rain chances,
+        forecast confidence, radar, alerts, AQI, UV and more.
+      </p>
     </section>`;
 
   const head = seo.headTags({

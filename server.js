@@ -30,6 +30,7 @@ const DOCUMENTS = [
   ['/robots.txt', () => pages.robots()],
   ['/widget', (req) => require('./api/_lib/render/widget').renderWidget(req.query)],
   ['/widgets', () => pages.widgetsPage()],
+  ['/weather-guide', () => pages.guidePage()],
   ['/weather', () => pages.cityIndex()],
   ['/weather/:slug', (req) => pages.cityPage({ slug: req.params.slug })],
   ['/weather/:slug/:section', (req) => pages.cityPage({ slug: req.params.slug, section: req.params.section })],

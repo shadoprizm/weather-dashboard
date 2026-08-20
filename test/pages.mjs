@@ -84,10 +84,11 @@ assert.match(html, /href="\/weather\/toronto\/hourly"/, 'sections cross-link');
 const blocks = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)]
   .map((match) => JSON.parse(match[1].replace(/\\u003c/g, '<')));
 const types = blocks.map((block) => block['@type']);
-assert.deepEqual(types, ['BreadcrumbList', 'Place', 'FAQPage']);
+assert.deepEqual(types, ['BreadcrumbList', 'Place', 'WebPage', 'FAQPage']);
 assert.equal(blocks[1].geo.latitude, 43.6532);
-assert.ok(blocks[2].mainEntity.length >= 3, 'the FAQ block carries the questions');
-for (const entry of blocks[2].mainEntity) {
+assert.match(blocks[2].dateModified, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+assert.ok(blocks[3].mainEntity.length >= 3, 'the FAQ block carries the questions');
+for (const entry of blocks[3].mainEntity) {
   assert.ok(html.includes(entry.acceptedAnswer.text.replace(/&/g, '&amp;')),
     'every structured answer is visible on the page');
 }
@@ -148,13 +149,29 @@ const sitemap = await pages.sitemap();
 assert.match(sitemap.contentType, /application\/xml/);
 const locs = [...sitemap.body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
 assert.equal(new Set(locs).size, locs.length, 'no duplicate URLs in the sitemap');
-assert.equal(locs.length, 3 + cities.CITIES.length * seo.SECTION_ORDER.length);
+assert.equal(locs.length, 4 + cities.CITIES.length * seo.SECTION_ORDER.length);
 for (const loc of locs) assert.ok(loc.startsWith(site.origin), `${loc} is absolute`);
 assert.ok(locs.includes(site.url('/weather/toronto/10-day')));
+assert.ok(locs.includes(site.url('/weather-guide')));
+assert.match(sitemap.body, /<lastmod>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:00Z<\/lastmod>/);
 
 const robots = await pages.robots();
 assert.match(robots.body, /^User-agent: \*$/m);
+assert.match(robots.body, /^User-agent: OAI-SearchBot$/m);
+assert.match(robots.body, /^User-agent: Google-Extended$/m);
 assert.match(robots.body, new RegExp(`^Sitemap: ${site.origin}/sitemap\\.xml$`, 'm'));
+
+/* --- weather answer guide ----------------------------------------------- */
+
+const guide = await pages.guidePage();
+assert.equal(guide.status, 200);
+assert.match(guide.body, /<h1>Weather questions, answered clearly<\/h1>/);
+assert.match(guide.body, /<link rel="canonical" href="https:\/\/www\.weatherview\.cloud\/weather-guide">/);
+assert.match(guide.body, /What does a 40% chance of rain mean\?/);
+assert.match(guide.body, /weather\.gov\/ffc\/pop/);
+assert.match(guide.body, /"@type":"FAQPage"/);
+assert.match(guide.body, /"dateModified":"2026-08-19"/);
+assert.match(guide.body, /<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">/);
 
 /* --- the hydration bootstrap -------------------------------------------- */
 
