@@ -5,6 +5,7 @@
  * pure; everything that touches the network, the DOM or the URL lives here.
  */
 
+import { initAnalytics } from './analytics.js';
 import * as api from './api.js';
 import * as state from './state.js';
 import * as fmt from './format.js';
@@ -19,6 +20,9 @@ import {
 import {
   renderAlerts, renderActivities, renderAstro, renderAir, renderAlmanac, renderCompare,
 } from './views/panels.js';
+
+// Initialize Vercel Web Analytics
+initAnalytics();
 
 const REFRESH_MS = 10 * 60 * 1000;
 const MAX_COMPARISONS = 8;
