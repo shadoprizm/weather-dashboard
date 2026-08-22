@@ -16,10 +16,10 @@
   <meta property="og:description" content="Weather without the ads, popups and autoplay video. Just the forecast.">
   <meta property="og:url" content="https://www.weatherview.cloud/">
   <meta name="twitter:card" content="summary">
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"WeatherView","url":"https://www.weatherview.cloud/","description":"Fast, ad-free weather with current conditions, hourly and 14-day forecasts, live radar, air quality, official alerts and 20-year normals.","publisher":{"@type":"Organization","name":"WeatherView","url":"https://www.weatherview.cloud/","logo":"https://www.weatherview.cloud/icons/icon-512.png"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"WeatherView","url":"https://www.weatherview.cloud/","description":"Fast, ad-free weather with current conditions, hourly and 14-day forecasts, live radar, air quality, official alerts and 20-year normals.","publisher":{"@type":"Organization","name":"WeatherView","url":"https://www.weatherview.cloud/","logo":"https://www.weatherview.cloud/icons/weatherview-512.png"}}</script>
   <!--/wv:head-->
-  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="icon" href="/icons/weatherview-mark.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icons/weatherview-192.png">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="preconnect" href="https://basemaps.cartocdn.com" crossorigin>
   <link rel="stylesheet" href="style.css">
@@ -36,10 +36,14 @@
 
   <header class="topbar">
     <div class="topbar-inner">
-      <div class="brand">
-        <span class="brand-mark" aria-hidden="true"></span>
-        <a class="brand-name" href="/">WeatherView</a>
-      </div>
+      <a class="brand" href="/" aria-label="WeatherView home">
+        <svg class="brand-mark" viewBox="0 0 136 68" aria-hidden="true" focusable="false">
+          <path class="brand-cloud" d="M12 60C6.7 54.7 4 48.2 4 40.5 4 25.9 15.9 14 30.5 14c3.2 0 6.3.6 9.2 1.7C44.7 6.2 54.7 0 66 0s21.3 6.2 26.3 15.7c2.9-1.1 6-1.7 9.2-1.7 14.6 0 26.5 11.9 26.5 26.5 0 7.7-2.7 14.2-8 19.5"/>
+          <path class="brand-sun" d="M46 60a20 20 0 0 1 40 0Z"/>
+          <path class="brand-horizon" d="M8 60h120"/>
+        </svg>
+        <span class="brand-name"><span>weatherview</span><span class="brand-domain">.cloud</span></span>
+      </a>
 
       <div class="search" role="search">
         <label class="visually-hidden" for="search-input">Search for a city</label>

@@ -19,32 +19,64 @@ const { Surface } = require('../api/_lib/og/canvas.js');
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'icons');
 
-/** The mark: a sun behind a cloud, over three strokes of rain. */
+function cubic(from, controlA, controlB, to, steps = 12) {
+  const points = [];
+  for (let i = 1; i <= steps; i += 1) {
+    const t = i / steps;
+    const u = 1 - t;
+    points.push([
+      u ** 3 * from[0] + 3 * u ** 2 * t * controlA[0] + 3 * u * t ** 2 * controlB[0] + t ** 3 * to[0],
+      u ** 3 * from[1] + 3 * u ** 2 * t * controlA[1] + 3 * u * t ** 2 * controlB[1] + t ** 3 * to[1],
+    ]);
+  }
+  return points;
+}
+
+function upperDisc(surface, cx, cy, radius, rgb) {
+  const x0 = Math.max(0, Math.floor(cx - radius - 1));
+  const x1 = Math.min(surface.width - 1, Math.ceil(cx + radius + 1));
+  const y0 = Math.max(0, Math.floor(cy - radius - 1));
+  const y1 = Math.min(surface.height - 1, Math.ceil(cy));
+
+  for (let y = y0; y <= y1; y += 1) {
+    for (let x = x0; x <= x1; x += 1) {
+      const coverage = radius + 0.5 - Math.hypot(x + 0.5 - cx, y + 0.5 - cy);
+      if (coverage > 0) surface.blend(x, y, rgb, Math.min(1, coverage));
+    }
+  }
+}
+
+/** The cloud, rising sun, and horizon used in the WeatherView wordmark. */
 function drawIcon(size, { padding = 0 } = {}) {
   const surface = new Surface(size, size);
-  const s = size / 512;
   const inset = padding * size;
   const scale = (size - inset * 2) / 512;
   const at = (x, y) => [inset + x * scale, inset + y * scale];
 
   surface.linearGradient([11, 18, 32], [43, 108, 176]);
 
-  const [sunX, sunY] = at(196, 182);
-  surface.disc(sunX, sunY, 58 * scale, [255, 212, 121], 1);
-
+  const markX = 60;
+  const markY = 160;
+  const markScale = 2.9;
+  const point = ([x, y]) => at(markX + x * markScale, markY + y * markScale);
+  const accent = [90, 183, 255];
   const white = [255, 255, 255];
-  const [c1x, c1y] = at(206, 300);
-  const [c2x, c2y] = at(292, 278);
-  surface.disc(c1x, c1y, 62 * scale, white, 1);
-  surface.disc(c2x, c2y, 82 * scale, white, 1);
-  const [bx, by] = at(144, 300);
-  surface.roundRect(bx, by, 230 * scale, 86 * scale, 43 * scale, white, 1);
 
-  for (const x of [186, 256, 326]) {
-    const [ax, ay] = at(x, 404);
-    const [ex, ey] = at(x - 18, 446);
-    surface.stroke([[ax, ay], [ex, ey]], [125, 211, 252], 20 * scale * (size / size), 1);
-  }
+  const cloud = [[12, 60]];
+  const curve = (a, b, c, d) => cloud.push(...cubic(a, b, c, d));
+  curve([12, 60], [6.7, 54.7], [4, 48.2], [4, 40.5]);
+  curve([4, 40.5], [4, 25.9], [15.9, 14], [30.5, 14]);
+  curve([30.5, 14], [33.7, 14], [36.8, 14.6], [39.7, 15.7]);
+  curve([39.7, 15.7], [44.7, 6.2], [54.7, 0], [66, 0]);
+  curve([66, 0], [77.3, 0], [87.3, 6.2], [92.3, 15.7]);
+  curve([92.3, 15.7], [95.2, 14.6], [98.3, 14], [101.5, 14]);
+  curve([101.5, 14], [116.1, 14], [128, 25.9], [128, 40.5]);
+  curve([128, 40.5], [128, 48.2], [125.3, 54.7], [120, 60]);
+
+  const [sunX, sunY] = point([66, 60]);
+  upperDisc(surface, sunX, sunY, 20 * markScale * scale, accent);
+  surface.stroke(cloud.map(point), white, 7 * markScale * scale, 1);
+  surface.stroke([point([8, 60]), point([128, 60])], accent, 7 * markScale * scale, 1);
 
   return surface.toPng();
 }
@@ -52,11 +84,11 @@ function drawIcon(size, { padding = 0 } = {}) {
 mkdirSync(OUT, { recursive: true });
 
 for (const size of [192, 512]) {
-  writeFileSync(path.join(OUT, `icon-${size}.png`), drawIcon(size));
-  console.log(`icons/icon-${size}.png`);
+  writeFileSync(path.join(OUT, `weatherview-${size}.png`), drawIcon(size));
+  console.log(`icons/weatherview-${size}.png`);
 }
 
 // Maskable icons are cropped to a circle by Android, so the mark is inset to
 // keep it inside the safe zone.
-writeFileSync(path.join(OUT, 'icon-maskable-512.png'), drawIcon(512, { padding: 0.12 }));
-console.log('icons/icon-maskable-512.png');
+writeFileSync(path.join(OUT, 'weatherview-maskable-512.png'), drawIcon(512, { padding: 0.12 }));
+console.log('icons/weatherview-maskable-512.png');

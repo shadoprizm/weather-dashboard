@@ -177,15 +177,31 @@ kbd {
   padding: 12px 20px;
 }
 
-.brand { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
-
-.brand-mark {
-  width: 26px; height: 26px; border-radius: 9px;
-  background: linear-gradient(140deg, var(--accent), #b184ff);
-  box-shadow: 0 0 22px var(--accent-soft);
+.brand {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  color: var(--text); text-decoration: none;
 }
 
-.brand-name { font-weight: 700; letter-spacing: -0.02em; font-size: 1.06rem; }
+.brand:hover { text-decoration: none; }
+
+.brand-mark {
+  width: 46px; height: 32px; flex: none; overflow: visible;
+  filter: drop-shadow(0 0 10px var(--accent-soft));
+}
+
+.brand-cloud, .brand-horizon {
+  fill: none; stroke-linecap: round; stroke-linejoin: round;
+}
+.brand-cloud { stroke: currentColor; stroke-width: 7; }
+.brand-sun { fill: var(--accent); }
+.brand-horizon { stroke: var(--accent); stroke-width: 7; }
+
+.brand-name {
+  display: inline-flex; align-items: baseline;
+  font-size: 1.08rem; font-weight: 800; line-height: 1;
+  letter-spacing: -0.055em;
+}
+.brand-domain { color: var(--accent); }
 
 .search { position: relative; flex: 1; max-width: 460px; display: flex; gap: 6px; }
 
@@ -1055,6 +1071,18 @@ body.is-loading .layout { opacity: .72; transition: opacity .2s ease; }
   .footer-keys { display: none; }
 }
 
+@media (max-width: 520px) {
+  .brand-name { display: none; }
+}
+
+@media (max-width: 380px) {
+  .topbar-inner { gap: 8px; }
+  .brand-mark { width: 40px; height: 30px; }
+  .topbar-actions { gap: 4px; }
+  .icon-button { width: 34px; height: 34px; }
+  .unit-button { padding: 4px 8px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: .001ms !important;
@@ -1077,9 +1105,6 @@ body.is-loading .layout { opacity: .72; transition: opacity .2s ease; }
    ========================================================================== */
 
 /* ------------------------------------------------------------- brand --- */
-
-a.brand-name { color: inherit; text-decoration: none; }
-a.brand-name:hover { color: var(--accent); }
 
 .icon-button.is-active { color: var(--accent); background: var(--accent-soft); }
 .icon-button.is-active svg { fill: currentColor; }

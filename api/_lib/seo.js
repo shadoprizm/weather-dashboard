@@ -165,7 +165,7 @@ function organizationJsonLd({ context = true } = {}) {
     '@type': 'Organization',
     name: site.name,
     url: site.url('/'),
-    logo: site.url('/icons/icon-512.png'),
+    logo: site.url('/icons/weatherview-512.png'),
     description: site.description,
   };
 }

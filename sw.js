@@ -10,7 +10,7 @@
  * whole store is versioned so a deploy replaces it wholesale.
  */
 
-const VERSION = 'weatherview-v3';
+const VERSION = 'weatherview-v4';
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-data`;
 const PAGE_CACHE = `${VERSION}-pages`;
@@ -20,7 +20,7 @@ const SHELL = [
   '/',
   '/style.css',
   '/manifest.webmanifest',
-  '/icons/icon.svg',
+  '/icons/weatherview-mark.svg',
   '/js/main.js',
   '/js/api.js',
   '/js/state.js',
