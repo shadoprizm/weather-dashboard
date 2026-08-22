@@ -18,8 +18,8 @@ const PAGE_CACHE = `${VERSION}-pages`;
 // Everything needed to paint the app with no network at all.
 const SHELL = [
   '/',
-  '/style.css',
-  '/manifest.webmanifest',
+  '/style.css?v=4',
+  '/manifest.webmanifest?v=4',
   '/icons/weatherview-mark.svg',
   '/js/main.js',
   '/js/api.js',
