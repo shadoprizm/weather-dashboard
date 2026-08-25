@@ -19,10 +19,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Check out the production branch
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Use Node 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -31,7 +31,7 @@ jobs:
         run: npm ci
 
       - name: Restore the previous trial state
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: monitoring-trial
           key: monitoring-trial-v1-${{ github.run_id }}
@@ -43,7 +43,7 @@ jobs:
 
       - name: Retain the trial evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: monitoring-trial-${{ github.run_id }}
           path: monitoring-trial
