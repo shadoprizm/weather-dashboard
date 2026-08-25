@@ -11,12 +11,19 @@ import { fetchRadarIndex } from './api.js';
 import { timeLabel } from './format.js';
 import { clamp } from './dom.js';
 
+// Slippy-map coordinates use 256 CSS-pixel tiles. Both providers can return
+// 512-pixel images for those same coordinates, which keeps coastlines and
+// radar edges crisp on Retina/high-density displays without changing the map
+// maths or geographic scale.
 const TILE = 256;
+const SOURCE_TILE = 512;
 const MIN_ZOOM = 3;
-const MAX_ZOOM = 10;
-const MAX_FRAMES = 10;
-const COLOR_SCHEME = 4;   // RainViewer "Titan" palette -- readable in both themes
+const MAX_ZOOM = 7;       // RainViewer's public tile pyramid stops at zoom 7
+const MAX_FRAMES = 8;
+const RADAR_TILE_BUDGET = 42; // leave room for an immediate zoom or short pan
+const COLOR_SCHEME = 2;   // RainViewer's supported Universal Blue palette
 const TILE_OPTIONS = '1_1'; // smoothed, snow rendered separately
+const FRAME_INTERVAL = 850;
 
 /* --------------------------------------------------- web mercator maths */
 
@@ -46,7 +53,7 @@ export function createRadarMap(container, options = {}) {
   const state = {
     lat: options.lat ?? 45.42,
     lon: options.lon ?? -75.7,
-    zoom: clamp(options.zoom ?? 7, MIN_ZOOM, MAX_ZOOM),
+    zoom: clamp(options.zoom ?? 6, MIN_ZOOM, MAX_ZOOM),
     frames: [],
     host: null,
     frameIndex: 0,
@@ -67,6 +74,7 @@ export function createRadarMap(container, options = {}) {
       <div class="radar-world">
         <div class="radar-layer radar-base"></div>
         <div class="radar-frames"></div>
+        <div class="radar-layer radar-labels"></div>
       </div>
       <div class="radar-crosshair" aria-hidden="true"></div>
       <div class="radar-zoom">
@@ -99,36 +107,51 @@ export function createRadarMap(container, options = {}) {
   const world = container.querySelector('.radar-world');
   const baseLayer = container.querySelector('.radar-base');
   const framesLayer = container.querySelector('.radar-frames');
+  const labelsLayer = container.querySelector('.radar-labels');
   const scrub = container.querySelector('[data-radar="scrub"]');
   const timeOut = container.querySelector('[data-radar="time"]');
   const statusBox = container.querySelector('.radar-status');
   const playButton = container.querySelector('[data-radar="toggle"]');
+  const zoomInButton = container.querySelector('[data-radar="zoom-in"]');
+  const zoomOutButton = container.querySelector('[data-radar="zoom-out"]');
+
+  let paintGeneration = 0;
 
   function setStatus(message) {
     statusBox.hidden = !message;
     statusBox.textContent = message || '';
   }
 
+  function cartoTileUrl(style, z, x, y) {
+    return `https://basemaps.cartocdn.com/${style}/${z}/${x}/${y}@2x.png`;
+  }
+
   function baseTileUrl(z, x, y) {
-    const style = state.theme === 'light' ? 'light_all' : 'dark_all';
-    return `https://basemaps.cartocdn.com/${style}/${z}/${x}/${y}.png`;
+    // The light no-labels map has much stronger land/water separation than
+    // CARTO Dark Matter. CSS tones it down in dark mode without throwing away
+    // that geography.
+    return cartoTileUrl('light_nolabels', z, x, y);
+  }
+
+  function labelsTileUrl(z, x, y) {
+    return cartoTileUrl('light_only_labels', z, x, y);
   }
 
   function radarTileUrl(frame, z, x, y) {
-    return `${state.host}${frame.path}/${TILE}/${z}/${x}/${y}/${COLOR_SCHEME}/${TILE_OPTIONS}.png`;
+    return `${state.host}${frame.path}/${SOURCE_TILE}/${z}/${x}/${y}/${COLOR_SCHEME}/${TILE_OPTIONS}.png`;
   }
 
   /** Build one layer's worth of <img> tiles for the current viewport. */
-  function paintLayer(layer, urlFor) {
+  function paintLayer(layer, urlFor, overscan = 0) {
     const { width, height } = viewport.getBoundingClientRect();
     const originX = lonToWorldX(state.lon, state.zoom) - width / 2;
     const originY = latToWorldY(state.lat, state.zoom) - height / 2;
 
     const span = Math.pow(2, state.zoom);
-    const firstX = Math.floor(originX / TILE) - 1;
-    const firstY = Math.floor(originY / TILE) - 1;
-    const lastX = Math.floor((originX + width) / TILE) + 1;
-    const lastY = Math.floor((originY + height) / TILE) + 1;
+    const firstX = Math.floor(originX / TILE) - overscan;
+    const firstY = Math.floor(originY / TILE) - overscan;
+    const lastX = Math.floor((originX + Math.max(0, width - 1)) / TILE) + overscan;
+    const lastY = Math.floor((originY + Math.max(0, height - 1)) / TILE) + overscan;
 
     const parts = [];
     for (let x = firstX; x <= lastX; x += 1) {
@@ -137,6 +160,7 @@ export function createRadarMap(container, options = {}) {
         const wrappedX = ((x % span) + span) % span; // but the map wraps east-west
         parts.push(
           `<img class="radar-tile" src="${urlFor(state.zoom, wrappedX, y)}" alt=""
+                width="${SOURCE_TILE}" height="${SOURCE_TILE}"
                 loading="eager" decoding="async" draggable="false"
                 style="left:${x * TILE - originX}px; top:${y * TILE - originY}px">`
         );
@@ -144,40 +168,123 @@ export function createRadarMap(container, options = {}) {
     }
     layer.innerHTML = parts.join('');
 
-    // Missing tiles are routine at the edges of radar coverage. Hide them
-    // here rather than with an inline handler, which the CSP forbids.
-    for (const tile of layer.querySelectorAll('.radar-tile')) {
-      tile.addEventListener('error', () => { tile.style.visibility = 'hidden'; }, { once: true });
-    }
+    // A frame is not allowed into the animation until every visible image has
+    // loaded and decoded. That prevents late tiles from appearing as moving
+    // rectangular blocks while the timeline advances.
+    const tiles = [...layer.querySelectorAll('.radar-tile')];
+    const readiness = tiles.map((tile) => new Promise((resolve) => {
+      let settled = false;
+
+      const finish = async (loaded) => {
+        if (settled) return;
+        settled = true;
+        if (!loaded) tile.style.visibility = 'hidden';
+        if (loaded && typeof tile.decode === 'function') {
+          try { await tile.decode(); } catch (error) { /* load still succeeded */ }
+        }
+        resolve(loaded);
+      };
+
+      tile.addEventListener('load', () => { finish(true); }, { once: true });
+      tile.addEventListener('error', () => { finish(false); }, { once: true });
+      if (tile.complete) finish(tile.naturalWidth > 0);
+    }));
+
+    return Promise.all(readiness).then((loaded) => ({
+      loaded: loaded.filter(Boolean).length,
+      total: loaded.length,
+    }));
+  }
+
+  function visibleRadarTileCount() {
+    const { width, height } = viewport.getBoundingClientRect();
+    const originX = lonToWorldX(state.lon, state.zoom) - width / 2;
+    const originY = latToWorldY(state.lat, state.zoom) - height / 2;
+    const columns = Math.floor((originX + Math.max(0, width - 1)) / TILE)
+      - Math.floor(originX / TILE) + 1;
+    const rows = Math.floor((originY + Math.max(0, height - 1)) / TILE)
+      - Math.floor(originY / TILE) + 1;
+    return Math.max(1, columns * rows);
+  }
+
+  function frameLimit() {
+    return clamp(Math.floor(RADAR_TILE_BUDGET / visibleRadarTileCount()), 3, MAX_FRAMES);
   }
 
   function paintBase() {
-    // CARTO's two basemaps sit at opposite ends of the luminance range, and
-    // the dark one is built to disappear under bright data. Radar is not
-    // bright data -- light rain is pale blue -- so the stylesheet lifts the
-    // dark map back to a readable mid-grey. Publishing which one is on screen
-    // keeps that correction in CSS instead of hardcoding a filter here.
     container.dataset.basemap = state.theme;
-    paintLayer(baseLayer, baseTileUrl);
+    // Geography can overdraw beyond the viewport during a drag. Radar frames
+    // intentionally do not: limiting them to visible tiles keeps playback
+    // comfortably inside the public API's request budget.
+    void paintLayer(baseLayer, baseTileUrl, 1);
+    void paintLayer(labelsLayer, labelsTileUrl, 1);
   }
 
-  function paintFrames() {
-    if (!state.frames.length || !state.host) return;
-    framesLayer.innerHTML = state.frames
+  async function paintFrames(preferredFrame = state.frames[state.frameIndex]) {
+    if (!state.frames.length || !state.host) return false;
+
+    const generation = ++paintGeneration;
+    const shouldResume = state.playing;
+    clearPlaybackTimer();
+    playButton.disabled = true;
+    scrub.disabled = true;
+    setStatus('Preparing smooth radar…');
+
+    // Zooming in exposes more tiles. Trim the oldest frames again at the new
+    // scale so a zoom cannot undo the request budget established at startup.
+    const candidates = state.frames.slice(-frameLimit());
+    framesLayer.innerHTML = candidates
       .map((_, i) => `<div class="radar-layer radar-frame" data-frame="${i}"></div>`)
       .join('');
 
-    state.frames.forEach((frame, i) => {
+    // Fetch newest first so the most useful image is ready earliest. Frames
+    // load one at a time, keeping network pressure predictable.
+    const ready = [];
+    const order = candidates.map((_, i) => i).reverse();
+    for (const i of order) {
+      const frame = candidates[i];
       const layer = framesLayer.querySelector(`[data-frame="${i}"]`);
-      paintLayer(layer, (z, x, y) => radarTileUrl(frame, z, x, y));
-    });
+      const result = await paintLayer(layer, (z, x, y) => radarTileUrl(frame, z, x, y));
+      if (destroyed || generation !== paintGeneration) return false;
+
+      // A partial frame is worse than skipping one: the missing square moves
+      // with the animation and reads as corrupt radar data.
+      if (result.total > 0 && result.loaded === result.total) {
+        ready.push({ frame, layer, originalIndex: i });
+      } else {
+        layer.remove();
+      }
+    }
+
+    ready.sort((a, b) => a.originalIndex - b.originalIndex);
+    if (!ready.length) {
+      state.frames = [];
+      framesLayer.innerHTML = '';
+      setStatus('Radar imagery is unavailable right now.');
+      return false;
+    }
+
+    framesLayer.replaceChildren(...ready.map((entry) => entry.layer));
+    ready.forEach((entry, i) => { entry.layer.dataset.frame = String(i); });
+    state.frames = ready.map((entry) => entry.frame);
+    const preferredIndex = state.frames.findIndex((frame) =>
+      frame.path === preferredFrame?.path && frame.time === preferredFrame?.time);
+    state.frameIndex = preferredIndex >= 0 ? preferredIndex : state.frames.length - 1;
+
+    scrub.max = String(state.frames.length - 1);
+    scrub.disabled = state.frames.length < 2;
+    playButton.disabled = state.frames.length < 2;
     showFrame(state.frameIndex);
+    setStatus('');
+    if (shouldResume && state.frames.length > 1) play();
+    else if (state.frames.length < 2) stop();
+    return true;
   }
 
   function repaint() {
     world.style.transform = 'translate3d(0,0,0)';
     paintBase();
-    paintFrames();
+    void paintFrames();
   }
 
   function showFrame(index) {
@@ -201,20 +308,32 @@ export function createRadarMap(container, options = {}) {
   }
 
   function play() {
-    stop();
+    if (state.frames.length < 2) return;
+    clearPlaybackTimer();
     state.playing = true;
     playButton.classList.add('is-playing');
     playButton.setAttribute('aria-label', 'Pause animation');
+    let holdingNewest = false;
     timer = setInterval(() => {
-      // Hold a beat on the newest frame so the loop reads clearly.
+      // Hold a beat on the newest frame so the loop reads clearly, then use a
+      // slower crossfade so individual 10-minute observations do not strobe.
       const next = state.frameIndex + 1;
+      if (next >= state.frames.length && !holdingNewest) {
+        holdingNewest = true;
+        return;
+      }
+      holdingNewest = false;
       showFrame(next >= state.frames.length ? 0 : next);
-    }, 550);
+    }, FRAME_INTERVAL);
+  }
+
+  function clearPlaybackTimer() {
+    if (timer) clearInterval(timer);
+    timer = null;
   }
 
   function stop() {
-    if (timer) clearInterval(timer);
-    timer = null;
+    clearPlaybackTimer();
     state.playing = false;
     playButton.classList.remove('is-playing');
     playButton.setAttribute('aria-label', 'Play animation');
@@ -270,7 +389,13 @@ export function createRadarMap(container, options = {}) {
     const target = clamp(Math.round(next), MIN_ZOOM, MAX_ZOOM);
     if (target === state.zoom) return;
     state.zoom = target;
+    updateZoomButtons();
     repaint();
+  }
+
+  function updateZoomButtons() {
+    zoomInButton.disabled = state.zoom >= MAX_ZOOM;
+    zoomOutButton.disabled = state.zoom <= MIN_ZOOM;
   }
 
   container.addEventListener('click', (event) => {
@@ -306,21 +431,23 @@ export function createRadarMap(container, options = {}) {
       }
 
       state.host = index.host;
-      // Keep the tail of the past frames plus the whole nowcast.
-      const past = index.frames.filter((f) => f.kind === 'past').slice(-MAX_FRAMES);
+      // Keep enough history to show useful movement without bursting through
+      // RainViewer's public tile-request limit on a wide desktop viewport.
+      const limit = frameLimit();
       const forecast = index.frames.filter((f) => f.kind === 'forecast');
-      state.frames = [...past, ...forecast];
+      const forecastCount = Math.min(forecast.length, Math.floor(limit / 3));
+      const past = index.frames.filter((f) => f.kind === 'past')
+        .slice(-(limit - forecastCount));
+      state.frames = [...past, ...forecast.slice(0, forecastCount)];
 
-      scrub.max = String(state.frames.length - 1);
       state.frameIndex = Math.max(0, past.length - 1); // start on "now"
-      paintFrames();
-      setStatus('');
-      play();
+      await paintFrames(state.frames[state.frameIndex]);
     } catch (error) {
       setStatus('Radar imagery is unavailable right now.');
     }
   }
 
+  updateZoomButtons();
   load();
 
   return {
@@ -328,6 +455,7 @@ export function createRadarMap(container, options = {}) {
       state.lat = lat;
       state.lon = lon;
       if (zoom) state.zoom = clamp(zoom, MIN_ZOOM, MAX_ZOOM);
+      updateZoomButtons();
       repaint();
     },
     setTheme(theme) {

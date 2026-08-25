@@ -22,7 +22,7 @@
   <link rel="apple-touch-icon" href="/icons/weatherview-192.png">
   <link rel="manifest" href="/manifest.webmanifest?v=4">
   <link rel="preconnect" href="https://basemaps.cartocdn.com" crossorigin>
-  <link rel="stylesheet" href="/style.css?v=4">
+  <link rel="stylesheet" href="/style.css?v=11">
 </head>
 <body>
   <div class="sky" data-sky="clear-day" aria-hidden="true">
@@ -97,6 +97,14 @@
       </div>
     </div>
 
+    <nav class="site-nav" aria-label="Explore WeatherView">
+      <span class="site-nav-label">Explore</span>
+      <a href="/weather">Cities</a>
+      <a href="/weather-guide">Weather guide</a>
+      <a href="/weather-stories">Stories</a>
+      <a href="/widgets">Widgets</a>
+    </nav>
+
     <nav class="places" id="places" aria-label="Saved locations"></nav>
   </header>
 
@@ -136,7 +144,7 @@
         <section id="radar-panel" class="panel" aria-label="Precipitation radar">
           <header class="panel-head">
             <h2>Live radar</h2>
-            <p class="panel-sub">Drag to pan, scroll to zoom. Dotted frames are the nowcast.</p>
+            <p class="panel-sub">Drag to pan, scroll to zoom, or scrub through recent frames.</p>
           </header>
           <div id="radar-mount"></div>
         </section>
@@ -163,7 +171,7 @@
 
   <footer class="footer">
     <p>
-      Forecast data <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> ·
+      <span id="forecast-source">Weather Data Provided by <a href="https://www.visualcrossing.com/" target="_blank" rel="noopener">Visual Crossing</a></span> ·
       Radar <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> ·
       Alerts <a href="https://eccc-msc.github.io/open-data/" target="_blank" rel="noopener">ECCC</a> and
       <a href="https://www.weather.gov/" target="_blank" rel="noopener">NWS</a> ·
@@ -175,6 +183,7 @@
     </p>
     <p class="footer-links">
       <a href="/weather">Weather by city</a> ·
+      <a href="/weather-stories">Weather stories</a> ·
       <a href="/weather-guide">Weather questions answered</a> ·
       <a href="/widgets">Free website widget</a> ·
       <a href="/">Dashboard</a>
@@ -192,6 +201,6 @@
     <p class="noscript">The live dashboard needs JavaScript. Every city page under <a href="/weather">/weather</a> is served fully rendered without it.</p>
   </noscript>
 
-  <script type="module" src="js/main.js"></script>
+  <script type="module" src="/js/main.js"></script>
 </body>
 </html>

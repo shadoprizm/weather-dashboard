@@ -13,6 +13,7 @@
 const { fetchJson, fetchJsonSoft, buildUrl, UpstreamError } = require('./upstream');
 const cache = require('./cache');
 const alertRegistry = require('./alerts');
+const visualCrossing = require('./weather-providers/visual-crossing');
 
 const OPEN_METEO = 'https://api.open-meteo.com/v1/forecast';
 const OPEN_METEO_AIR = 'https://air-quality-api.open-meteo.com/v1/air-quality';
@@ -238,6 +239,43 @@ function indexOfTime(times, value) {
   return times.indexOf(value);
 }
 
+function configuredWeatherProvider() {
+  return process.env.WEATHER_PROVIDER === 'visual-crossing'
+    ? 'visual-crossing'
+    : 'open-meteo';
+}
+
+async function fetchWeather({ lat, lon, openMeteoUrl, provider = configuredWeatherProvider() }) {
+  if (provider !== 'visual-crossing') {
+    return {
+      data: await fetchJson(openMeteoUrl),
+      provider: 'open-meteo',
+      fallback: false,
+      queryCost: null,
+    };
+  }
+
+  try {
+    const data = await visualCrossing.fetchOpenMeteoCompatible({ lat, lon });
+    return {
+      data,
+      provider: 'visual-crossing',
+      fallback: false,
+      queryCost: data.queryCost,
+    };
+  } catch (error) {
+    // Keep the public forecast useful during a provider outage or free-tier
+    // throttle. The response exposes that a fallback happened so the source
+    // label remains honest and the trial can distinguish provider failures.
+    return {
+      data: await fetchJson(openMeteoUrl),
+      provider: 'open-meteo',
+      fallback: true,
+      queryCost: null,
+    };
+  }
+}
+
 /* --------------------------------------------------------------- forecast */
 
 /**
@@ -246,7 +284,8 @@ function indexOfTime(times, value) {
  */
 async function forecast(query) {
   const { lat, lon } = coords(query);
-  const key = `forecast:${lat},${lon}`;
+  const requestedProvider = configuredWeatherProvider();
+  const key = `forecast:v2:${requestedProvider}:${lat},${lon}`;
 
   const body = await cache.memo(key, 300, async () => {
     const forecastUrl = buildUrl(OPEN_METEO, {
@@ -275,10 +314,11 @@ async function forecast(query) {
 
     // Air quality is a nice-to-have: soft-fetch so an outage there still
     // leaves a fully working forecast.
-    const [weather, air] = await Promise.all([
-      fetchJson(forecastUrl),
+    const [weatherResult, air] = await Promise.all([
+      fetchWeather({ lat, lon, openMeteoUrl: forecastUrl, provider: requestedProvider }),
       fetchJsonSoft(airUrl, null),
     ]);
+    const weather = weatherResult.data;
 
     const currentTime = weather.current && weather.current.time;
     const hourlyIndex = indexOfTime(weather.hourly && weather.hourly.time, currentTime);
@@ -302,6 +342,9 @@ async function forecast(query) {
       hourlyUnits: weather.hourly_units || null,
       daily: weather.daily || null,
       dailyUnits: weather.daily_units || null,
+      weatherProvider: weatherResult.provider,
+      weatherProviderFallback: weatherResult.fallback,
+      weatherProviderQueryCost: weatherResult.queryCost,
       // Where "now" sits inside the hourly/daily arrays, which start in the
       // past because of `past_days`.
       index: { hourly: hourlyIndex, daily: dailyIndex },
@@ -412,7 +455,7 @@ async function alerts(query) {
 
 /* ------------------------------------------------------------------ radar */
 
-/** RainViewer's frame index: past radar plus a short nowcast. */
+/** RainViewer's recent radar frames, plus forecast frames when supplied. */
 async function radar() {
   const body = await cache.memo('radar:index', 120, async () => {
     const data = await fetchJsonSoft(RAINVIEWER_INDEX, null);
@@ -594,5 +637,8 @@ module.exports = {
   almanac,
   space,
   health,
-  _internals: { geocodePlan, rankGeocodeResults, normalizeLookupText },
+  _internals: {
+    geocodePlan, rankGeocodeResults, normalizeLookupText,
+    configuredWeatherProvider, fetchWeather,
+  },
 };

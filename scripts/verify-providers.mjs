@@ -208,7 +208,7 @@ await check('RainViewer frame index', async () => {
   assert(typeof frame.path === 'string' && frame.path.startsWith('/'), `frame.path looks wrong: ${frame.path}`);
 
   // Confirm a real tile actually renders at the app's own URL template.
-  const tile = `${body.host}${frame.path}/256/4/4/5/4/1_1.png`;
+  const tile = `${body.host}${frame.path}/512/4/4/5/2/1_1.png`;
   const response = await fetch(tile);
   assert(response.ok, `tile request failed: HTTP ${response.status} for ${tile}`);
   const type = response.headers.get('content-type') || '';

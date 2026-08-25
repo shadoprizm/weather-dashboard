@@ -10,7 +10,7 @@
  * whole store is versioned so a deploy replaces it wholesale.
  */
 
-const VERSION = 'weatherview-v4';
+const VERSION = 'weatherview-v11';
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-data`;
 const PAGE_CACHE = `${VERSION}-pages`;
@@ -18,7 +18,7 @@ const PAGE_CACHE = `${VERSION}-pages`;
 // Everything needed to paint the app with no network at all.
 const SHELL = [
   '/',
-  '/style.css?v=4',
+  '/style.css?v=11',
   '/manifest.webmanifest?v=4',
   '/icons/weatherview-mark.svg',
   '/js/main.js',

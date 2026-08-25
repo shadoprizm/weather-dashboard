@@ -72,6 +72,9 @@
 
 html { -webkit-text-size-adjust: 100%; }
 
+/* Component display rules must never override the platform's hidden state. */
+[hidden] { display: none !important; }
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -267,6 +270,34 @@ kbd {
   color: var(--text-dim); background: none; border: 0; border-radius: 8px;
 }
 .unit-button.is-active { color: var(--text); background: var(--surface-strong); }
+
+/* ------------------------------------------------------------ site nav --- */
+
+.site-nav {
+  display: flex; align-items: center; gap: 4px; overflow-x: auto;
+  max-width: var(--maxw); margin: 0 auto;
+  padding: 0 20px 10px;
+  scrollbar-width: none;
+}
+.site-nav::-webkit-scrollbar { display: none; }
+
+.site-nav-label {
+  flex: none; margin-right: 4px;
+  font-size: 0.72rem; font-weight: 750; letter-spacing: 0.08em;
+  color: var(--text-faint); text-transform: uppercase;
+}
+
+.site-nav a {
+  flex: none; padding: 6px 11px;
+  border: 1px solid transparent; border-radius: 999px;
+  color: var(--text-dim); font-size: 0.82rem; font-weight: 650;
+  text-decoration: none;
+}
+.site-nav a:hover,
+.site-nav a:focus-visible {
+  color: var(--text); background: var(--surface);
+  border-color: var(--border); text-decoration: none;
+}
 
 /* -------------------------------------------------------------- places --- */
 
@@ -878,17 +909,6 @@ kbd {
 
 /* --------------------------------------------------------------- radar --- */
 
-/*
- * The map underneath the radar is a backdrop, not a data layer: it exists so
- * you can tell where the precipitation is. CARTO's dark basemap is built for
- * the opposite job -- to vanish under bright overlays -- so on a dark page it
- * left rain floating on a black rectangle with no coastline under it.
- *
- * `--radar-lift` corrects that. Brightness is multiplicative, so land, water
- * and roads keep their relative order and only the overall level moves; the
- * slight contrast cut stops labels blowing out to pure white. Tune these two
- * numbers to taste -- nothing else depends on them.
- */
 .radar-viewport {
   position: relative; height: 420px;
   border-radius: var(--radius); overflow: hidden;
@@ -900,11 +920,15 @@ kbd {
 .radar-viewport.is-dragging { cursor: grabbing; }
 
 .radar[data-basemap='dark'] {
-  --radar-lift: brightness(1.8) contrast(0.92);
-  --radar-void: #1d222c;
+  --radar-tone: brightness(.58) contrast(1.22) saturate(.72);
+  --radar-label-tone: invert(1) brightness(1.35) contrast(1.08);
+  --radar-data-opacity: .92;
+  --radar-void: #363c47;
 }
 .radar[data-basemap='light'] {
-  --radar-lift: none;
+  --radar-tone: brightness(.88) contrast(1.12) saturate(.85);
+  --radar-label-tone: none;
+  --radar-data-opacity: .96;
   --radar-void: #e6ebf2;
 }
 
@@ -912,14 +936,24 @@ kbd {
 .radar-layer { position: absolute; inset: 0; }
 
 .radar-tile {
-  position: absolute; width: 256px; height: 256px;
+  position: absolute; width: 256.5px; height: 256.5px;
+  image-rendering: auto;
   user-select: none; -webkit-user-drag: none;
 }
-/* Full strength: dimming the backdrop only made the geography harder to read. */
-.radar-base { opacity: 1; filter: var(--radar-lift, none); }
+.radar-base { opacity: 1; filter: var(--radar-tone, none); }
 
-.radar-frame { opacity: 0; transition: opacity .18s linear; pointer-events: none; }
-.radar-frame.is-current { opacity: .92; }
+.radar-frame {
+  opacity: 0; transition: opacity .32s linear;
+  pointer-events: none; will-change: opacity;
+}
+.radar-frame.is-current { opacity: var(--radar-data-opacity, .94); }
+
+/* Labels sit above the precipitation so cities, borders and major roads stay
+ * readable even beneath a strong radar return. */
+.radar-labels {
+  opacity: .88; filter: var(--radar-label-tone, none);
+  pointer-events: none;
+}
 
 .radar-crosshair {
   position: absolute; top: 50%; left: 50%;
@@ -940,6 +974,7 @@ kbd {
   border: 1px solid rgba(255, 255, 255, .22); border-radius: 8px;
 }
 .radar-btn:hover { background: rgba(10, 16, 30, .92); }
+.radar-btn:disabled { opacity: .4; cursor: default; }
 
 .radar-attribution {
   position: absolute; bottom: 0; right: 0;
@@ -954,6 +989,7 @@ kbd {
   font-size: 0.88rem; color: var(--text-dim);
   background: color-mix(in srgb, var(--bg) 72%, transparent);
 }
+.radar-status[hidden] { display: none; }
 
 .radar-controls { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
 
@@ -963,6 +999,7 @@ kbd {
   background: var(--surface-strong); border: 1px solid var(--border);
   border-radius: 50%;
 }
+.radar-play:disabled { opacity: .48; cursor: wait; }
 .radar-play-icon {
   width: 0; height: 0;
   border-left: 10px solid currentColor;
@@ -977,6 +1014,7 @@ kbd {
 }
 
 .radar-scrub { flex: 1; accent-color: var(--accent); }
+.radar-scrub:disabled { opacity: .55; }
 .radar-time {
   min-width: 128px; text-align: right;
   font-size: 0.83rem; font-variant-numeric: tabular-nums; color: var(--text-dim);
@@ -989,7 +1027,7 @@ kbd {
 }
 .radar-legend-bar {
   flex: 1; height: 6px; border-radius: 99px;
-  background: linear-gradient(90deg, #4fb3ff, #4ade80, #fbbf24, #f87171, #d946ef);
+  background: linear-gradient(90deg, #6ddcff, #168cff, #ffe36b, #ff9f43, #ef4444, #d946ef);
 }
 
 /* -------------------------------------------------------------- misc --- */
@@ -1044,6 +1082,9 @@ body.is-loading .layout { opacity: .72; transition: opacity .2s ease; }
   .topbar-inner { flex-wrap: wrap; padding: 10px 14px; }
   .search { order: 3; max-width: none; flex-basis: 100%; }
   .topbar-actions { margin-left: auto; }
+  .site-nav { gap: 2px; padding: 0 8px 9px; }
+  .site-nav-label { display: none; }
+  .site-nav a { padding: 5px 7px; font-size: 0.79rem; }
   .places { padding: 0 14px 10px; }
   .layout { padding: 16px 14px 40px; }
   .panel { padding: 17px; border-radius: 18px; }
@@ -1290,6 +1331,64 @@ body.is-loading .layout { opacity: .72; transition: opacity .2s ease; }
 }
 
 .directory-list a:hover { color: var(--accent); }
+
+/* ----------------------------------------------------- weather stories --- */
+
+.story-intro .eyebrow,
+.story-hero .eyebrow {
+  margin-bottom: 6px;
+  color: var(--accent);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.story-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--gap);
+}
+
+.story-card { display: flex; flex-direction: column; gap: 10px; }
+.story-card h2 { font-size: 1.24rem; line-height: 1.25; }
+.story-card h2 a { color: var(--text); text-decoration: none; }
+.story-card h2 a:hover { color: var(--accent); }
+.story-card > p:not(.story-meta) { color: var(--text-dim); line-height: 1.6; }
+.story-meta,
+.story-byline { color: var(--text-faint) !important; font-size: 0.8rem; }
+.story-read { margin-top: auto; font-size: 0.88rem; font-weight: 650; }
+
+.story-empty h2,
+.story-next h2 { margin-bottom: 8px; font-size: 1.12rem; }
+.story-empty p,
+.story-next p { color: var(--text-dim); line-height: 1.6; }
+.story-empty p + p { margin-top: 8px; }
+
+.story-stale {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--fair);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--fair) 10%, transparent);
+}
+
+.story-article { display: grid; gap: 24px; }
+.story-article section { display: grid; gap: 10px; }
+.story-article h2 { font-size: 1.3rem; letter-spacing: -0.012em; }
+.story-article p { max-width: 76ch; color: var(--text-dim); line-height: 1.7; }
+.story-article .story-summary { color: var(--text); font-size: 1.08rem; }
+.story-article .story-disclosure {
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  color: var(--text-faint);
+  font-size: 0.8rem;
+}
+
+.story-event-day th,
+.story-event-day td { background: var(--accent-soft); }
+.story-signal { margin-bottom: 12px; color: var(--text-dim); font-size: 0.88rem; }
+.story-source { margin-top: 12px; color: var(--text-faint); font-size: 0.8rem; line-height: 1.55; }
 
 /* ------------------------------------------------------- weather guide --- */
 

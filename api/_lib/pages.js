@@ -11,10 +11,12 @@
 const site = require('./site');
 const seo = require('./seo');
 const cities = require('./cities');
+const stories = require('./stories');
 const { renderCityPage } = require('./render/city');
 const { renderIndexPage } = require('./render/index-page');
 const { renderWidgetsPage } = require('./render/widgets-page');
 const { renderGuidePage } = require('./render/guide-page');
+const { renderStoriesIndex, renderStoryPage } = require('./render/stories-page');
 const { renderSitemap, renderRobots } = require('./render/sitemap');
 const { renderDocument, escapeHtml } = require('./render/shell');
 
@@ -111,6 +113,52 @@ async function guidePage() {
   return { status: 200, contentType: HTML, body: renderGuidePage(), maxAge: 86400 };
 }
 
+function storyNotFound(slug) {
+  const head = seo.headTags({
+    title: `Weather story not found | ${site.name}`,
+    description: 'That weather story is not published.',
+    canonical: site.url('/weather-stories'),
+    robots: 'noindex, follow',
+  });
+  const hero = `
+    <section class="panel panel-hero panel-intro">
+      <h1>That story is not published</h1>
+      <p class="lede">There is no public weather story at “${escapeHtml(String(slug || ''))}”. Drafts remain private until they have been checked against their source data.</p>
+      <p><a href="/weather-stories">Browse current weather stories</a> or <a href="/weather">check a live city forecast</a>.</p>
+    </section>`;
+  return {
+    status: 404,
+    contentType: HTML,
+    maxAge: 0,
+    body: renderDocument({
+      head,
+      mounts: {
+        alerts: '', hero,
+        hourly: '', details: '', air: '', daily: '', activities: '', astro: '', almanac: '', compare: '',
+        'page-detail': '', 'page-context': '',
+      },
+      tabs: false,
+      heroPanel: false,
+      bootstrap: { page: 'story-not-found' },
+    }),
+  };
+}
+
+/** `/weather-stories` — only timely, reviewed stories. */
+async function storiesIndex() {
+  const published = stories.publishedStories();
+  return { status: 200, contentType: HTML, body: renderStoriesIndex(published), maxAge: 3600 };
+}
+
+/** `/weather-stories/{slug}` — drafts are deliberately indistinguishable from missing pages. */
+async function weatherStoryPage(query = {}) {
+  const slug = String(query.slug || '').toLowerCase();
+  if (!slug) return storiesIndex();
+  const story = stories.bySlug(slug);
+  if (!story) return storyNotFound(slug);
+  return { status: 200, contentType: HTML, body: renderStoryPage(story), maxAge: 3600 };
+}
+
 async function sitemap() {
   return {
     status: 200,
@@ -129,4 +177,15 @@ async function robots() {
   };
 }
 
-module.exports = { cityPage, cityIndex, widgetsPage, guidePage, sitemap, robots, notFound };
+module.exports = {
+  cityPage,
+  cityIndex,
+  widgetsPage,
+  guidePage,
+  storiesIndex,
+  weatherStoryPage,
+  sitemap,
+  robots,
+  notFound,
+  storyNotFound,
+};

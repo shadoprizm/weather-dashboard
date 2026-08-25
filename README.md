@@ -31,8 +31,8 @@ npm run verify     # checks the live upstream providers
 when precipitation starts and stops, where the temperature is heading, whether
 the wind is the story, what tomorrow looks like relative to today.
 
-**Live radar** — animated precipitation with a nowcast, on a slippy map built
-from scratch in ~300 lines. Drag to pan, scroll to zoom, scrub the timeline.
+**Live radar** — animated recent precipitation on a slippy map built from
+scratch. Drag to pan, scroll to zoom, scrub the timeline.
 
 **Alerts** — official government warnings from Environment Canada and the
 US National Weather Service, plus locally computed watches (heat, cold, wind,
@@ -69,6 +69,13 @@ with are in `api/_lib/og/` — about 600 lines, no dependencies.
 any site can embed, with a builder and documentation at `/widgets`. A plain
 `<iframe>` embed runs no JavaScript at all, sets no cookies, and shows no ads.
 It carries one link back.
+
+**Weather stories** — a deterministic scan finds material forecast events,
+then GPT-5.6 Luna turns the selected evidence into one concise draft. A person
+checks every claim before publishing. Public stories show their source data and
+automatically leave the index and sitemap when the forecast is no longer
+current. See [docs/WEATHER_STORIES.md](docs/WEATHER_STORIES.md) for the workflow
+and cost guardrail.
 
 **Install it** — a web app manifest and a service worker, so it opens from the
 home screen instantly and still shows the last forecast with no signal. The
@@ -108,6 +115,10 @@ list grows.
 
 **`/weather`, `/widgets`** — the directory of every published city, and the
 widget builder.
+
+**`/weather-stories`** — timely, reviewed weather briefings. Drafts are stored
+in Git and return 404 until published; expired stories remain readable as
+archived forecast snapshots but become `noindex`.
 
 ## Layout
 
@@ -164,6 +175,8 @@ api/
   _lib/pages.js       Document handlers: city pages, directory, sitemap, robots
   _lib/site.js        Brand and absolute origin, in one place
   _lib/cities.js      The published city catalogue
+  _lib/stories.js     Story validation, publishing state and freshness
+  _lib/story-generation.js  Event selection + Luna structured-output client
   _lib/seo.js         Titles, descriptions, canonicals, structured data
   _lib/render/        Server rendering: shell injection, city, widget, sitemap
   _lib/og/            PNG encoder, stroke font, raster surface, share card
@@ -179,8 +192,10 @@ manifest.webmanifest  Web app manifest
 icons/                App icons (npm run build:icons regenerates the PNGs)
 server.js             Local dev server, mounts the same handlers
 scripts/              Provider verification, icon build
+content/stories/      Version-controlled story drafts and published articles
 test/                 Smoke, parser and page-rendering tests
 docs/GROWTH.md        The growth plan, and what is left for a person to do
+docs/WEATHER_STORIES.md  Editorial workflow, cost guardrail and rollout gates
 ```
 
 Two things are worth calling out:
@@ -206,13 +221,15 @@ in its mount points rather than keeping a copy of the markup. That is why
 
 | Source | Used for | Key required |
 |---|---|---|
-| [Open-Meteo](https://open-meteo.com/) | Forecast, air quality, geocoding, historical archive | No |
+| [Visual Crossing](https://www.visualcrossing.com/) | Primary current, hourly and extended forecast when `WEATHER_PROVIDER=visual-crossing` | Yes; server-only `VISUAL_CROSSING_API_KEY` |
+| [Open-Meteo](https://open-meteo.com/) | Forecast fallback during the trial, air quality, geocoding and historical archive | No for the current non-commercial prototype; the remaining uses need commercial replacement or licensing before subscriptions |
 | [RainViewer](https://www.rainviewer.com/) | Radar frames and tiles | No |
 | [NWS](https://www.weather.gov/documentation/services-web-api) | Official US alerts | No |
 | [ECCC](https://eccc-msc.github.io/open-data/) | Official Canadian alerts | No |
 | [NOAA SWPC](https://www.swpc.noaa.gov/) | Planetary K index | No |
 | [CARTO](https://carto.com/attributions) / [OpenStreetMap](https://www.openstreetmap.org/copyright) | Radar base map tiles | No |
 | [BigDataCloud](https://www.bigdatacloud.com/) | Reverse geocoding | No |
+| [Vercel AI Gateway](https://vercel.com/ai-gateway/models/gpt-5.6-luna) | Optional GPT-5.6 Luna story drafts, usage and budgets | Automatic OIDC on Vercel |
 
 Every call is proxied through `/api/*`, so the browser only ever talks to your
 own origin. That keeps the CSP tight (`connect-src 'self'`), lets the CDN cache
@@ -298,6 +315,21 @@ broke. Optional providers only warn, because the app already degrades
 gracefully when they are down. Worth running after any upstream outage, or on
 a schedule.
 
+The silent monitoring trial samples Toronto, Ottawa, Vancouver, New York,
+London and Sydney every six hours through GitHub Actions. It compares each
+forecast with the previous sample, retains only the normalized fields used by
+the deterministic evaluator, and sends nothing to visitors:
+
+```bash
+npm run monitoring:sample   # samples the cached production weather endpoint
+npm run monitoring:summary  # summarize the accumulated local trial directory
+```
+
+The scheduled workflow carries its state in an Actions cache scoped to the
+repository and keeps 30-day artifacts for review. `monitoring-trial/` is ignored locally; it never
+contains visitor data or provider credentials. Sampling the production endpoint
+also records whether the primary provider or automatic fallback answered.
+
 ## API
 
 | Endpoint | Purpose | CDN cache |
@@ -314,21 +346,24 @@ a schedule.
 | `GET /api/og?city=` | Share card as a 1200x630 PNG | 10 min |
 | `GET /widget?city=` | Embeddable forecast panel | 5 min |
 | `GET /weather/{city}` | Server-rendered city page | 5 min |
+| `GET /weather-stories[/{slug}]` | Reviewed weather-story pages | 1 h |
 | `GET /sitemap.xml`, `/robots.txt` | Crawl surfaces | 1 h |
 
 ## Deploying
 
 Push to a Vercel-connected repository. `vercel.json` sets the CSP and security
 headers, maps the clean URLs onto the functions, and disables the build step;
-`api/*.js` are picked up as Node functions automatically. Nothing to configure,
-no API keys.
+`api/*.js` are picked up as Node functions automatically. Serving the site
+needs no AI key. The separate draft-generation command accepts a direct
+`OPENAI_API_KEY` or Vercel AI Gateway; Gateway deployments authenticate
+automatically with `VERCEL_OIDC_TOKEN`.
 
 Two details worth knowing:
 
-- `functions["api/**/*.js"].includeFiles` ships `js/**` into the function
-  bundle. The server imports those modules dynamically, which the bundler
-  cannot trace on its own, so without that line the city pages would 500 in
-  production and work perfectly in local dev.
+- `functions["api/*.js"].includeFiles` ships `js/**` and
+  `content/stories/**` into the function bundle. The server imports the views
+  dynamically and reads story JSON at runtime, neither of which the bundler can
+  trace on its own.
 - `SITE_ORIGIN` overrides the canonical origin. It defaults to
   `https://www.weatherview.cloud`, which is the host the apex redirects to —
   canonicals, the sitemap, share-card URLs and the widget embed snippet all
@@ -365,10 +400,17 @@ Roughly in order of value for effort:
 8. **More cities** — the catalogue is 149 places, grown from real query data
    rather than generated. [docs/GROWTH.md](docs/GROWTH.md) explains the rule.
 
+The account boundary and first paid workflow are specified in
+[docs/PRO_MONITORING.md](docs/PRO_MONITORING.md). Free visitors remain
+anonymous; accounts begin when a customer asks WeatherView to persistently
+monitor, synchronize or deliver personalized weather.
+
 ## Attribution and licence
 
-Weather data by [Open-Meteo](https://open-meteo.com/), licensed
-[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Radar imagery by
-RainViewer. Base map tiles by CARTO, data © OpenStreetMap contributors.
+Forecast data provided by [Visual Crossing](https://www.visualcrossing.com/).
+Fallback, air-quality, geocoding and current Almanac data use
+[Open-Meteo](https://open-meteo.com/) under its non-commercial prototype terms
+and CC BY 4.0 attribution requirements. Radar imagery by RainViewer. Base map
+tiles by CARTO, data © OpenStreetMap contributors.
 
 MIT.

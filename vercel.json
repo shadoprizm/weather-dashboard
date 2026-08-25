@@ -8,7 +8,7 @@
 
   "functions": {
     "api/*.js": {
-      "includeFiles": "{index.html,js/**}"
+      "includeFiles": "{index.html,js/**,content/stories/**}"
     }
   },
 
@@ -17,6 +17,8 @@
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/widgets", "destination": "/api/widgets" },
     { "source": "/weather-guide", "destination": "/api/guide" },
+    { "source": "/weather-stories", "destination": "/api/stories" },
+    { "source": "/weather-stories/:slug", "destination": "/api/stories?slug=:slug" },
     { "source": "/widget", "destination": "/api/widget" },
     { "source": "/weather", "destination": "/api/city" },
     { "source": "/weather/:slug", "destination": "/api/city?slug=:slug" },

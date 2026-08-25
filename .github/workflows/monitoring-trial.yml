@@ -1,0 +1,51 @@
+name: Silent weather monitoring trial
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Sample away from the top of the hour, when scheduled Actions are busiest.
+    - cron: '17 */6 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: weather-monitoring-trial
+  cancel-in-progress: false
+
+jobs:
+  sample:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the production branch
+        uses: actions/checkout@v5
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install exact dependencies
+        run: npm ci
+
+      - name: Restore the previous trial state
+        uses: actions/cache@v4
+        with:
+          path: monitoring-trial
+          key: monitoring-trial-v1-${{ github.run_id }}
+          restore-keys: |
+            monitoring-trial-v1-
+
+      - name: Sample forecasts and evaluate revisions
+        run: npm run monitoring:sample
+
+      - name: Retain the trial evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: monitoring-trial-${{ github.run_id }}
+          path: monitoring-trial
+          if-no-files-found: error
+          retention-days: 30

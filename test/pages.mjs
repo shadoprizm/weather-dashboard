@@ -70,6 +70,15 @@ const html = overview.body;
 assert.match(html, /<title>Toronto, ON Weather — Hourly &amp; 10-Day Forecast \| WeatherView<\/title>/);
 assert.match(html, /<link rel="canonical" href="https:\/\/www\.weatherview\.cloud\/weather\/toronto">/);
 assert.match(html, /<h1 class="hero-place">Toronto Weather<\/h1>/);
+assert.match(html, /<script type="module" src="\/js\/main\.js"><\/script>/,
+  'nested city routes load the app from an origin-absolute URL');
+assert.ok(!html.includes('src="js/main.js"'), 'nested city routes never resolve the app below /weather');
+assert.match(html, /<nav class="site-nav" aria-label="Explore WeatherView">/,
+  'site-level features are discoverable outside the footer');
+for (const href of ['/weather', '/weather-guide', '/weather-stories', '/widgets']) {
+  assert.match(html, new RegExp(`<nav class="site-nav"[\\s\\S]*?href="${href}"`),
+    `${href} is linked from the visible site navigation`);
+}
 
 // The forecast itself must be in the HTML, not fetched afterwards.
 assert.match(html, /hero-temp/, 'current conditions are server-rendered');
@@ -229,7 +238,8 @@ assert.equal(widgetOptions({}).place, null);
 
 const widget = await renderWidget({ city: 'toronto', days: '3' });
 assert.equal(widget.status, 200);
-assert.match(widget.body, /Weather powered by <a[^>]*>WeatherView<\/a>/, 'the credit link is not optional');
+assert.match(widget.body, /Weather Data Provided by Visual Crossing/, 'the data-provider credit is not optional');
+assert.match(widget.body, />WeatherView<\/a>/, 'the WeatherView credit is not optional');
 assert.match(widget.body, /<meta name="robots" content="noindex">/, 'widgets never compete with city pages');
 assert.match(widget.body, /<meta http-equiv="refresh"/, 'the widget refreshes itself');
 assert.match(widget.body, /href="https:\/\/www\.weatherview\.cloud\/weather\/toronto"/);

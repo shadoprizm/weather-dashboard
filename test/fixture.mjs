@@ -1,5 +1,5 @@
 /**
- * A synthetic Open-Meteo payload in exactly the shape `/api/weather` returns.
+ * A synthetic provider-neutral payload in exactly the shape `/api/weather` returns.
  *
  * Used by the smoke tests, and handy for driving the UI offline while working
  * on layout. `hours` must be a multiple of 24.
@@ -48,6 +48,9 @@ export function buildFixture({ hours = 96, startTemp = 18 } = {}) {
   }
 
   return {
+    weatherProvider: 'visual-crossing',
+    weatherProviderFallback: false,
+    weatherProviderQueryCost: 1,
     location: { latitude: 45.42, longitude: -75.7, timezone: 'America/Toronto', utcOffsetSeconds: -14400 },
     current: {
       time: time[26], temperature_2m: temperature_2m[26], relative_humidity_2m: 62,

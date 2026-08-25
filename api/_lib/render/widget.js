@@ -181,6 +181,9 @@ async function renderWidget(query = {}) {
   const alert = vm.alerts && vm.alerts.alerts && vm.alerts.alerts.length
     ? `<p class="wv-alert">⚠ ${escapeHtml(vm.alerts.alerts[0].event)}</p>`
     : '';
+  const sourceCredit = data.weatherProvider === 'visual-crossing'
+    ? '<a href="https://www.visualcrossing.com/" target="_blank" rel="noopener">Weather Data Provided by Visual Crossing</a>'
+    : '<a href="https://open-meteo.com/" target="_blank" rel="noopener">Weather data by Open-Meteo</a>';
 
   const body = `
     <a class="wv" href="${escapeHtml(link)}" target="_blank" rel="noopener">
@@ -204,7 +207,7 @@ async function renderWidget(query = {}) {
     ${alert}
     <div class="wv-foot">
       <span>Updated ${escapeHtml(fmt.localClock(vm.utcOffsetSeconds, vm.units))} local</span>
-      <span>Weather powered by <a href="${escapeHtml(link)}" target="_blank" rel="noopener">${escapeHtml(site.name)}</a></span>
+      <span>${sourceCredit} · <a href="${escapeHtml(link)}" target="_blank" rel="noopener">${escapeHtml(site.name)}</a></span>
     </div>`;
 
   return {

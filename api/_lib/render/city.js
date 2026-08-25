@@ -114,7 +114,7 @@ function nearbyCities(city, limit = 8) {
     .slice(0, limit);
 }
 
-function contextSection(city, section, { updatedAt, alerts }) {
+function contextSection(city, section, { updatedAt, alerts, weatherProvider }) {
   const nearby = nearbyCities(city).map(({ city: other, km }) => `
     <li><a href="${escapeHtml(seo.cityPath(other))}">${escapeHtml(other.name)}</a>
       <span class="nearby-distance">${Math.round(km)} km</span></li>`).join('');
@@ -124,14 +124,17 @@ function contextSection(city, section, { updatedAt, alerts }) {
   const official = named.length
     ? `Official warnings for ${escapeHtml(city.name)} come from ${escapeHtml(named.join(' and '))}.`
     : 'No national weather service publishes point alerts here, so only computed watches are shown.';
+  const forecastSource = weatherProvider === 'visual-crossing'
+    ? 'Forecast data is provided by <a href="https://www.visualcrossing.com/" rel="noopener">Visual Crossing</a>'
+    : 'Forecast data comes from <a href="https://open-meteo.com/" rel="noopener">Open-Meteo</a>';
 
   return `
     <section class="panel panel-context">
       <header class="panel-head"><h2>About this ${escapeHtml(city.name)} forecast</h2></header>
       <p>
         Updated ${escapeHtml(new Date(updatedAt || Date.now()).toISOString().replace('T', ' ').slice(0, 16))} UTC,
-        and refreshed automatically every few minutes. Forecast data comes from Open-Meteo's
-        multi-model blend; radar frames from RainViewer; the 20-year normals and records from
+        and refreshed automatically every few minutes. ${forecastSource}; radar frames from
+        RainViewer; the 20-year normals and records from
         the ERA5 reanalysis archive. ${official}
       </p>
       <p>
@@ -246,7 +249,11 @@ async function renderCityPage(city, section = 'overview') {
       astro: panels.renderAstro(vm),
       almanac: panels.renderAlmanac(vm),
       'page-detail': detail,
-      'page-context': contextSection(city, section, { updatedAt: data.fetchedAt, alerts }),
+      'page-context': contextSection(city, section, {
+        updatedAt: data.fetchedAt,
+        alerts,
+        weatherProvider: data.weatherProvider,
+      }),
     },
     bootstrap: {
       page: 'city',

@@ -123,6 +123,15 @@ function render() {
   paintView();
   applySky(vm);
   renderPlaces();
+  renderForecastSource();
+}
+
+function renderForecastSource() {
+  if (!session.data) return;
+  const visualCrossing = session.data.weatherProvider === 'visual-crossing';
+  setHTML('#forecast-source', visualCrossing
+    ? 'Weather Data Provided by <a href="https://www.visualcrossing.com/" target="_blank" rel="noopener">Visual Crossing</a>'
+    : 'Weather data by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>');
 }
 
 /** Render the active view's panels, once per data revision. */
@@ -311,7 +320,7 @@ function mountRadar(place) {
   session.radar = createRadarMap(mount, {
     lat: place.latitude,
     lon: place.longitude,
-    zoom: 7,
+    zoom: 6,
     theme,
     units: state.getUnits(),
   });
@@ -783,8 +792,9 @@ function start() {
     const place = deepLink ? state.addLocation(deepLink) : state.getActiveLocation();
     if (place) loadPlace(place);
   } else {
-    // The directory, the widget builder, a 404: server-rendered content that
-    // is not a forecast. The header still works -- search, units, theme -- but
+    // Directory, guide, stories, widget builder and 404 pages are
+    // server-rendered content rather than forecasts. Search, units and theme
+    // still work, but forecast-only actions stay out of their header and
     // nothing here may paint over the page.
     for (const id of ['#save-place', '#share', '#refresh']) {
       const button = $(id);

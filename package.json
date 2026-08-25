@@ -7,12 +7,17 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node test/smoke.mjs && node test/parsers.mjs && node test/geocode.mjs && node test/pages.mjs",
+    "test": "node test/smoke.mjs && node test/parsers.mjs && node test/geocode.mjs && node test/stories.mjs && node test/pages.mjs && node test/providers.mjs && node test/monitoring.mjs && node test/monitoring-trial.mjs",
     "verify": "node scripts/verify-providers.mjs",
-    "build:icons": "node scripts/build-icons.mjs"
+    "providers:compare": "node scripts/compare-weather-providers.mjs",
+    "monitoring:sample": "node scripts/sample-monitoring-trial.mjs",
+    "monitoring:summary": "node scripts/summarize-monitoring-trial.mjs",
+    "build:icons": "node scripts/build-icons.mjs",
+    "story:dry-run": "node scripts/generate-story.mjs --dry-run",
+    "story:generate": "node scripts/generate-story.mjs"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22 <25"
   },
   "dependencies": {
     "express": "^4.18.2"

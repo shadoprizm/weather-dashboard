@@ -147,7 +147,7 @@ function renderWidgetsPage() {
         <li><strong>No tracking.</strong> The widget sets no cookies, uses no storage, and runs no analytics. We never see who visits your site.</li>
         <li><strong>It refreshes itself</strong> every 15 minutes, and is cached at the edge, so it costs your page one small request.</li>
         <li><strong>Keep the credit.</strong> The “Weather powered by ${escapeHtml(site.name)}” line links back to the forecast — that link is the whole business model.</li>
-        <li><strong>Forecast data</strong> comes from Open-Meteo's multi-model blend, licensed CC BY 4.0. Official alerts come from Environment Canada and the US National Weather Service where they publish them.</li>
+        <li><strong>Forecast data</strong> is provided by <a href="https://www.visualcrossing.com/" rel="noopener">Visual Crossing</a>. Official alerts come from Environment Canada and the US National Weather Service where they publish them.</li>
       </ul>
     </section>
 

@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "status": "draft",
+  "slug": "2026-08-27-toronto-thunderstorm",
+  "headline": "Thunderstorms enter Toronto's Aug. 27 forecast",
+  "dek": "Toronto's forecast includes thunderstorms on Thursday, Aug. 27, with 8 mm of total precipitation currently projected.",
+  "summary": "Open-Meteo's seven-day forecast assigns WMO thunderstorm code 95 to Aug. 27. It projects a high of 24.6 C, a 42 per cent precipitation chance, 8 mm of total precipitation and gusts up to 28.8 km/h.",
+  "sections": [
+    {
+      "heading": "Why this matters",
+      "paragraphs": [
+        "The thunderstorm signal is worth watching for anyone making outdoor plans, even though the current probability of precipitation is moderate.",
+        "Aug. 27 breaks a dry two-day stretch in the forecast, while Aug. 28 currently returns to zero precipitation."
+      ]
+    },
+    {
+      "heading": "What to watch",
+      "paragraphs": [
+        "The forecast is five days out and can change. Watch whether the thunderstorm code, 42 per cent precipitation chance and 8 mm total persist in later updates.",
+        "Check the hourly forecast closer to Aug. 27 before finalizing outdoor plans; this daily dataset identifies the day, but not when storms may arrive."
+      ]
+    }
+  ],
+  "seoTitle": "Toronto thunderstorms forecast for Aug. 27, 2026",
+  "seoDescription": "Thunderstorms are forecast for Toronto on Aug. 27, with a high of 24.6 C, a 42 per cent precipitation chance and 8 mm of total precipitation.",
+  "generatedAt": "2026-08-22T19:08:38.302Z",
+  "publishedAt": null,
+  "expiresAt": "2026-08-29T23:59:59.999Z",
+  "evidence": {
+    "eventType": "thunderstorm",
+    "eventLabel": "thunderstorms",
+    "eventDate": "2026-08-27",
+    "selectedMetric": {
+      "label": "forecast condition",
+      "value": 95,
+      "unit": "WMO code",
+      "threshold": 95
+    },
+    "location": {
+      "slug": "toronto",
+      "name": "Toronto",
+      "label": "Toronto, Ontario",
+      "region": "Ontario",
+      "country": "Canada",
+      "countryCode": "CA",
+      "latitude": 43.6532,
+      "longitude": -79.3832
+    },
+    "timezone": "America/Toronto",
+    "days": [
+      {
+        "date": "2026-08-22",
+        "weatherCode": 53,
+        "highC": 23.6,
+        "lowC": 17.8,
+        "precipMm": 0.7,
+        "rainMm": 0.7,
+        "snowCm": 0,
+        "precipChancePct": 50,
+        "maxWindKmh": 16,
+        "maxGustKmh": 25.9
+      },
+      {
+        "date": "2026-08-23",
+        "weatherCode": 51,
+        "highC": 21.6,
+        "lowC": 14.2,
+        "precipMm": 0.4,
+        "rainMm": 0.4,
+        "snowCm": 0,
+        "precipChancePct": 46,
+        "maxWindKmh": 23.2,
+        "maxGustKmh": 38.5
+      },
+      {
+        "date": "2026-08-24",
+        "weatherCode": 55,
+        "highC": 15.9,
+        "lowC": 13.4,
+        "precipMm": 8.25,
+        "rainMm": 7.67,
+        "snowCm": 0,
+        "precipChancePct": 62,
+        "maxWindKmh": 27.7,
+        "maxGustKmh": 46.4
+      },
+      {
+        "date": "2026-08-25",
+        "weatherCode": 51,
+        "highC": 24.2,
+        "lowC": 15,
+        "precipMm": 0.2,
+        "rainMm": 0.2,
+        "snowCm": 0,
+        "precipChancePct": 4,
+        "maxWindKmh": 20.9,
+        "maxGustKmh": 35.3
+      },
+      {
+        "date": "2026-08-26",
+        "weatherCode": 3,
+        "highC": 25.1,
+        "lowC": 15.6,
+        "precipMm": 0,
+        "rainMm": 0,
+        "snowCm": 0,
+        "precipChancePct": 10,
+        "maxWindKmh": 15.4,
+        "maxGustKmh": 31.3
+      },
+      {
+        "date": "2026-08-27",
+        "weatherCode": 95,
+        "highC": 24.6,
+        "lowC": 19,
+        "precipMm": 8,
+        "rainMm": 0.3,
+        "snowCm": 0,
+        "precipChancePct": 42,
+        "maxWindKmh": 17.1,
+        "maxGustKmh": 28.8
+      },
+      {
+        "date": "2026-08-28",
+        "weatherCode": 3,
+        "highC": 24.9,
+        "lowC": 16.6,
+        "precipMm": 0,
+        "rainMm": 0,
+        "snowCm": 0,
+        "precipChancePct": 23,
+        "maxWindKmh": 18.9,
+        "maxGustKmh": 34.6
+      }
+    ]
+  },
+  "source": {
+    "provider": "Open-Meteo",
+    "url": "https://open-meteo.com/",
+    "requestUrl": "https://api.open-meteo.com/v1/forecast?latitude=43.6532&longitude=-79.3832&daily=weather_code%2Ctemperature_2m_max%2Ctemperature_2m_min%2Cprecipitation_sum%2Crain_sum%2Csnowfall_sum%2Cprecipitation_probability_max%2Cwind_speed_10m_max%2Cwind_gusts_10m_max&timezone=auto&forecast_days=7&wind_speed_unit=kmh&temperature_unit=celsius&precipitation_unit=mm",
+    "fetchedAt": "2026-08-22T19:08:34.180Z"
+  },
+  "disclosure": "AI-assisted draft based on the forecast evidence shown on this page; reviewed before publication.",
+  "generation": {
+    "backend": "openai",
+    "model": "gpt-5.6-luna",
+    "reasoningEffort": "low",
+    "usage": {
+      "input_tokens": 833,
+      "input_tokens_details": {
+        "cache_write_tokens": 0,
+        "cached_tokens": 0
+      },
+      "output_tokens": 254,
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "total_tokens": 1087
+    },
+    "estimatedCostUsd": 0.000471,
+    "pricingAsOf": "2026-08-22"
+  }
+}

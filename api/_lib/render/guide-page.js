@@ -140,7 +140,7 @@ function renderGuidePage() {
       <header class="panel-head"><h2>How WeatherView builds the forecast</h2></header>
       <p>
         WeatherView turns current conditions and multi-model forecast data from
-        Open-Meteo into hourly and 14-day views. RainViewer supplies radar frames;
+        Visual Crossing into hourly and extended views. RainViewer supplies radar frames;
         Environment and Climate Change Canada and the US National Weather Service
         supply official alerts. Forecast pages show when their data was refreshed
         and update automatically every few minutes.
@@ -152,7 +152,7 @@ function renderGuidePage() {
         authority when safety is at stake.
       </p>
       <p class="guide-source">
-        Data sources: <a href="https://open-meteo.com/" rel="noopener">Open-Meteo</a>,
+        Data sources: <a href="https://www.visualcrossing.com/" rel="noopener">Visual Crossing</a>,
         <a href="https://www.rainviewer.com/" rel="noopener">RainViewer</a>,
         <a href="https://www.weather.gc.ca/" rel="noopener">Environment Canada</a> and
         <a href="https://www.weather.gov/" rel="noopener">National Weather Service</a>.
