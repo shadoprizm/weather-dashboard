@@ -16,6 +16,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..', '..');
 const STORIES_DIR = path.join(ROOT, 'content', 'stories');
 const STATUSES = new Set(['draft', 'published', 'archived']);
+const REVIEW_CHECKS = ['factsChecked', 'sourceChecked', 'linksChecked', 'previewed'];
 
 function isTimestamp(value) {
   return typeof value === 'string' && Number.isFinite(Date.parse(value));
@@ -34,7 +35,7 @@ function assertStory(story, { filename = '' } = {}) {
   if (!story || typeof story !== 'object' || Array.isArray(story)) {
     throw new Error(`Story${where} must be an object`);
   }
-  if (story.schemaVersion !== 1) throw new Error(`Story${where} has an unsupported schemaVersion`);
+  if (story.schemaVersion !== 2) throw new Error(`Story${where} has an unsupported schemaVersion`);
   if (!STATUSES.has(story.status)) throw new Error(`Story${where} has an invalid status`);
   if (!/^[a-z0-9-]+$/.test(story.slug || '')) throw new Error(`Story${where} has an invalid slug`);
   if (filename && path.basename(filename, '.json') !== story.slug) {
@@ -52,6 +53,21 @@ function assertStory(story, { filename = '' } = {}) {
   }
   if (story.status === 'published' && !isTimestamp(story.publishedAt)) {
     throw new Error(`Published story${where} needs publishedAt`);
+  }
+  if (story.publishedAt && Date.parse(story.publishedAt) > Date.parse(story.expiresAt)) {
+    throw new Error(`Story${where} cannot be published after it expires`);
+  }
+
+  if (story.status === 'published') {
+    if (!story.review || !isText(story.review.reviewer) || !isTimestamp(story.review.reviewedAt)) {
+      throw new Error(`Published story${where} needs a named, timestamped review`);
+    }
+    if (Date.parse(story.review.reviewedAt) > Date.parse(story.publishedAt)) {
+      throw new Error(`Story${where} was published before its recorded review`);
+    }
+    for (const check of REVIEW_CHECKS) {
+      if (story.review[check] !== true) throw new Error(`Published story${where} has not completed ${check}`);
+    }
   }
 
   if (!Array.isArray(story.sections) || story.sections.length !== 2) {
@@ -86,12 +102,54 @@ function assertStory(story, { filename = '' } = {}) {
       if (!isNumberOrNull(day[field])) throw new Error(`Story${where} has invalid evidence field ${field}`);
     }
   }
+  if (!evidence.days.some((day) => day.date === evidence.eventDate)) {
+    throw new Error(`Story${where} evidence does not contain its event date`);
+  }
 
   if (!story.source || !isText(story.source.provider) || !isText(story.source.url) ||
       !isTimestamp(story.source.fetchedAt)) {
     throw new Error(`Story${where} has invalid source metadata`);
   }
+  if (!/^https:\/\//i.test(story.source.url)) throw new Error(`Story${where} has an unsafe source URL`);
+  if (story.source.requestUrl && /[?&](?:key|apikey)=(?!%5Bredacted%5D|\[redacted\])/i.test(story.source.requestUrl)) {
+    throw new Error(`Story${where} contains an unredacted provider key`);
+  }
   return story;
+}
+
+function auditStories({ directory = STORIES_DIR, now = new Date() } = {}) {
+  const report = {
+    checkedAt: new Date(now).toISOString(),
+    files: 0,
+    valid: 0,
+    invalid: [],
+    drafts: [],
+    active: [],
+    expired: [],
+    archived: [],
+    publicIndex: false,
+  };
+  if (!fs.existsSync(directory)) return report;
+
+  const filenames = fs.readdirSync(directory).filter((name) => name.endsWith('.json')).sort();
+  report.files = filenames.length;
+  for (const filename of filenames) {
+    try {
+      const story = assertStory(
+        JSON.parse(fs.readFileSync(path.join(directory, filename), 'utf8')),
+        { filename }
+      );
+      report.valid += 1;
+      if (story.status === 'draft') report.drafts.push(story.slug);
+      else if (story.status === 'archived') report.archived.push(story.slug);
+      else if (isActive(story, now)) report.active.push(story.slug);
+      else report.expired.push(story.slug);
+    } catch (error) {
+      report.invalid.push({ filename, error: error.message });
+    }
+  }
+  report.publicIndex = report.active.length > 0;
+  return report;
 }
 
 function readStories({ directory = STORIES_DIR, warn = console.warn } = {}) {
@@ -144,4 +202,6 @@ module.exports = {
   bySlug,
   isActive,
   storyPath,
+  auditStories,
+  REVIEW_CHECKS,
 };

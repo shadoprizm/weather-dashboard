@@ -9,10 +9,10 @@
  * evidence block to verify before publishing.
  */
 
-const { buildUrl, fetchJson } = require('./upstream');
+const { fetchJson } = require('./upstream');
 const { assertStory } = require('./stories');
+const openMeteo = require('./weather-providers/open-meteo-access');
 
-const OPEN_METEO = 'https://api.open-meteo.com/v1/forecast';
 const AI_GATEWAY_RESPONSES = 'https://ai-gateway.vercel.sh/v1/responses';
 const OPENAI_RESPONSES = 'https://api.openai.com/v1/responses';
 const DEFAULT_MODEL = 'gpt-5.6-luna';
@@ -69,7 +69,7 @@ function numberAt(values, index) {
 }
 
 async function fetchStoryForecast(city, { fetchJsonImpl = fetchJson } = {}) {
-  const url = buildUrl(OPEN_METEO, {
+  const url = openMeteo.serviceUrl('forecast', {
     latitude: city.latitude,
     longitude: city.longitude,
     daily: DAILY_FIELDS,
@@ -98,7 +98,7 @@ async function fetchStoryForecast(city, { fetchJsonImpl = fetchJson } = {}) {
     },
     timezone: data.timezone || null,
     fetchedAt: new Date().toISOString(),
-    sourceUrl: url,
+    sourceUrl: openMeteo.redactedUrl(url),
     days: daily.time.map((date, index) => ({
       date,
       weatherCode: numberAt(daily.weather_code, index),
@@ -342,7 +342,7 @@ function expiryForEvent(eventDate) {
 function composeDraft(candidate, generation, { generatedAt = new Date().toISOString() } = {}) {
   const { copy, backend, model, usage } = generation;
   const story = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     status: 'draft',
     slug: slugForCandidate(candidate),
     headline: copy.headline,
@@ -357,6 +357,7 @@ function composeDraft(candidate, generation, { generatedAt = new Date().toISOStr
     generatedAt,
     publishedAt: null,
     expiresAt: expiryForEvent(candidate.eventDate),
+    review: null,
     evidence: {
       eventType: candidate.eventType,
       eventLabel: candidate.eventLabel,
@@ -374,7 +375,6 @@ function composeDraft(candidate, generation, { generatedAt = new Date().toISOStr
     source: {
       provider: 'Open-Meteo',
       url: 'https://open-meteo.com/',
-      requestUrl: candidate.sourceUrl,
       fetchedAt: candidate.fetchedAt,
     },
     disclosure: 'AI-assisted draft based on the forecast evidence shown on this page; reviewed before publication.',

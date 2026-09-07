@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "status": "draft",
   "slug": "2026-08-27-toronto-thunderstorm",
   "headline": "Thunderstorms enter Toronto's Aug. 27 forecast",
@@ -26,6 +26,7 @@
   "generatedAt": "2026-08-22T19:08:38.302Z",
   "publishedAt": null,
   "expiresAt": "2026-08-29T23:59:59.999Z",
+  "review": null,
   "evidence": {
     "eventType": "thunderstorm",
     "eventLabel": "thunderstorms",

@@ -28,8 +28,8 @@ function renderSitemap({ now = new Date(), storyList = null } = {}) {
   const entries = [
     urlEntry({ loc: site.url('/'), lastmod: forecastLastmod, changefreq: 'hourly', priority: '1.0' }),
     urlEntry({ loc: site.url('/weather'), lastmod: forecastLastmod, changefreq: 'daily', priority: '0.8' }),
+    urlEntry({ loc: site.url('/weather-guide'), lastmod: '2026-09-07', changefreq: 'monthly', priority: '0.6' }),
     urlEntry({ loc: site.url('/widgets'), changefreq: 'monthly', priority: '0.5' }),
-    urlEntry({ loc: site.url('/weather-guide'), lastmod: '2026-08-19', changefreq: 'monthly', priority: '0.7' }),
   ];
 
   for (const city of cities.CITIES) {

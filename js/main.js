@@ -13,6 +13,7 @@ import { skyTheme } from './wmo.js';
 import { weatherIcon } from './icons.js';
 import { buildViewModel as toViewModel } from './viewmodel.js';
 import { createRadarMap } from './radar.js';
+import * as weatherWatch from './weather-watch.js';
 import {
   renderHero, renderHourly, renderDetails, renderDaily, errorPanel,
 } from './views/forecast.js';
@@ -124,6 +125,7 @@ function render() {
   applySky(vm);
   renderPlaces();
   renderForecastSource();
+  syncWatchButton();
 }
 
 function renderForecastSource() {
@@ -239,6 +241,7 @@ async function loadPlace(place, { silent = false } = {}) {
 
   try {
     session.data = await api.fetchForecast(place.latitude, place.longitude);
+    weatherWatch.evaluateAndRecord({ place, data: session.data });
     // These panels were rendered from the previous location; clear them so a
     // slow secondary request never shows stale data next to fresh data.
     session.alerts = null;
@@ -275,6 +278,9 @@ function loadSecondary(place) {
     if (session.place !== place || !almanac) return;
     session.almanac = almanac;
     setHTML('#hero', renderHero(buildViewModel()));
+    // Repainting the hero replaces the watch button, so restore its persisted
+    // state just as the main render path does.
+    syncWatchButton();
     refreshPanel('almanac');
   });
 
@@ -527,6 +533,15 @@ document.addEventListener('click', (event) => {
     session.painted.delete('week');
     paintView();
   }
+
+  if (action === 'open-watch') openWatchDialog();
+  if (action === 'close-watch') $('#watch-dialog')?.close();
+  if (action === 'remove-watch' && session.place) {
+    weatherWatch.removeWatch(session.place);
+    renderWatchDialog();
+    syncWatchButton();
+    toast(`Stopped watching ${session.place.name}`);
+  }
 });
 
 const tablist = $('.tabs');
@@ -654,6 +669,69 @@ if (shareButton) {
   });
 }
 
+/* ------------------------------------------------------ local watch beta */
+
+function syncWatchButton() {
+  const button = document.querySelector('[data-action="open-watch"]');
+  if (!button || !session.place) return;
+  const active = Boolean(weatherWatch.getWatch(session.place));
+  button.setAttribute('aria-pressed', String(active));
+  button.classList.toggle('is-active', active);
+  button.innerHTML = active
+    ? 'Watching locally <span class="beta-tag">beta</span>'
+    : 'Watch this weather <span class="beta-tag">beta</span>';
+}
+
+function renderWatchDialog() {
+  if (!session.place) return;
+  const active = weatherWatch.getWatch(session.place);
+  $('#watch-place').textContent = state.placeLabel(session.place, { withCountry: true });
+
+  const preset = active?.preset || 'all';
+  document.querySelectorAll('input[name="watch-preset"]').forEach((input) => {
+    input.checked = input.value === preset;
+  });
+
+  const remove = document.querySelector('[data-action="remove-watch"]');
+  remove.hidden = !active;
+  $('#watch-status').textContent = active
+    ? `Last checked ${active.lastCheckedAt ? fmt.relative(active.lastCheckedAt) : 'when saved'}`
+    : 'Not watching yet';
+
+  const events = active?.events || [];
+  setHTML('#watch-events', events.length
+    ? events.map((item) => `
+        <li>
+          <p>${esc(weatherWatch.describeWatchEvent(item))}</p>
+          <time datetime="${esc(item.detectedAt)}">Detected ${esc(fmt.relative(item.detectedAt))}</time>
+        </li>`).join('')
+    : '<li class="watch-empty">No candidate changes recorded on this device.</li>');
+}
+
+function openWatchDialog() {
+  const dialog = $('#watch-dialog');
+  if (!dialog || !session.place || !session.data) return;
+  renderWatchDialog();
+  if (!dialog.open) dialog.showModal();
+}
+
+const watchForm = $('#watch-form');
+if (watchForm) {
+  watchForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    if (!session.place || !session.data) return;
+    const preset = new FormData(watchForm).get('watch-preset');
+    try {
+      weatherWatch.saveWatch({ place: session.place, preset, data: session.data });
+      renderWatchDialog();
+      syncWatchButton();
+      toast(`Watching ${session.place.name} on this device`);
+    } catch (error) {
+      toast(error.message);
+    }
+  });
+}
+
 $('#geolocate').addEventListener('click', () => {
   if (!navigator.geolocation) { toast('Geolocation is not available in this browser.'); return; }
   toast('Finding your location…');
@@ -663,9 +741,9 @@ $('#geolocate').addEventListener('click', () => {
       const { latitude, longitude } = position.coords;
       const info = await api.soft(api.reverseGeocode(latitude, longitude), {});
       pickPlace({
-        name: info.name || `${latitude.toFixed(2)}, ${longitude.toFixed(2)}`,
-        admin1: info.admin1,
-        country: info.country,
+        name: info.city || info.locality || info.principalSubdivision || `${latitude.toFixed(2)}, ${longitude.toFixed(2)}`,
+        admin1: info.principalSubdivision,
+        country: info.countryName,
         countryCode: info.countryCode,
         latitude,
         longitude,
@@ -817,7 +895,10 @@ function start() {
 
   // The hero shows a live local clock; nudge it every minute so it stays honest.
   setInterval(() => {
-    if (session.data) setHTML('#hero', renderHero(buildViewModel()));
+    if (session.data) {
+      setHTML('#hero', renderHero(buildViewModel()));
+      syncWatchButton();
+    }
   }, 60000);
 
   registerServiceWorker();

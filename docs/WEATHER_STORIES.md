@@ -20,6 +20,13 @@ SEO page and makes the source of every claim reviewable.
   canonical metadata and Article structured data.
 - Automatic freshness control: expired stories remain readable as forecast
   snapshots but become `noindex` and leave the public index and sitemap.
+- A schema-enforced human review record. A published story must name its
+  reviewer and prove that facts, source, links and the rendered preview were
+  checked.
+- Conditional discovery. An active story appears beside the matching city,
+  on the story index and in the sitemap; no permanent header link is added.
+- A daily integrity audit in GitHub Actions. It validates every story and
+  reports active, expired, archived and draft content without generating copy.
 
 There is no database, queue, CMS or new recurring hosting service in this
 slice. Vercel serves published JSON files with the existing app.
@@ -61,12 +68,22 @@ against `evidence.days`, edit as needed, then change:
 ```json
 {
   "status": "published",
-  "publishedAt": "2026-08-22T14:30:00.000Z"
+  "publishedAt": "2026-09-07T14:30:00.000Z",
+  "review": {
+    "reviewer": "Editor name",
+    "reviewedAt": "2026-09-07T14:20:00.000Z",
+    "factsChecked": true,
+    "sourceChecked": true,
+    "linksChecked": true,
+    "previewed": true
+  }
 }
 ```
 
-Run `npm test` and preview the article locally before merging. Draft slugs
-return a real 404, so an accidental link cannot leak unreviewed copy.
+Run `npm run story:audit` and `npm test` before merging. CI repeats the audit;
+an incomplete review, publication after expiry, missing event evidence, unsafe
+source URL or unredacted provider key blocks release. Draft slugs return a real
+404, so an accidental link cannot leak unreviewed copy.
 
 ## Cost guardrail
 
@@ -88,7 +105,7 @@ and the [GPT-5.6 Luna Gateway page](https://vercel.com/ai-gateway/models/gpt-5.6
 before budgeting at scale. `STORY_MODEL` makes the model replaceable without a
 code change, but cost estimation is intentionally reported only for Luna.
 
-## Before scheduling it
+## Before scheduling generation
 
 Keep generation manual until several real drafts have been evaluated for
 factuality, usefulness, tone and edit time. Open-Meteo's hosted free API is
@@ -101,3 +118,8 @@ the data's CC BY licence and the hosted API's usage terms are separate issues.
 Once those checks pass, schedule this same command to create a draft pull
 request. Keep publication as a separate human decision until the measured edit
 and factual-error rates justify changing that boundary.
+
+The current scheduled workflow is deliberately audit-only: it makes no weather
+or AI request and writes no content. Candidate scanning and draft generation
+remain manual until the commercial data rights in `docs/WEATHER_DATA.md` cover
+both forecast display and retained editorial evidence.

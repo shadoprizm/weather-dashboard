@@ -109,6 +109,10 @@ function recordLocationSample({ directory, city, forecast, hours = 72 }) {
     queryCost: current.queryCost,
     baseline: comparison === null,
     comparison,
+    // Keep the normalized, provider-neutral evidence with the run. This makes
+    // threshold changes replayable without retaining an upstream response,
+    // credential, request URL or visitor data.
+    forecast: current,
   };
 }
 
@@ -182,8 +186,33 @@ function summarizeRuns(runs) {
   };
 }
 
+/** Re-evaluate stored v2 run evidence after policy changes. */
+function replayRuns(runs, { hours = 36, thresholds = {} } = {}) {
+  const limit = Math.max(1, Math.min(192, Number.parseInt(hours, 10) || 36));
+  const previousByCity = new Map();
+  const replayed = [];
+
+  for (const run of [...runs].sort((a, b) => String(a.sampleAt).localeCompare(String(b.sampleAt)))) {
+    const results = [];
+    for (const result of run.results || []) {
+      if (!result.forecast?.hours?.length) continue;
+      const current = { ...result.forecast, hours: result.forecast.hours.slice(0, limit) };
+      const previous = previousByCity.get(result.city.slug);
+      previousByCity.set(result.city.slug, current);
+      results.push({
+        ...result,
+        baseline: !previous,
+        comparison: previous ? compareForecasts(previous, current, { thresholds }) : null,
+      });
+    }
+    if (results.length) replayed.push({ ...run, results });
+  }
+
+  return { runs: replayed, summary: summarizeRuns(replayed) };
+}
+
 function recordTrialRun({ directory, sampleAt = new Date().toISOString(), runId = '', results, failures = [] }) {
-  const run = { schemaVersion: 1, sampleAt, results, failures };
+  const run = { schemaVersion: 2, sampleAt, results, failures };
   const filename = path.join(directory, 'runs', runFilename(sampleAt, runId));
   writeJsonAtomic(filename, run);
 
@@ -200,4 +229,5 @@ module.exports = {
   recordTrialRun,
   listRuns,
   summarizeRuns,
+  replayRuns,
 };

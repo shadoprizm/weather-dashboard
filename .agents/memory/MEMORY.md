@@ -5,6 +5,8 @@
 - With real traffic arriving, prioritize production reliability and clear feature discovery before expanding the roadmap.
 
 ## Decisions
+- [2026-09-07] Keep the primary header focused on the mature city directory and the free widget in the footer. The expanded, source-backed Weather Guide may be indexed and discovered contextually; keep Stories unindexed and unpromoted until a reviewed story is active.
+- [2026-09-07] Validate monitoring usefulness with the device-local Watch beta and replayable policy-v2 trial evidence before provisioning accounts, billing, background delivery, or notification vendors.
 - [2026-08-19] Treat organic search and generative-engine visibility as core product requirements: keep public forecast content crawlable, server-rendered, directly answerable, well-sourced, and included in the sitemap without creating thin keyword pages.
 - [2026-08-22] Keep WeatherView Free genuinely useful and complete; monetize AI personalization, persistent monitoring, and proactive delivery rather than withholding essential weather information or public-safety alerts.
 - [2026-08-22] Explore background AI-assisted weather stories as a free, shared feature that benefits all users and supports SEO/GEO, with new pages published only when they add distinct user value.

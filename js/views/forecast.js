@@ -42,13 +42,18 @@ export function renderHero(vm) {
   return `
     <div class="hero">
       <div class="hero-head">
-        <h1 class="hero-place">${esc(vm.heading || place.name)}</h1>
-        <p class="hero-meta">
-          <span>${esc(place.admin1 || place.country || '')}</span>
-          <span class="dot" aria-hidden="true">·</span>
-          <span>${esc(localTime)} local</span>
-          ${updatedAt ? `<span class="dot" aria-hidden="true">·</span><span class="hero-updated">updated ${esc(fmt.relative(updatedAt))}</span>` : ''}
-        </p>
+        <div>
+          <h1 class="hero-place">${esc(vm.heading || place.name)}</h1>
+          <p class="hero-meta">
+            <span>${esc(place.admin1 || place.country || '')}</span>
+            <span class="dot" aria-hidden="true">·</span>
+            <span>${esc(localTime)} local</span>
+            ${updatedAt ? `<span class="dot" aria-hidden="true">·</span><span class="hero-updated">updated ${esc(fmt.relative(updatedAt))}</span>` : ''}
+          </p>
+        </div>
+        <button type="button" class="watch-trigger" data-action="open-watch" aria-pressed="false">
+          Watch this weather <span class="beta-tag">beta</span>
+        </button>
       </div>
 
       <div class="hero-body">

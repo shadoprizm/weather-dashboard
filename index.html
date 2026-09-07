@@ -97,12 +97,8 @@
       </div>
     </div>
 
-    <nav class="site-nav" aria-label="Explore WeatherView">
-      <span class="site-nav-label">Explore</span>
-      <a href="/weather">Cities</a>
-      <a href="/weather-guide">Weather guide</a>
-      <a href="/weather-stories">Stories</a>
-      <a href="/widgets">Widgets</a>
+    <nav class="site-nav" aria-label="Weather navigation">
+      <a href="/weather">All cities</a>
     </nav>
 
     <nav class="places" id="places" aria-label="Saved locations"></nav>
@@ -183,10 +179,8 @@
     </p>
     <p class="footer-links">
       <a href="/weather">Weather by city</a> ·
-      <a href="/weather-stories">Weather stories</a> ·
-      <a href="/weather-guide">Weather questions answered</a> ·
-      <a href="/widgets">Free website widget</a> ·
-      <a href="/">Dashboard</a>
+      <a href="/">Dashboard</a> ·
+      <a href="/widgets">Free website widget</a>
     </p>
     <p class="footer-keys">
       <kbd>/</kbd> search · <kbd>u</kbd> units · <kbd>r</kbd> refresh ·
@@ -194,6 +188,58 @@
       <kbd>←</kbd><kbd>→</kbd> section
     </p>
   </footer>
+
+  <dialog id="watch-dialog" class="watch-dialog" aria-labelledby="watch-title">
+    <div class="watch-dialog-head">
+      <div>
+        <p class="eyebrow">Device-only beta</p>
+        <h2 id="watch-title">Watch this weather</h2>
+        <p id="watch-place" class="watch-place"></p>
+      </div>
+      <button type="button" class="dialog-close" data-action="close-watch" aria-label="Close">×</button>
+    </div>
+
+    <p class="watch-explainer">
+      WeatherView will compare forecast updates while you use this browser and keep candidate
+      changes on this device. It will not create an account, send a message, or run while the
+      browser is closed.
+    </p>
+
+    <form id="watch-form">
+      <fieldset class="watch-presets">
+        <legend>What should count?</legend>
+        <label class="watch-preset">
+          <input type="radio" name="watch-preset" value="all" checked>
+          <span><strong>Any major change</strong><small>Rain timing or chance, snow, freezing, strong gusts, or a hazardous condition.</small></span>
+        </label>
+        <label class="watch-preset">
+          <input type="radio" name="watch-preset" value="rain">
+          <span><strong>Rain or snow</strong><small>A large chance change, a three-hour timing move, or 2 cm more or less snow.</small></span>
+        </label>
+        <label class="watch-preset">
+          <input type="radio" name="watch-preset" value="freezing">
+          <span><strong>Freezing conditions</strong><small>Two hours cross 0 °C, or freezing precipitation appears or disappears.</small></span>
+        </label>
+        <label class="watch-preset">
+          <input type="radio" name="watch-preset" value="wind">
+          <span><strong>Strong wind</strong><small>Gusts cross 50 km/h or change by at least 20 km/h for two hours.</small></span>
+        </label>
+      </fieldset>
+
+      <div class="watch-actions">
+        <button type="submit" class="watch-save">Save on this device</button>
+        <button type="button" class="watch-remove" data-action="remove-watch" hidden>Stop watching</button>
+      </div>
+    </form>
+
+    <section class="watch-log" aria-labelledby="watch-log-title">
+      <div class="watch-log-head">
+        <h3 id="watch-log-title">Candidate changes</h3>
+        <p id="watch-status"></p>
+      </div>
+      <ol id="watch-events"></ol>
+    </section>
+  </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 

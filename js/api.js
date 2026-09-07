@@ -29,7 +29,14 @@ export function searchPlaces(query) {
 }
 
 export function reverseGeocode(lat, lon) {
-  return get('/api/reverse', { lat, lon });
+  const url = new URL('https://api.bigdatacloud.net/data/reverse-geocode-client');
+  url.searchParams.set('latitude', lat);
+  url.searchParams.set('longitude', lon);
+  url.searchParams.set('localityLanguage', 'en');
+  return fetch(url, { headers: { Accept: 'application/json' } }).then((response) => {
+    if (!response.ok) throw new Error(`Reverse geocoding failed (${response.status})`);
+    return response.json();
+  });
 }
 
 export function fetchAlerts(lat, lon) {

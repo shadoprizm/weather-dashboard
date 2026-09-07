@@ -57,7 +57,6 @@ app.use(express.static(path.join(__dirname), { extensions: ['html'] }));
 const ROUTES = {
   '/api/weather': handlers.forecast,
   '/api/geocode': handlers.geocode,
-  '/api/reverse': handlers.reverse,
   '/api/alerts': handlers.alerts,
   '/api/radar': handlers.radar,
   '/api/almanac': handlers.almanac,

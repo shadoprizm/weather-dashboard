@@ -50,6 +50,39 @@ assert.equal(ranked[0].eventType, 'heavy_rain', 'the strongest measured event wi
 assert.equal(ranked[0].city.slug, 'toronto');
 assert.equal(generation.slugForCandidate(ranked[0]), '2026-08-24-toronto-heavy-rain');
 
+const originalCommercialMode = process.env.COMMERCIAL_MODE;
+const originalOpenMeteoKey = process.env.OPEN_METEO_API_KEY;
+process.env.COMMERCIAL_MODE = '1';
+process.env.OPEN_METEO_API_KEY = 'story-test-secret';
+let requestedStoryUrl = '';
+const licensedStoryForecast = await generation.fetchStoryForecast(torontoForecast.city, {
+  fetchJsonImpl: async (url) => {
+    requestedStoryUrl = url;
+    return {
+      timezone: torontoForecast.timezone,
+      daily: {
+        time: torontoForecast.days.map((day) => day.date),
+        weather_code: torontoForecast.days.map((day) => day.weatherCode),
+        temperature_2m_max: torontoForecast.days.map((day) => day.highC),
+        temperature_2m_min: torontoForecast.days.map((day) => day.lowC),
+        precipitation_sum: torontoForecast.days.map((day) => day.precipMm),
+        rain_sum: torontoForecast.days.map((day) => day.rainMm),
+        snowfall_sum: torontoForecast.days.map((day) => day.snowCm),
+        precipitation_probability_max: torontoForecast.days.map((day) => day.precipChancePct),
+        wind_speed_10m_max: torontoForecast.days.map((day) => day.maxWindKmh),
+        wind_gusts_10m_max: torontoForecast.days.map((day) => day.maxGustKmh),
+      },
+    };
+  },
+});
+assert.match(requestedStoryUrl, /^https:\/\/customer-api\.open-meteo\.com/);
+assert.ok(requestedStoryUrl.includes('story-test-secret'));
+assert.ok(!licensedStoryForecast.sourceUrl.includes('story-test-secret'));
+if (originalCommercialMode === undefined) delete process.env.COMMERCIAL_MODE;
+else process.env.COMMERCIAL_MODE = originalCommercialMode;
+if (originalOpenMeteoKey === undefined) delete process.env.OPEN_METEO_API_KEY;
+else process.env.OPEN_METEO_API_KEY = originalOpenMeteoKey;
+
 let capturedRequest;
 const generated = await generation.generateCopy(ranked[0], {
   gatewayKey: 'test-gateway-token-not-real',
@@ -116,10 +149,22 @@ const published = {
   ...draft,
   status: 'published',
   publishedAt: '2026-08-22T14:30:00.000Z',
+  review: {
+    reviewer: 'Test editor',
+    reviewedAt: '2026-08-22T14:20:00.000Z',
+    factsChecked: true,
+    sourceChecked: true,
+    linksChecked: true,
+    previewed: true,
+  },
 };
 stories.assertStory(published);
 assert.equal(stories.isActive(published, new Date('2026-08-25T00:00:00.000Z')), true);
 assert.equal(stories.isActive(published, new Date('2026-08-27T00:00:00.000Z')), false);
+assert.throws(() => stories.assertStory({ ...published, review: null }), /named, timestamped review/,
+  'publication is impossible without recorded human review');
+assert.throws(() => stories.assertStory({ ...published, review: { ...published.review, factsChecked: false } }),
+  /factsChecked/, 'every review gate is enforced');
 
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'weatherview-stories-'));
 try {
@@ -132,6 +177,10 @@ try {
     'expired stories leave current indexes');
   assert.equal(stories.bySlug(draft.slug, { directory }), null, 'a draft slug looks unpublished');
   assert.equal(stories.bySlug(secondPublished.slug, { directory }).status, 'published');
+  const audit = stories.auditStories({ directory, now: new Date('2026-08-25T00:00:00.000Z') });
+  assert.equal(audit.invalid.length, 0);
+  assert.equal(audit.publicIndex, true);
+  assert.deepEqual(audit.active, [secondPublished.slug]);
 } finally {
   fs.rmSync(directory, { recursive: true, force: true });
 }
@@ -174,5 +223,14 @@ try {
 const sitemap = renderSitemap({ now: new Date('2026-08-25T00:00:00.000Z'), storyList: [published] });
 assert.match(sitemap, /<loc>https:\/\/www\.weatherview\.cloud\/weather-stories<\/loc>/);
 assert.match(sitemap, new RegExp(`<loc>https://www\\.weatherview\\.cloud${stories.storyPath(published)}</loc>`));
+
+const cityRenderer = require('../api/_lib/render/city');
+assert.match(
+  cityRenderer.storySpotlight(torontoForecast.city, [published]),
+  new RegExp(`href="${stories.storyPath(published)}"`),
+  'an active story surfaces contextually from its city page'
+);
+assert.equal(cityRenderer.storySpotlight(torontoForecast.city, []), '',
+  'no story link appears when there is no current reviewed story');
 
 console.log('All weather-story checks passed.');

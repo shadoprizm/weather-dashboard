@@ -4,6 +4,29 @@ Status: product and architecture decision, August 22, 2026. This document
 defines the first paid workflow. It does not authorize a public paid launch;
 the launch gates near the end must be completed first.
 
+## Implementation update — September 7, 2026
+
+- The six-city monitoring trial completed 56 scheduled runs: 336 location
+  samples, 330 successive comparisons and no fetch failures. The original
+  rules marked 73.6% of comparisons material, which is far too noisy for a
+  customer promise.
+- Policy v2 now requires two adjacent hours for ordinary forecast changes and
+  uses stricter thresholds: 4°C temperature, 30 precipitation-probability
+  points, 20 km/h gust change and a three-hour precipitation timing move.
+  Hazard-code transitions remain immediate. Every change has a stable event
+  key, and v2 evidence can be replayed with `npm run monitoring:replay`.
+- A device-only **Watch this weather** beta now exercises four structured
+  presets against the next 36 hours. Its baselines and candidate events stay in
+  local storage; it has no account, billing, background worker or outbound
+  notifications and says so in the interface.
+- Commercial-mode enforcement is implemented across Open-Meteo forecast, air,
+  geocoding, archive and story calls. The provider decision and unresolved
+  contract questions live in `docs/WEATHER_DATA.md`.
+
+The next monitoring decision is empirical: use the local beta and v2 scheduled
+trial to measure candidate usefulness before provisioning the account, billing
+or delivery services below.
+
 ## Product rule
 
 WeatherView is complete and useful without an account. An account appears only
@@ -94,13 +117,13 @@ Initial candidate thresholds are:
 
 | Change | Candidate threshold |
 |---|---:|
-| Precipitation start or end moves | 90 minutes |
-| Precipitation probability changes | 20 percentage points |
-| Rain total changes | 5 mm or 50%, whichever is smaller above 2 mm |
+| Precipitation start/end appears, disappears or moves | New persistent window, or a 180-minute move |
+| Precipitation probability changes | 30 percentage points for two adjacent hours |
+| Rain total changes | Future rule; not in policy v2 |
 | Snow total changes | 2 cm |
-| Forecast temperature changes | 3 C |
-| Maximum gust changes | 15 km/h |
-| Condition crosses freezing | Either direction |
+| Forecast temperature changes | 4 C for two adjacent hours |
+| Maximum gust changes | 20 km/h for two adjacent hours |
+| Condition crosses freezing | Either direction for two adjacent hours |
 | Forecast begins or stops showing thunder/freezing rain | Any transition |
 | Official alert begins, escalates or ends | Any transition |
 
@@ -279,9 +302,11 @@ do not add one pre-emptively.
 This gate must be resolved before WeatherView accepts subscriptions.
 
 Open-Meteo's hosted free endpoint is explicitly limited to non-commercial use,
-and its terms list a website or app with subscriptions as commercial. The
-current application calls the free forecast, air-quality, geocoding and archive
-hosts. Open-Meteo's live pricing table currently lists:
+and its terms list a website or app with subscriptions as commercial. The code
+now routes every Open-Meteo service through one access adapter. Setting
+`COMMERCIAL_MODE=1` without `OPEN_METEO_API_KEY` refuses those calls; a key
+switches them to the paid `customer-` hosts. Open-Meteo's pricing checked for
+the current decision lists:
 
 - API Standard: EUR 29/month or EUR 319/year, including forecast, air quality
   and geocoding, but not historical weather.
@@ -294,10 +319,11 @@ That means the existing Almanac prevents a simple move to Standard. Paying EUR
 Evaluate these options before buying a plan:
 
 1. **Visual Crossing metered evaluation — recommended first.** Its current
-   documentation permits commercial use, includes forecast and history, offers
-   1,000 records/day free, then lists USD 0.0001 per record. Forecast quality,
-   attribution, storage rights, query-cost behaviour and alert coverage must be
-   tested against WeatherView's real payloads before adoption.
+   pricing permits commercial public display, offers 1,000 records/day free,
+   then lists USD 0.0001 per record. The adapter and quality comparison are
+   complete. Written clarification is still required on whether WeatherView's
+   normalized same-origin JSON response fits display rights or Enterprise-only
+   shared external storage rights.
 2. **Apple WeatherKit evaluation.** An Apple Developer Program membership
    includes 500,000 calls/month and WeatherKit exposes forecast plus historical
    averages to websites through REST. Confirm the account, attribution and
@@ -311,11 +337,12 @@ Evaluate these options before buying a plan:
 Whichever provider wins, first move all weather hosts and credentials behind a
 provider adapter. Do not scatter another vendor's URLs through handlers.
 
-Sources, checked August 22, 2026:
+The complete current record, implementation and launch checklist are in
+`docs/WEATHER_DATA.md`. Sources rechecked September 7, 2026:
 
 - [Open-Meteo pricing](https://open-meteo.com/en/pricing)
 - [Open-Meteo commercial-use terms](https://open-meteo.com/en/terms)
-- [Visual Crossing commercial metered API](https://www.visualcrossing.com/weather-api/)
+- [Visual Crossing pricing and data-use matrix](https://www.visualcrossing.com/weather-data-pricing/)
 - [Apple WeatherKit availability and pricing](https://developer.apple.com/weatherkit/)
 
 ## Price and margin hypothesis
@@ -362,10 +389,10 @@ launch and alert on usage before enabling any automatic overage.
 
 ## Delivery plan
 
-### Phase 0 — provider and rule validation
+### Phase 0 — provider and rule validation (implemented; external licence gate remains)
 
-- Build a recorded-payload comparison of Open-Meteo, Visual Crossing and
-  WeatherKit for representative Canadian, US and international locations.
+- Keep the recorded-payload comparison and monitoring replays current for
+  representative Canadian, US and international locations.
 - With `VISUAL_CROSSING_API_KEY` in Vercel Development, run the first live
   comparison without storing payloads:
   `vercel env run -- npm run providers:compare -- --city toronto --hours 72`.
@@ -374,8 +401,8 @@ launch and alert on usage before enabling any automatic overage.
   app carries subscriptions or advertising.
 - Confirm commercial licence, attribution, caching and derived-content terms in
   writing when they are ambiguous.
-- Run the monitor evaluator offline against successive saved forecasts.
-- Tune material-change thresholds and measure notification frequency.
+- Replay the v2 monitor evaluator against successive stored forecasts.
+- Continue tuning material-change thresholds and measure candidate frequency.
 
 Initial live baseline, measured August 22, 2026 over the next 72 aligned hours:
 
@@ -420,10 +447,10 @@ starting account work.
   Customer Portal access.
 - Test renewal, failed payment, cancellation, webhook reordering and replay.
 
-### Phase 3 — silent monitoring beta
+### Phase 3 — silent monitoring beta (device-only slice implemented)
 
-- Add plan watches and the hourly evaluator.
-- Record proposed notifications without sending them for at least one week.
+- Exercise the four local watch presets and the 36-hour evaluator.
+- Record proposed events without sending them for at least one week of real use.
 - Review every candidate for usefulness, false positives and missed events.
 - Add email only after the silent-event quality is acceptable.
 

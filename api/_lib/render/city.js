@@ -17,6 +17,7 @@
 const site = require('../site');
 const seo = require('../seo');
 const cities = require('../cities');
+const stories = require('../stories');
 const handlers = require('../handlers');
 const { renderDocument, escapeHtml } = require('./shell');
 const { load } = require('./views');
@@ -114,6 +115,15 @@ function nearbyCities(city, limit = 8) {
     .slice(0, limit);
 }
 
+function storySpotlight(city, storyList = stories.publishedStories()) {
+  const related = storyList.find((story) => story.evidence.location.slug === city.slug);
+  if (!related) return '';
+  return `
+    <p class="context-story">
+      Current briefing: <a href="${escapeHtml(stories.storyPath(related))}">${escapeHtml(related.headline)}</a>
+    </p>`;
+}
+
 function contextSection(city, section, { updatedAt, alerts, weatherProvider }) {
   const nearby = nearbyCities(city).map(({ city: other, km }) => `
     <li><a href="${escapeHtml(seo.cityPath(other))}">${escapeHtml(other.name)}</a>
@@ -140,7 +150,9 @@ function contextSection(city, section, { updatedAt, alerts, weatherProvider }) {
       <p>
         Watches labelled <em>computed</em> are worked out on this site from forecast thresholds
         and are not official warnings — always defer to your national weather service.
+        Need help reading a number? See the <a href="/weather-guide">sourced weather guide</a>.
       </p>
+      ${storySpotlight(city)}
       ${sectionNav(city, section)}
     </section>
 
@@ -287,4 +299,4 @@ async function renderCityPage(city, section = 'overview') {
   return { html, summary };
 }
 
-module.exports = { renderCityPage, nearbyCities, summarize, METRIC, UNITS_BY_COUNTRY };
+module.exports = { renderCityPage, nearbyCities, summarize, storySpotlight, METRIC, UNITS_BY_COUNTRY };

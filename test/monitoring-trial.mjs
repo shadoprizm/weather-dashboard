@@ -49,6 +49,12 @@ function forecast(fetchedAt, temperature, precipitationProbability) {
         weatherCode: 3, condition: 'Cloudy', icon: 'cloudy', precipTypes: [],
         secretProviderField: 'must-not-be-recorded',
       },
+      {
+        localTime: '2026-08-25T10:00', tempC: temperature, precipMm: 0,
+        precipProbabilityPct: precipitationProbability, snowCm: 0, windGustKph: 20,
+        weatherCode: 3, condition: 'Cloudy', icon: 'cloudy', precipTypes: [],
+        secretProviderField: 'must-not-be-recorded',
+      },
     ],
   };
 }
@@ -71,6 +77,8 @@ try {
 
   const snapshot = JSON.parse(fs.readFileSync(path.join(directory, 'snapshots', 'toronto.json')));
   assert.equal(snapshot.hours[0].secretProviderField, undefined, 'snapshots keep only evaluator evidence');
+  assert.equal(changed.forecast.hours[0].secretProviderField, undefined,
+    'run evidence is normalized and contains no upstream-only fields');
 
   trial.recordTrialRun({
     directory,
@@ -95,6 +103,13 @@ try {
   assert.equal(recorded.summary.fallbackSamples, 0);
   assert.equal(recorded.summary.changeKinds.temperature, 1);
   assert.equal(recorded.summary.cities.toronto.samples, 2);
+  assert.equal(recorded.run.schemaVersion, 2);
+
+  const replayed = trial.replayRuns(trial.listRuns(directory), { hours: 1 });
+  assert.equal(replayed.summary.runs, 2);
+  assert.equal(replayed.summary.comparisons, 1);
+  assert.equal(replayed.summary.materialComparisons, 0,
+    'the default persistence rule suppresses one-hour replay noise');
 } finally {
   fs.rmSync(directory, { recursive: true, force: true });
 }

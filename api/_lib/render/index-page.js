@@ -62,11 +62,7 @@ function renderIndexPage() {
         <a href="/">open ${escapeHtml(site.name)}</a> and type any place name. We publish a
         page for a city once it is somewhere people actually look for, rather
         than generating one for every coordinate on the map.
-      </p>
-      <p>
-        Not sure what a forecast number means? Read the
-        <a href="/weather-guide">plain-English weather guide</a> for rain chances,
-        forecast confidence, radar, alerts, AQI, UV and more.
+        New to a forecast term? Read the <a href="/weather-guide">weather guide</a>.
       </p>
     </section>`;
 

@@ -1,13 +1,15 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const POLICY_VERSION = 2;
 
 const DEFAULT_THRESHOLDS = Object.freeze({
-  temperatureC: 3,
-  precipProbabilityPoints: 20,
+  temperatureC: 4,
+  precipProbabilityPoints: 30,
   snowCm: 2,
-  windGustKph: 15,
-  precipTimingMinutes: 90,
+  windGustKph: 20,
+  precipTimingMinutes: 180,
+  persistentHours: 2,
 });
 
 function finite(value) {
@@ -49,16 +51,76 @@ function largestDelta(pairs, field) {
   return winner;
 }
 
+function consecutiveHours(left, right) {
+  const difference = minuteDifference(left?.localTime, right?.localTime);
+  return difference === 60;
+}
+
+/**
+ * Return the strongest change that persists in the same direction for the
+ * required number of adjacent hours. Forecast providers commonly move one
+ * isolated hourly value between runs; that is useful evidence, but too noisy
+ * to wake a customer over.
+ */
+function sustainedDelta(pairs, field, threshold, persistentHours) {
+  const required = Math.max(1, Number.parseInt(persistentHours, 10) || 1);
+  if (required === 1) {
+    const winner = largestDelta(pairs, field);
+    return winner && Math.abs(winner.delta) >= threshold
+      ? { ...winner, persistentHours: 1 }
+      : null;
+  }
+
+  let winner = null;
+  for (let start = 0; start < pairs.length; start += 1) {
+    const run = [];
+    let direction = 0;
+    for (let index = start; index < pairs.length; index += 1) {
+      if (index > start && !consecutiveHours(pairs[index - 1], pairs[index])) break;
+      const before = finite(pairs[index].previous[field]);
+      const after = finite(pairs[index].current[field]);
+      if (before === null || after === null) break;
+      const delta = after - before;
+      const nextDirection = Math.sign(delta);
+      if (Math.abs(delta) < threshold || nextDirection === 0) break;
+      if (direction && nextDirection !== direction) break;
+      direction = nextDirection;
+      run.push({ localTime: pairs[index].localTime, before, after, delta });
+    }
+
+    if (run.length < required) continue;
+    const strongest = run.reduce((best, item) =>
+      Math.abs(item.delta) > Math.abs(best.delta) ? item : best
+    );
+    const candidate = { ...strongest, persistentHours: run.length };
+    if (!winner || Math.abs(candidate.delta) > Math.abs(winner.delta)) winner = candidate;
+  }
+  return winner;
+}
+
 function sum(hours, field) {
   return hours.reduce((total, hour) => total + (finite(hour[field]) || 0), 0);
 }
 
-function firstWetHour(hours) {
-  return hours.find((hour) =>
-    (finite(hour.precipMm) || 0) >= 0.2 ||
-    (finite(hour.snowCm) || 0) > 0 ||
-    (finite(hour.precipProbabilityPct) || 0) >= 50
-  )?.localTime || null;
+function isWet(hour) {
+  return (finite(hour?.precipMm) || 0) >= 0.2 ||
+    (finite(hour?.snowCm) || 0) > 0 ||
+    (finite(hour?.precipProbabilityPct) || 0) >= 50;
+}
+
+function firstWetHour(hours, persistentHours = 2) {
+  const required = Math.max(1, Number.parseInt(persistentHours, 10) || 1);
+  for (let start = 0; start < hours.length; start += 1) {
+    if (!isWet(hours[start])) continue;
+    let length = 1;
+    while (
+      length < required &&
+      isWet(hours[start + length]) &&
+      consecutiveHours(hours[start + length - 1], hours[start + length])
+    ) length += 1;
+    if (length >= required) return hours[start].localTime;
+  }
+  return null;
 }
 
 function localMinuteNumber(value) {
@@ -84,6 +146,40 @@ function containsHazard(hour) {
   return /thunder|freezing|ice|hail/.test(words);
 }
 
+function firstMatchingHour(hours, predicate, persistentHours = 1) {
+  const required = Math.max(1, Number.parseInt(persistentHours, 10) || 1);
+  for (let start = 0; start < hours.length; start += 1) {
+    if (!predicate(hours[start])) continue;
+    let length = 1;
+    while (
+      length < required &&
+      predicate(hours[start + length]) &&
+      consecutiveHours(hours[start + length - 1], hours[start + length])
+    ) length += 1;
+    if (length >= required) return hours[start].localTime;
+  }
+  return null;
+}
+
+function directionOf(change) {
+  if (typeof change.after === 'boolean') return change.after ? 'started' : 'ended';
+  const delta = finite(change.delta ?? change.deltaMinutes);
+  if (delta === null || delta === 0) return 'changed';
+  return delta > 0 ? 'increased' : 'decreased';
+}
+
+function withEventKey(change) {
+  const identity = {
+    kind: change.kind,
+    localTime: change.localTime || change.after || change.before || null,
+    direction: directionOf(change),
+  };
+  return {
+    ...change,
+    eventKey: crypto.createHash('sha256').update(JSON.stringify(identity)).digest('hex').slice(0, 24),
+  };
+}
+
 function compareForecasts(previous, current, options = {}) {
   const thresholds = { ...DEFAULT_THRESHOLDS, ...(options.thresholds || {}) };
   const startLocal = options.startLocal || null;
@@ -93,13 +189,17 @@ function compareForecasts(previous, current, options = {}) {
   const newHours = pairs.map((pair) => pair.current);
   const changes = [];
 
-  const temperature = largestDelta(pairs, 'tempC');
-  if (temperature && Math.abs(temperature.delta) >= thresholds.temperatureC) {
+  const temperature = sustainedDelta(
+    pairs, 'tempC', thresholds.temperatureC, thresholds.persistentHours
+  );
+  if (temperature) {
     changes.push({ kind: 'temperature', ...temperature });
   }
 
-  const precipProbability = largestDelta(pairs, 'precipProbabilityPct');
-  if (precipProbability && Math.abs(precipProbability.delta) >= thresholds.precipProbabilityPoints) {
+  const precipProbability = sustainedDelta(
+    pairs, 'precipProbabilityPct', thresholds.precipProbabilityPoints, thresholds.persistentHours
+  );
+  if (precipProbability) {
     changes.push({ kind: 'precip-probability', ...precipProbability });
   }
 
@@ -109,44 +209,78 @@ function compareForecasts(previous, current, options = {}) {
     changes.push({ kind: 'snow-total', before: oldSnow, after: newSnow, delta: newSnow - oldSnow });
   }
 
-  const gust = largestDelta(pairs, 'windGustKph');
-  if (gust && Math.abs(gust.delta) >= thresholds.windGustKph) {
+  const gust = sustainedDelta(
+    pairs, 'windGustKph', thresholds.windGustKph, thresholds.persistentHours
+  );
+  if (gust) {
     changes.push({ kind: 'wind-gust', ...gust });
   }
 
-  const oldWet = firstWetHour(oldHours);
-  const newWet = firstWetHour(newHours);
+  const oldWet = firstWetHour(oldHours, thresholds.persistentHours);
+  const newWet = firstWetHour(newHours, thresholds.persistentHours);
   const timingDelta = minuteDifference(oldWet, newWet);
-  if (oldWet && newWet && timingDelta !== null && Math.abs(timingDelta) >= thresholds.precipTimingMinutes) {
+  if (Boolean(oldWet) !== Boolean(newWet)) {
+    changes.push({
+      kind: 'precip-transition',
+      localTime: newWet || oldWet,
+      before: Boolean(oldWet),
+      after: Boolean(newWet),
+    });
+  } else if (oldWet && newWet && timingDelta !== null && Math.abs(timingDelta) >= thresholds.precipTimingMinutes) {
     changes.push({
       kind: 'precip-timing', before: oldWet, after: newWet, deltaMinutes: timingDelta,
     });
   }
 
-  const oldFreezing = oldHours.some((hour) => finite(hour.tempC) !== null && hour.tempC <= 0);
-  const newFreezing = newHours.some((hour) => finite(hour.tempC) !== null && hour.tempC <= 0);
+  const freezing = (hour) => finite(hour?.tempC) !== null && finite(hour.tempC) <= 0;
+  const oldFreezingAt = firstMatchingHour(oldHours, freezing, thresholds.persistentHours);
+  const newFreezingAt = firstMatchingHour(newHours, freezing, thresholds.persistentHours);
+  const oldFreezing = Boolean(oldFreezingAt);
+  const newFreezing = Boolean(newFreezingAt);
   if (oldFreezing !== newFreezing) {
-    changes.push({ kind: 'freezing-threshold', before: oldFreezing, after: newFreezing });
+    changes.push({
+      kind: 'freezing-threshold',
+      localTime: newFreezingAt || oldFreezingAt,
+      before: oldFreezing,
+      after: newFreezing,
+    });
   }
 
-  const oldHazard = oldHours.some(containsHazard);
-  const newHazard = newHours.some(containsHazard);
+  // A thunderstorm or freezing-precipitation code is already a high-severity
+  // signal, so it does not need the two-hour persistence rule.
+  const oldHazardAt = firstMatchingHour(oldHours, containsHazard, 1);
+  const newHazardAt = firstMatchingHour(newHours, containsHazard, 1);
+  const oldHazard = Boolean(oldHazardAt);
+  const newHazard = Boolean(newHazardAt);
   if (oldHazard !== newHazard) {
-    changes.push({ kind: 'hazard', before: oldHazard, after: newHazard });
+    changes.push({
+      kind: 'hazard',
+      localTime: newHazardAt || oldHazardAt,
+      before: oldHazard,
+      after: newHazard,
+    });
   }
 
-  const stableEvidence = JSON.stringify({ startLocal, endLocal, changes });
+  const keyedChanges = changes.map(withEventKey);
+  const stableEvidence = JSON.stringify({ startLocal, endLocal, changes: keyedChanges });
   const fingerprint = crypto.createHash('sha256').update(stableEvidence).digest('hex').slice(0, 24);
 
   return {
-    material: changes.length > 0,
+    policyVersion: POLICY_VERSION,
+    policy: { thresholds },
+    material: keyedChanges.length > 0,
     fingerprint,
     comparedHours: pairs.length,
     window: { startLocal, endLocal },
     previousFetchedAt: previous.fetchedAt || null,
     currentFetchedAt: current.fetchedAt || null,
-    changes,
+    changes: keyedChanges,
   };
 }
 
-module.exports = { compareForecasts, DEFAULT_THRESHOLDS, _internals: { minuteDifference, firstWetHour } };
+module.exports = {
+  compareForecasts,
+  DEFAULT_THRESHOLDS,
+  POLICY_VERSION,
+  _internals: { minuteDifference, firstWetHour, sustainedDelta },
+};

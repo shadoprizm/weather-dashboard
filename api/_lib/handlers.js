@@ -14,13 +14,8 @@ const { fetchJson, fetchJsonSoft, buildUrl, UpstreamError } = require('./upstrea
 const cache = require('./cache');
 const alertRegistry = require('./alerts');
 const visualCrossing = require('./weather-providers/visual-crossing');
+const openMeteo = require('./weather-providers/open-meteo-access');
 
-const OPEN_METEO = 'https://api.open-meteo.com/v1/forecast';
-const OPEN_METEO_AIR = 'https://air-quality-api.open-meteo.com/v1/air-quality';
-const OPEN_METEO_ARCHIVE = 'https://archive-api.open-meteo.com/v1/archive';
-const OPEN_METEO_GEOCODE = 'https://geocoding-api.open-meteo.com/v1/search';
-const BIGDATACLOUD_REVERSE =
-  'https://api.bigdatacloud.net/data/reverse-geocode-client';
 const RAINVIEWER_INDEX = 'https://api.rainviewer.com/public/weather-maps.json';
 const NOAA_KP = 'https://services.swpc.noaa.gov/json/planetary_k_index_1m.json';
 
@@ -247,6 +242,9 @@ function configuredWeatherProvider() {
 
 async function fetchWeather({ lat, lon, openMeteoUrl, provider = configuredWeatherProvider() }) {
   if (provider !== 'visual-crossing') {
+    if (!openMeteoUrl) {
+      throw new UpstreamError('No commercially licensed forecast provider is configured', 503);
+    }
     return {
       data: await fetchJson(openMeteoUrl),
       provider: 'open-meteo',
@@ -267,6 +265,9 @@ async function fetchWeather({ lat, lon, openMeteoUrl, provider = configuredWeath
     // Keep the public forecast useful during a provider outage or free-tier
     // throttle. The response exposes that a fallback happened so the source
     // label remains honest and the trial can distinguish provider failures.
+    if (!openMeteoUrl) {
+      throw new UpstreamError('The primary forecast provider failed and no licensed fallback is configured', 502);
+    }
     return {
       data: await fetchJson(openMeteoUrl),
       provider: 'open-meteo',
@@ -288,7 +289,7 @@ async function forecast(query) {
   const key = `forecast:v2:${requestedProvider}:${lat},${lon}`;
 
   const body = await cache.memo(key, 300, async () => {
-    const forecastUrl = buildUrl(OPEN_METEO, {
+    const forecastUrl = openMeteo.canUse() ? openMeteo.serviceUrl('forecast', {
       latitude: lat,
       longitude: lon,
       current: CURRENT_FIELDS,
@@ -301,22 +302,22 @@ async function forecast(query) {
       wind_speed_unit: 'kmh',
       temperature_unit: 'celsius',
       precipitation_unit: 'mm',
-    });
+    }) : null;
 
-    const airUrl = buildUrl(OPEN_METEO_AIR, {
+    const airUrl = openMeteo.canUse() ? openMeteo.serviceUrl('air', {
       latitude: lat,
       longitude: lon,
       current: AIR_CURRENT_FIELDS,
       hourly: ['us_aqi', 'european_aqi', 'pm2_5'],
       timezone: 'auto',
       forecast_days: 3,
-    });
+    }) : null;
 
     // Air quality is a nice-to-have: soft-fetch so an outage there still
     // leaves a fully working forecast.
     const [weatherResult, air] = await Promise.all([
       fetchWeather({ lat, lon, openMeteoUrl: forecastUrl, provider: requestedProvider }),
-      fetchJsonSoft(airUrl, null),
+      airUrl ? fetchJsonSoft(airUrl, null) : Promise.resolve(null),
     ]);
     const weather = weatherResult.data;
 
@@ -366,6 +367,9 @@ async function geocode(query) {
   }
 
   const plan = geocodePlan(term);
+  if (!openMeteo.canUse()) {
+    throw new UpstreamError('No commercially licensed place-search provider is configured', 503);
+  }
   const key = `geocode:v2:${term.toLowerCase()}`;
   let body = cache.get(key);
 
@@ -374,7 +378,7 @@ async function geocode(query) {
 
     for (const name of plan.queries) {
       const data = await fetchJson(
-        buildUrl(OPEN_METEO_GEOCODE, {
+        openMeteo.serviceUrl('geocode', {
           name,
           count: 10,
           language: query.language || 'en',
@@ -406,34 +410,6 @@ async function geocode(query) {
   }
 
   return { status: 200, body, maxAge: body.results.length ? 86400 : 300 };
-}
-
-/** Turn the browser's geolocation fix into a place name. */
-async function reverse(query) {
-  const { lat, lon } = coords(query);
-  const key = `reverse:${lat},${lon}`;
-
-  const body = await cache.memo(key, 86400, async () => {
-    const data = await fetchJsonSoft(
-      buildUrl(BIGDATACLOUD_REVERSE, {
-        latitude: lat,
-        longitude: lon,
-        localityLanguage: 'en',
-      }),
-      null
-    );
-
-    if (!data) return { name: null, admin1: null, country: null };
-
-    return {
-      name: data.city || data.locality || data.principalSubdivision || null,
-      admin1: data.principalSubdivision || null,
-      country: data.countryName || null,
-      countryCode: data.countryCode || null,
-    };
-  });
-
-  return { status: 200, body, maxAge: 86400 };
 }
 
 /* ----------------------------------------------------------------- alerts */
@@ -493,6 +469,9 @@ function mean(values) {
  */
 async function almanac(query) {
   const { lat, lon } = coords(query);
+  if (!openMeteo.canUse()) {
+    return { status: 200, body: { available: false }, maxAge: 300 };
+  }
   // The client passes the location's local date so the comparison lines up
   // with the day the user is actually looking at.
   const target = /^\d{4}-\d{2}-\d{2}$/.test(query.date || '')
@@ -508,7 +487,7 @@ async function almanac(query) {
     const startDate = `${end.getUTCFullYear() - 20}-01-01`;
 
     const data = await fetchJsonSoft(
-      buildUrl(OPEN_METEO_ARCHIVE, {
+      openMeteo.serviceUrl('archive', {
         latitude: lat,
         longitude: lon,
         start_date: startDate,
@@ -612,7 +591,15 @@ async function space() {
  * from "the upstream feed broke" -- they return identical alert lists.
  */
 async function health(query = {}) {
-  const body = { status: 'ok', cache: cache.stats(), time: new Date().toISOString() };
+  const body = {
+    status: 'ok',
+    cache: cache.stats(),
+    time: new Date().toISOString(),
+    weatherData: {
+      primary: configuredWeatherProvider(),
+      openMeteo: openMeteo.status(),
+    },
+  };
 
   if (query.probe) {
     const lat = Number.parseFloat(query.lat);
@@ -631,7 +618,6 @@ async function health(query = {}) {
 module.exports = {
   forecast,
   geocode,
-  reverse,
   alerts,
   radar,
   almanac,
@@ -639,6 +625,6 @@ module.exports = {
   health,
   _internals: {
     geocodePlan, rankGeocodeResults, normalizeLookupText,
-    configuredWeatherProvider, fetchWeather,
+    configuredWeatherProvider, fetchWeather, openMeteo,
   },
 };

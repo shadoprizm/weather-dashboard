@@ -33,6 +33,7 @@ Everything below is either shipped, or a job for a person. Both are marked.
 | Interpretation, not just data | ✅ Already existed | `js/insights.js` briefing, plus the Q&A block |
 | Dynamic share cards | ✅ Shipped | `/api/og` (link previews) and the in-app Share button |
 | Free embeddable widget | ✅ Shipped | `/widget`, `/embed.js`, builder at `/widgets` |
+| Privacy-safe widget outreach report | ✅ Shipped | `npm run widget:report`; no visitor instrumentation |
 | Saved locations / return visits | ✅ Shipped | The ★ in the header, `s` on the keyboard |
 | PWA / Add to Home Screen | ✅ Shipped | `manifest.webmanifest`, `sw.js`, a prompt that waits for a second visit |
 | Search Console verification | 🔲 **You** | See below |
@@ -188,20 +189,12 @@ Best targets, roughly in order of how likely they are to say yes:
 4. **Local blogs and event pages** — a festival page with a live forecast.
 5. **Tourism boards** — slower, but a single install can be a strong link.
 
-A cold email that works is short, specific, and already done:
-
-> Subject: A free weather panel for the <name> site
->
-> I built a small forecast widget and made one pointed at <their town>:
-> https://www.weatherview.cloud/widget?city=<slug>
->
-> If it is useful, it is one line to embed and it is free — no account, no key,
-> no tracking, and it stays free. If not, no reply needed.
->
-> — <you>
-
-Send it with the widget already configured for *their* location. The thing that
-makes this work is that they can see it working before they answer.
+The contact should be short, specific, lawful, and already configured for the
+recipient's location. Do not treat a public email address as blanket permission
+to send a campaign. [docs/WIDGET_OUTREACH.md](WIDGET_OUTREACH.md) contains the
+qualification rubric, Canadian anti-spam checkpoint, message templates, private
+install ledger and public-page verifier. It measures contacted → installed
+without putting analytics in the widget.
 
 ---
 

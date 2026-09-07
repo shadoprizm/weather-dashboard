@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const visualCrossing = require('../api/_lib/weather-providers/visual-crossing.js');
 const openMeteo = require('../api/_lib/weather-providers/open-meteo.js');
+const openMeteoAccess = require('../api/_lib/weather-providers/open-meteo-access.js');
 const handlers = require('../api/_lib/handlers.js');
 
 const visualRaw = {
@@ -112,6 +113,39 @@ assert.equal(open.hours[0].visibilityKm, 18);
 assert.equal(open.days[0].highC, 25);
 assert.equal(open.current.apparentC, null);
 assert.match(openMeteo.forecastUrl({ lat: 43.65, lon: -79.38 }), /forecast_days=8/);
+
+const prototypeEnv = { COMMERCIAL_MODE: '0' };
+assert.equal(openMeteoAccess.canUse(prototypeEnv), true);
+assert.match(openMeteoAccess.serviceUrl('forecast', { latitude: 1 }, prototypeEnv),
+  /^https:\/\/api\.open-meteo\.com\/v1\/forecast\?/);
+assert.ok(!openMeteoAccess.serviceUrl('forecast', { latitude: 1 }, prototypeEnv).includes('apikey='));
+
+const blockedCommercialEnv = { COMMERCIAL_MODE: '1' };
+assert.equal(openMeteoAccess.canUse(blockedCommercialEnv), false);
+assert.throws(
+  () => openMeteoAccess.serviceUrl('forecast', { latitude: 1 }, blockedCommercialEnv),
+  /OPEN_METEO_API_KEY is required/
+);
+
+const licensedEnv = { COMMERCIAL_MODE: '1', OPEN_METEO_API_KEY: 'licensed-key' };
+for (const [service, host] of [
+  ['forecast', 'customer-api.open-meteo.com'],
+  ['air', 'customer-air-quality-api.open-meteo.com'],
+  ['archive', 'customer-archive-api.open-meteo.com'],
+  ['geocode', 'customer-geocoding-api.open-meteo.com'],
+]) {
+  const licensedUrl = new URL(openMeteoAccess.serviceUrl(service, { latitude: 1 }, licensedEnv));
+  assert.equal(licensedUrl.hostname, host);
+  assert.equal(licensedUrl.searchParams.get('apikey'), 'licensed-key');
+}
+assert.deepEqual(openMeteoAccess.status(blockedCommercialEnv), {
+  commercialMode: true,
+  licensedCustomerEndpoint: false,
+  usable: false,
+});
+assert.ok(!openMeteoAccess.redactedUrl(
+  openMeteoAccess.serviceUrl('forecast', { latitude: 1 }, licensedEnv)
+).includes('licensed-key'), 'customer keys are removed from retained evidence URLs');
 
 const originalProvider = process.env.WEATHER_PROVIDER;
 process.env.WEATHER_PROVIDER = 'visual-crossing';

@@ -10,7 +10,7 @@
  * whole store is versioned so a deploy replaces it wholesale.
  */
 
-const VERSION = 'weatherview-v11';
+const VERSION = 'weatherview-v13';
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-data`;
 const PAGE_CACHE = `${VERSION}-pages`;
@@ -31,6 +31,7 @@ const SHELL = [
   '/js/insights.js',
   '/js/viewmodel.js',
   '/js/radar.js',
+  '/js/weather-watch.js',
   '/js/views/forecast.js',
   '/js/views/panels.js',
   '/js/views/tables.js',

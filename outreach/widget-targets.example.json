@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "campaign": "fall-2026-local-weather-widget",
+  "targets": [
+    {
+      "id": "example-campground",
+      "organization": "Example Campground",
+      "website": "https://example.com",
+      "embedPageUrl": null,
+      "citySlug": "ottawa",
+      "status": "researching",
+      "contactedAt": null,
+      "followedUpAt": null,
+      "contactBasis": null,
+      "notes": "Replace this example with a relevant organization and document the lawful contact basis before sending."
+    }
+  ]
+}

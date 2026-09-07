@@ -5,3 +5,6 @@
 /monitoring-trial/
 /output/
 /.playwright-cli/
+/.firecrawl/
+/outreach/*.local.json
+.env*.local

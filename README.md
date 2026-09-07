@@ -59,6 +59,12 @@ and the odds of a wet day. This is what makes "18°" mean something.
 **Your locations, ranked** — saved cities sorted by how pleasant it is to be
 outside in each of them right now.
 
+**Watch this weather (device beta)** — four deterministic presets compare the
+next 36 hours with the prior forecast and keep deduplicated candidate changes
+in this browser. It creates no account, sends no notification and makes no
+claim to run while the browser is closed; it is the silent proving ground for
+the future monitoring product.
+
 **Share cards** — the forecast as a picture: where, how warm, and what the sky
 is about to do. The share button renders it on a canvas and hands it to the OS
 share sheet; `/api/og` renders the same card server-side so a pasted link
@@ -157,6 +163,7 @@ js/
   api.js              Client for this app's own /api/* proxy
   viewmodel.js        Payloads -> the shape every view reads (shared with the server)
   state.js            Units, saved locations, theme (localStorage)
+  weather-watch.js    Device-local watch presets, baselines and candidate events
   share.js            Canvas share card + Web Share
   install.js          Add-to-home-screen prompt
   widgets.js          The widget builder on /widgets
@@ -195,7 +202,9 @@ scripts/              Provider verification, icon build
 content/stories/      Version-controlled story drafts and published articles
 test/                 Smoke, parser and page-rendering tests
 docs/GROWTH.md        The growth plan, and what is left for a person to do
+docs/WEATHER_DATA.md  Commercial provider decision and release gates
 docs/WEATHER_STORIES.md  Editorial workflow, cost guardrail and rollout gates
+docs/WIDGET_OUTREACH.md  Outreach templates and privacy-safe conversion reporting
 ```
 
 Two things are worth calling out:
@@ -222,18 +231,21 @@ in its mount points rather than keeping a copy of the markup. That is why
 | Source | Used for | Key required |
 |---|---|---|
 | [Visual Crossing](https://www.visualcrossing.com/) | Primary current, hourly and extended forecast when `WEATHER_PROVIDER=visual-crossing` | Yes; server-only `VISUAL_CROSSING_API_KEY` |
-| [Open-Meteo](https://open-meteo.com/) | Forecast fallback during the trial, air quality, geocoding and historical archive | No for the current non-commercial prototype; the remaining uses need commercial replacement or licensing before subscriptions |
+| [Open-Meteo](https://open-meteo.com/) | Forecast fallback during the trial, air quality, geocoding and historical archive | No for the non-commercial prototype; paid customer endpoints require `OPEN_METEO_API_KEY` |
 | [RainViewer](https://www.rainviewer.com/) | Radar frames and tiles | No |
 | [NWS](https://www.weather.gov/documentation/services-web-api) | Official US alerts | No |
 | [ECCC](https://eccc-msc.github.io/open-data/) | Official Canadian alerts | No |
 | [NOAA SWPC](https://www.swpc.noaa.gov/) | Planetary K index | No |
 | [CARTO](https://carto.com/attributions) / [OpenStreetMap](https://www.openstreetmap.org/copyright) | Radar base map tiles | No |
-| [BigDataCloud](https://www.bigdatacloud.com/) | Reverse geocoding | No |
+| [BigDataCloud](https://www.bigdatacloud.com/) | Browser-only reverse geocoding after explicit geolocation consent | No |
 | [Vercel AI Gateway](https://vercel.com/ai-gateway/models/gpt-5.6-luna) | Optional GPT-5.6 Luna story drafts, usage and budgets | Automatic OIDC on Vercel |
 
-Every call is proxied through `/api/*`, so the browser only ever talks to your
-own origin. That keeps the CSP tight (`connect-src 'self'`), lets the CDN cache
-responses, and means no third party sees your visitors' IP addresses.
+Forecast and search calls are proxied through `/api/*`, so credentials stay on
+the server and responses can be cached. BigDataCloud's free client endpoint is
+the deliberate exception: its terms prohibit server-side calls, so the browser
+contacts it only after the visitor clicks **Use my location** and grants location
+permission. See [docs/WEATHER_DATA.md](docs/WEATHER_DATA.md) for the licensing,
+privacy and commercial-release gates.
 
 ### Alert coverage
 
@@ -323,6 +335,7 @@ the deterministic evaluator, and sends nothing to visitors:
 ```bash
 npm run monitoring:sample   # samples the cached production weather endpoint
 npm run monitoring:summary  # summarize the accumulated local trial directory
+npm run monitoring:replay   # replay stored v2 evidence through the current 36-hour policy
 ```
 
 The scheduled workflow carries its state in an Actions cache scoped to the
@@ -336,7 +349,6 @@ also records whether the primary provider or automatic fallback answered.
 |---|---|---|
 | `GET /api/weather?lat=&lon=` | Forecast + air quality | 5 min |
 | `GET /api/geocode?q=` | Place search | 24 h |
-| `GET /api/reverse?lat=&lon=` | Coordinates → place name | 24 h |
 | `GET /api/alerts?lat=&lon=` | Official alerts | 3 min |
 | `GET /api/radar` | Radar frame index | 2 min |
 | `GET /api/almanac?lat=&lon=&date=` | 20-year normals and records | 24 h |
@@ -357,6 +369,13 @@ headers, maps the clean URLs onto the functions, and disables the build step;
 needs no AI key. The separate draft-generation command accepts a direct
 `OPENAI_API_KEY` or Vercel AI Gateway; Gateway deployments authenticate
 automatically with `VERCEL_OIDC_TOKEN`.
+
+Before enabling subscriptions or advertising, configure commercially permitted
+weather sources and set `COMMERCIAL_MODE=1`. In that mode WeatherView refuses
+the free Open-Meteo hosts unless `OPEN_METEO_API_KEY` is present; customer keys
+automatically select Open-Meteo's `customer-` endpoints. The complete decision
+record and unresolved Visual Crossing contract question are in
+[docs/WEATHER_DATA.md](docs/WEATHER_DATA.md).
 
 Two details worth knowing:
 

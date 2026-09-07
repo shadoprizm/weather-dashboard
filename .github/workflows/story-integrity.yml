@@ -1,0 +1,39 @@
+name: Story integrity
+
+on:
+  pull_request:
+    paths:
+      - 'content/stories/**'
+      - 'api/_lib/stories.js'
+      - 'api/_lib/story-generation.js'
+      - 'api/_lib/render/stories-page.js'
+      - 'scripts/audit-stories.mjs'
+      - '.github/workflows/story-integrity.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'content/stories/**'
+      - 'api/_lib/stories.js'
+      - 'api/_lib/story-generation.js'
+      - 'api/_lib/render/stories-page.js'
+      - 'scripts/audit-stories.mjs'
+      - '.github/workflows/story-integrity.yml'
+  schedule:
+    - cron: '17 11 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run story:audit

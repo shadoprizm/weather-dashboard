@@ -1,8 +1,7 @@
 'use strict';
 
-const { fetchJson, buildUrl } = require('../upstream');
-
-const FORECAST_ENDPOINT = 'https://api.open-meteo.com/v1/forecast';
+const { fetchJson } = require('../upstream');
+const access = require('./open-meteo-access');
 
 const CURRENT_FIELDS = [
   'temperature_2m', 'apparent_temperature', 'relative_humidity_2m',
@@ -36,7 +35,7 @@ function valueAt(block, field, index) {
 }
 
 function forecastUrl({ lat, lon }) {
-  return buildUrl(FORECAST_ENDPOINT, {
+  return access.serviceUrl('forecast', {
     latitude: lat,
     longitude: lon,
     current: CURRENT_FIELDS,

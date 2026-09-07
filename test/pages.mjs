@@ -70,15 +70,19 @@ const html = overview.body;
 assert.match(html, /<title>Toronto, ON Weather — Hourly &amp; 10-Day Forecast \| WeatherView<\/title>/);
 assert.match(html, /<link rel="canonical" href="https:\/\/www\.weatherview\.cloud\/weather\/toronto">/);
 assert.match(html, /<h1 class="hero-place">Toronto Weather<\/h1>/);
+assert.match(html, /data-action="open-watch"/, 'city forecasts expose the device-local watch beta');
+assert.match(html, /id="watch-dialog"/, 'the shared shell carries the watch configuration dialog');
 assert.match(html, /<script type="module" src="\/js\/main\.js"><\/script>/,
   'nested city routes load the app from an origin-absolute URL');
 assert.ok(!html.includes('src="js/main.js"'), 'nested city routes never resolve the app below /weather');
-assert.match(html, /<nav class="site-nav" aria-label="Explore WeatherView">/,
-  'site-level features are discoverable outside the footer');
-for (const href of ['/weather', '/weather-guide', '/weather-stories', '/widgets']) {
-  assert.match(html, new RegExp(`<nav class="site-nav"[\\s\\S]*?href="${href}"`),
-    `${href} is linked from the visible site navigation`);
+const siteNav = html.match(/<nav class="site-nav"[\s\S]*?<\/nav>/)?.[0] || '';
+assert.match(siteNav, /aria-label="Weather navigation"/);
+assert.match(siteNav, /href="\/weather"/, 'the mature city directory stays in the header');
+for (const href of ['/weather-guide', '/weather-stories', '/widgets']) {
+  assert.ok(!siteNav.includes(`href="${href}"`), `${href} is not promoted in the header`);
 }
+const footerLinks = html.match(/<p class="footer-links">[\s\S]*?<\/p>/)?.[0] || '';
+assert.match(footerLinks, /href="\/widgets"/, 'the widget remains discoverable in the footer');
 
 // The forecast itself must be in the HTML, not fetched afterwards.
 assert.match(html, /hero-temp/, 'current conditions are server-rendered');
@@ -161,7 +165,7 @@ assert.equal(new Set(locs).size, locs.length, 'no duplicate URLs in the sitemap'
 assert.equal(locs.length, 4 + cities.CITIES.length * seo.SECTION_ORDER.length);
 for (const loc of locs) assert.ok(loc.startsWith(site.origin), `${loc} is absolute`);
 assert.ok(locs.includes(site.url('/weather/toronto/10-day')));
-assert.ok(locs.includes(site.url('/weather-guide')));
+assert.ok(locs.includes(site.url('/weather-guide')), 'the reviewed guide is part of the crawlable site');
 assert.match(sitemap.body, /<lastmod>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:00Z<\/lastmod>/);
 
 const robots = await pages.robots();
@@ -176,11 +180,16 @@ const guide = await pages.guidePage();
 assert.equal(guide.status, 200);
 assert.match(guide.body, /<h1>Weather questions, answered clearly<\/h1>/);
 assert.match(guide.body, /<link rel="canonical" href="https:\/\/www\.weatherview\.cloud\/weather-guide">/);
+assert.match(guide.body, /<meta name="robots" content="index, follow">/,
+  'the reviewed guide is indexable');
 assert.match(guide.body, /What does a 40% chance of rain mean\?/);
 assert.match(guide.body, /weather\.gov\/ffc\/pop/);
 assert.match(guide.body, /"@type":"FAQPage"/);
-assert.match(guide.body, /"dateModified":"2026-08-19"/);
-assert.match(guide.body, /<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">/);
+assert.match(guide.body, /What is the difference between wind speed and wind gusts\?/);
+assert.match(guide.body, /Are AQI and Canada’s AQHI the same scale\?/);
+assert.match(guide.body, /"dateModified":"2026-09-07"/);
+assert.match(html, /href="\/weather-guide">sourced weather guide<\/a>/,
+  'forecast context links to the guide without adding it to the primary nav');
 
 /* --- the hydration bootstrap -------------------------------------------- */
 

@@ -7,14 +7,17 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node test/smoke.mjs && node test/parsers.mjs && node test/geocode.mjs && node test/stories.mjs && node test/pages.mjs && node test/providers.mjs && node test/monitoring.mjs && node test/monitoring-trial.mjs",
+    "test": "node test/smoke.mjs && node test/parsers.mjs && node test/geocode.mjs && node test/stories.mjs && node test/pages.mjs && node test/providers.mjs && node test/monitoring.mjs && node test/monitoring-trial.mjs && node test/weather-watch.mjs && node test/widget-outreach.mjs",
     "verify": "node scripts/verify-providers.mjs",
     "providers:compare": "node scripts/compare-weather-providers.mjs",
     "monitoring:sample": "node scripts/sample-monitoring-trial.mjs",
     "monitoring:summary": "node scripts/summarize-monitoring-trial.mjs",
+    "monitoring:replay": "node scripts/summarize-monitoring-trial.mjs --replay --hours 36",
     "build:icons": "node scripts/build-icons.mjs",
     "story:dry-run": "node scripts/generate-story.mjs --dry-run",
-    "story:generate": "node scripts/generate-story.mjs"
+    "story:generate": "node scripts/generate-story.mjs",
+    "story:audit": "node scripts/audit-stories.mjs",
+    "widget:report": "node scripts/widget-outreach-report.mjs"
   },
   "engines": {
     "node": ">=22 <25"

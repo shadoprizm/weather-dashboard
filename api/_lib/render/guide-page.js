@@ -11,7 +11,7 @@ const site = require('../site');
 const seo = require('../seo');
 const { renderDocument, escapeHtml } = require('./shell');
 
-const UPDATED = '2026-08-19';
+const UPDATED = '2026-09-07';
 
 const ANSWERS = [
   {
@@ -94,6 +94,76 @@ const ANSWERS = [
     ],
     source: { label: 'National Weather Service: UV Index scale and safety', href: 'https://www.weather.gov/abr/uv-index' },
   },
+  {
+    id: 'wind-and-gusts',
+    question: 'What is the difference between wind speed and wind gusts?',
+    answer: 'Wind speed describes air movement averaged over a short period; a gust is a brief maximum. A forecast of 25 km/h with gusts to 50 km/h therefore means the background wind is much lower than the strongest short bursts you may encounter.',
+    detail: [
+      'The US National Digital Forecast Database defines sustained wind as the expected 10-metre wind and a gust as the maximum three-second wind speed within a two-minute interval. Observation and warning conventions vary by weather service, so compare the two values on the same forecast rather than assuming every provider averages them identically.',
+      'Gusts matter for loose objects, high-sided vehicles, branches and exposed activities. For boating, aviation or a wind warning, use the official local forecast because terrain, height and exposure can make conditions at your exact location different from a city forecast point.',
+    ],
+    source: { label: 'National Weather Service: digital forecast definitions', href: 'https://digital.weather.gov/staticpages/definitions.php' },
+  },
+  {
+    id: 'barometric-pressure',
+    question: 'What does rising or falling air pressure tell you?',
+    answer: 'A falling pressure trend often accompanies an approaching or strengthening low-pressure system, while rising pressure often follows a system and accompanies more settled weather. The trend is context, not a stand-alone rain alarm.',
+    detail: [
+      'Pressure changes naturally through the day, and the same value means different things at different elevations. That is why WeatherView emphasizes the recent direction and rate rather than labelling one universal pressure number as “good” or “bad.”',
+      'Use pressure alongside radar, wind and the hourly forecast. A sharp fall can support the story those other signals are telling, but it cannot identify the exact hazard or timing by itself.',
+    ],
+    source: { label: 'National Weather Service: pressure, fronts and weather', href: 'https://www.weather.gov/crp/weather_education' },
+  },
+  {
+    id: 'visibility',
+    question: 'What does weather visibility measure?',
+    answer: 'Weather visibility is the horizontal distance at which a standard object can be seen and identified. Fog, heavy precipitation, smoke, haze and blowing snow can all reduce it, sometimes very locally.',
+    detail: [
+      'A forecast value describes a representative point or grid area, not every road, shoreline or runway nearby. Visibility can deteriorate abruptly in a fog bank or precipitation band even when the city-wide number looks acceptable.',
+      'Treat visibility as one planning clue. For driving, slow down and use guidance from road and public-safety authorities; for aviation or marine decisions, use the specialized observations and forecasts for that activity.',
+    ],
+    source: { label: 'National Weather Service: National Digital Forecast Database definitions', href: 'https://digital.weather.gov/staticpages/definitions.php' },
+  },
+  {
+    id: 'cloud-cover',
+    question: 'What does cloud cover percentage mean?',
+    answer: 'Cloud cover is the fraction of the visible sky expected to be covered by cloud. It does not tell you how thick the cloud is, whether it will rain, or whether one cloud layer is hiding another.',
+    detail: [
+      'National Weather Service terminology treats roughly one-eighth or less as clear, three-eighths to five-eighths as partly cloudy, and seven-eighths or more as cloudy. Automated models often show the underlying percentage instead of those broad labels.',
+      'Cloud thickness and height matter for daylight, heat and stargazing, so the same 70% value can look very different under thin high cloud and dark low overcast. Check the condition label, precipitation and hourly changes with it.',
+    ],
+    source: { label: 'National Weather Service: forecast sky-condition terms', href: 'https://www.weather.gov/ppg/forecast_terms' },
+  },
+  {
+    id: 'snowfall-uncertainty',
+    question: 'Why can snowfall totals change so much?',
+    answer: 'Snowfall depends on storm track, temperature, precipitation intensity and how efficiently liquid becomes snow. Small forecast changes can move the rain–snow line or the heaviest band and produce a large change in the total at one place.',
+    detail: [
+      'A single total is the most likely estimate, not a guarantee. The National Weather Service publishes probabilistic snowfall products in supported US areas to show reasonable lower and upper possibilities around its official forecast.',
+      'For planning, check the total, hourly timing and temperature together, then revisit them as the event approaches. Official winter warnings and local road information should take priority over a model total.',
+    ],
+    source: { label: 'National Weather Service: probabilistic snowfall products', href: 'https://www.weather.gov/prob-snow' },
+  },
+  {
+    id: 'forecast-changes',
+    question: 'Why did the forecast change since the last update?',
+    answer: 'Forecasts change when new observations give models a better estimate of the atmosphere and new model runs evolve that estimate forward. Small differences can grow with time, so later-day timing and amounts usually move more than the next few hours.',
+    detail: [
+      'Ensemble forecasting runs multiple plausible versions from slightly different starting conditions. When those members stay close together, confidence is generally higher; when they spread out, there is a wider range of plausible outcomes.',
+      'A changed forecast is not automatically a mistake. Watch whether a signal persists across updates and focus on decision-relevant changes—such as rain moving into an event window—instead of every one-degree adjustment.',
+    ],
+    source: { label: 'Met Office: how ensemble forecasts show uncertainty', href: 'https://www.metoffice.gov.uk/research/weather/ensemble-forecasting/what-is-an-ensemble-forecast' },
+  },
+  {
+    id: 'aqi-versus-aqhi',
+    question: 'Are AQI and Canada’s AQHI the same scale?',
+    answer: 'No. The US Air Quality Index reports 0–500 categories driven by the pollutant with the highest individual index. Canada’s Air Quality Health Index uses a 1–10+ scale built around the short-term health risk from a mixture of ozone, nitrogen dioxide and fine particles.',
+    detail: [
+      'The numbers are not directly convertible. An AQI of 80 and an AQHI of 8 do not describe equivalent air. Always read the scale name, category and health advice together.',
+      'WeatherView currently labels US AQI and European AQI where those modelled values are available. In Canada, use Environment and Climate Change Canada for the official AQHI and its health messages.',
+    ],
+    source: { label: 'Government of Canada: About the Air Quality Health Index', href: 'https://www.canada.ca/en/environment-climate-change/services/air-quality-health-index/about.html' },
+  },
 ];
 
 function renderAnswer(item) {
@@ -107,8 +177,8 @@ function renderAnswer(item) {
 }
 
 function renderGuidePage() {
-  const title = `Weather Questions Answered — Rain, AQI, Radar & More | ${site.name}`;
-  const description = 'Clear, sourced answers to common weather questions: chance of rain, forecast accuracy, feels-like temperature, dew point, alerts, radar, AQI and UV.';
+  const title = `Weather Questions Answered — Rain, Wind, AQI & More | ${site.name}`;
+  const description = 'Clear, sourced answers to common weather questions: rain probability, forecast accuracy, wind gusts, pressure, visibility, snowfall, radar, air quality and UV.';
   const path = '/weather-guide';
 
   const hero = `
@@ -121,8 +191,9 @@ function renderGuidePage() {
         forecast confidence, radar, air quality and outdoor risk.
       </p>
       <p>
-        Reviewed against NOAA, the National Weather Service and the US EPA on
-        <time datetime="${UPDATED}">August 19, 2026</time>. For live conditions,
+        Reviewed against NOAA, the National Weather Service, Environment Canada,
+        the Met Office and the US EPA on
+        <time datetime="${UPDATED}">September 7, 2026</time>. For live conditions,
         <a href="/weather">choose a city forecast</a>.
       </p>
     </section>`;
@@ -139,8 +210,8 @@ function renderGuidePage() {
     <section class="panel guide-method" id="how-we-build-the-forecast">
       <header class="panel-head"><h2>How WeatherView builds the forecast</h2></header>
       <p>
-        WeatherView turns current conditions and multi-model forecast data from
-        Visual Crossing into hourly and extended views. RainViewer supplies radar frames;
+        WeatherView turns current conditions and forecast data from the configured
+        provider into hourly and extended views. RainViewer supplies radar frames;
         Environment and Climate Change Canada and the US National Weather Service
         supply official alerts. Forecast pages show when their data was refreshed
         and update automatically every few minutes.
@@ -164,6 +235,7 @@ function renderGuidePage() {
     title,
     description,
     canonical: site.url(path),
+    robots: 'index, follow',
     jsonLd: [
       seo.webPageJsonLd({
         name: 'Weather questions, answered clearly',
