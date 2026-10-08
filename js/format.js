@@ -106,7 +106,10 @@ export function windFull(kmh, degrees, units) {
  */
 export function parseLocal(isoLike) {
   if (!isoLike) return null;
-  const date = new Date(isoLike);
+  // Date-only forecast days are wall-clock dates too. The native parser
+  // otherwise treats them as UTC midnight, shifting them a day west of UTC.
+  const value = /^\d{4}-\d{2}-\d{2}$/.test(isoLike) ? `${isoLike}T00:00` : isoLike;
+  const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 

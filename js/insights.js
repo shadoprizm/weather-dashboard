@@ -248,7 +248,7 @@ export function buildNarrative(context) {
         (timing.endsAt ? `, clearing by ${formatHour(timing.endsAt, units)}.` : ' and lingers past the evening.')
     );
   } else if (timing) {
-    sentences.push('Nothing wet on the radar for the next 24 hours.');
+    sentences.push('No precipitation is forecast in the next 24 hours.');
   }
 
   // Where the temperature is heading over the rest of the working day.

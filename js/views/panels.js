@@ -89,7 +89,7 @@ export function renderActivities(vm) {
             : activity.bestScore >= 35 ? 'poor' : 'bad';
 
         const when = window
-          ? `${fmt.dayName(window.start.time)} ${fmt.hourLabel(window.start.time, vm.units)}–${fmt.hourLabel(window.end.time, vm.units)}`
+          ? `${fmt.dayName(window.start.time)} ${fmt.hourLabel(window.start.time, vm.units)}–${window.start.time.slice(0, 10) !== window.end.time.slice(0, 10) ? `${fmt.dayName(window.end.time)} ` : ''}${fmt.hourLabel(window.end.time, vm.units)}`
           : 'No good window in the next 48h';
 
         return `

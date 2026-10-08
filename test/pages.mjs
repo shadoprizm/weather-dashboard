@@ -24,7 +24,7 @@ handlers.alerts = async () => ({
       description: 'Storms possible this afternoon.', severity: 'Severe', area: 'City of Toronto',
       sender: 'ECCC', source: 'ECCC', url: 'https://weather.gc.ca/', onset: null, expires: null,
     }],
-    sources: ['eccc'],
+    sources: ['ECCC'],
     coverage: 'official',
   },
 });
@@ -87,6 +87,8 @@ assert.match(footerLinks, /href="\/widgets"/, 'the widget remains discoverable i
 // The forecast itself must be in the HTML, not fetched afterwards.
 assert.match(html, /hero-temp/, 'current conditions are server-rendered');
 assert.match(html, /Severe Thunderstorm Watch/, 'official alerts are server-rendered');
+assert.match(html, /Official warning coverage for Toronto is provided by Environment and Climate Change Canada/,
+  'the actual uppercase provider identifier is recognized');
 assert.match(html, /panel-questions/, 'the plain-English answers are server-rendered');
 assert.ok(!html.includes('skeleton-hero'), 'no loading skeleton survives on a rendered page');
 assert.match(html, /id="page-context"[\s\S]*?Weather near Toronto/, 'internal links to nearby cities');
