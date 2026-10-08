@@ -2,7 +2,7 @@
  * Animated precipitation radar.
  *
  * A minimal slippy map built from plain <img> tiles -- no Leaflet, no
- * MapLibre, no bundler. Base tiles come from CARTO (OpenStreetMap data),
+ * MapLibre, no bundler. Base tiles come from OpenStreetMap,
  * precipitation frames from RainViewer. Tiles are never read back into a
  * canvas, so cross-origin tainting is a non-issue.
  */
@@ -11,10 +11,9 @@ import { fetchRadarIndex } from './api.js';
 import { timeLabel } from './format.js';
 import { clamp } from './dom.js';
 
-// Slippy-map coordinates use 256 CSS-pixel tiles. Both providers can return
-// 512-pixel images for those same coordinates, which keeps coastlines and
-// radar edges crisp on Retina/high-density displays without changing the map
-// maths or geographic scale.
+// Slippy-map coordinates use 256 CSS-pixel tiles. RainViewer returns 512-pixel
+// images for those same coordinates, keeping radar edges crisp on Retina
+// displays without changing the map maths or geographic scale.
 const TILE = 256;
 const SOURCE_TILE = 512;
 const MIN_ZOOM = 3;
@@ -74,7 +73,6 @@ export function createRadarMap(container, options = {}) {
       <div class="radar-world">
         <div class="radar-layer radar-base"></div>
         <div class="radar-frames"></div>
-        <div class="radar-layer radar-labels"></div>
       </div>
       <div class="radar-crosshair" aria-hidden="true"></div>
       <div class="radar-zoom">
@@ -83,8 +81,7 @@ export function createRadarMap(container, options = {}) {
       </div>
       <p class="radar-attribution">
         Radar <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> ·
-        Map <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a> ·
-        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>
+        Map © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors
       </p>
       <div class="radar-status" hidden></div>
     </div>
@@ -107,7 +104,6 @@ export function createRadarMap(container, options = {}) {
   const world = container.querySelector('.radar-world');
   const baseLayer = container.querySelector('.radar-base');
   const framesLayer = container.querySelector('.radar-frames');
-  const labelsLayer = container.querySelector('.radar-labels');
   const scrub = container.querySelector('[data-radar="scrub"]');
   const timeOut = container.querySelector('[data-radar="time"]');
   const statusBox = container.querySelector('.radar-status');
@@ -122,19 +118,8 @@ export function createRadarMap(container, options = {}) {
     statusBox.textContent = message || '';
   }
 
-  function cartoTileUrl(style, z, x, y) {
-    return `https://basemaps.cartocdn.com/${style}/${z}/${x}/${y}@2x.png`;
-  }
-
   function baseTileUrl(z, x, y) {
-    // The light no-labels map has much stronger land/water separation than
-    // CARTO Dark Matter. CSS tones it down in dark mode without throwing away
-    // that geography.
-    return cartoTileUrl('light_nolabels', z, x, y);
-  }
-
-  function labelsTileUrl(z, x, y) {
-    return cartoTileUrl('light_only_labels', z, x, y);
+    return `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
   }
 
   function radarTileUrl(frame, z, x, y) {
@@ -213,11 +198,9 @@ export function createRadarMap(container, options = {}) {
 
   function paintBase() {
     container.dataset.basemap = state.theme;
-    // Geography can overdraw beyond the viewport during a drag. Radar frames
-    // intentionally do not: limiting them to visible tiles keeps playback
-    // comfortably inside the public API's request budget.
-    void paintLayer(baseLayer, baseTileUrl, 1);
-    void paintLayer(labelsLayer, labelsTileUrl, 1);
+    // Fetch only tiles in the active viewport. The browser honours OSM's
+    // caching headers; these tiles are neither prefetched nor stored offline.
+    void paintLayer(baseLayer, baseTileUrl);
   }
 
   async function paintFrames(preferredFrame = state.frames[state.frameIndex]) {
