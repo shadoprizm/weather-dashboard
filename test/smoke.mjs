@@ -39,6 +39,15 @@ assert.match(fmt.pressure(1013.2, units), /^1013/);
 assert.match(fmt.pressure(1013.2, imperial), /inHg$/);
 assert.equal(fmt.hourLabel('2026-08-17T15:00', units), '3pm');
 assert.equal(fmt.hourLabel('2026-08-17T15:00', imperial), '15:00');
+const previousTimezone = process.env.TZ;
+for (const timezone of ['UTC', 'America/Toronto', 'Pacific/Auckland']) {
+  process.env.TZ = timezone;
+  assert.equal(fmt.parseLocal('2026-10-08').getDate(), 8, `forecast day stays October 8 in ${timezone}`);
+  assert.equal(fmt.parseLocal('2026-10-08').getDay(), 4, `forecast weekday stays Thursday in ${timezone}`);
+  assert.equal(fmt.parseLocal('2026-10-08').getHours(), 0, `forecast day starts at local midnight in ${timezone}`);
+}
+if (previousTimezone === undefined) delete process.env.TZ;
+else process.env.TZ = previousTimezone;
 assert.equal(fmt.duration(3600 * 14 + 60 * 32), '14h 32m');
 assert.equal(fmt.signedDuration(-134), '−2m 14s');
 assert.equal(fmt.tempDelta(4.23, units), '+4.2°');

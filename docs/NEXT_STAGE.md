@@ -17,8 +17,9 @@ Pittsburgh radar had 185 impressions and one click, the most impressions among t
 - Fix direct city radar and extended-forecast links adopting the wrong client tab. Previously a direct radar landing showed a selected Radar tab but no initialized map until the visitor changed tabs.
 - Fix narrow-screen overflow in the hero and radar controls, and keep all five forecast tabs visible.
 - Show the ending weekday on overnight planning windows.
+- Keep forecast calendar dates on the correct day in time zones west of UTC.
 - Use the next 24 hourly probabilities for next-24-hour precipitation answers, rather than a daily maximum that could include rain earlier that morning. Forecast-based briefing text no longer claims to have checked radar.
-- Keep official US/Canadian warning coverage accurate when the secondary alert request times out.
+- Recognize the actual official provider identifiers, and keep US/Canadian warning coverage accurate when the secondary alert request times out. Describe missing integrations without claiming a country has no warning service.
 - Give the homepage useful text and crawlable city links in its initial HTML. Search Console must recrawl before the existing soft-404 classification can be considered resolved.
 - Add Vercel Web Analytics and aggregate events for tab use, saving locations, opening sharing and saving a device watch. Remove URL query parameters and fragments before sending measurements; no precise location or user-entered place names are event properties. Preview/local environments do not collect production analytics. Add a factual privacy page.
 - Update vulnerable compatible dependency versions; the dependency audit reports zero known vulnerabilities.
