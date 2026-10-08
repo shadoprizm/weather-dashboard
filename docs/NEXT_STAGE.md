@@ -15,6 +15,7 @@ Pittsburgh radar had 185 impressions and one click, the most impressions among t
 ## This quality release
 
 - Fix direct city radar and extended-forecast links adopting the wrong client tab. Previously a direct radar landing showed a selected Radar tab but no initialized map until the visitor changed tabs.
+- Replace CARTO basemap tiles that returned an API-key notice with OpenStreetMap's standard map, with visible attribution and normal browser caching. Request only the active viewport's tiles. Check a dedicated map provider as traffic grows: OSM's community tile service has no availability guarantee and prohibits bulk/offline downloads.
 - Fix narrow-screen overflow in the hero and radar controls, and keep all five forecast tabs visible.
 - Show the ending weekday on overnight planning windows.
 - Keep forecast calendar dates on the correct day in time zones west of UTC.
@@ -48,3 +49,4 @@ Google's current guidance says ordinary SEO fundamentals apply to generative sea
 - [Weather guide](https://www.weatherview.cloud/weather-guide)
 - [Google generative AI optimization guidance](https://developers.google.com/search/docs/fundamentals/ai-optimization-guide)
 - [Vercel analytics privacy](https://vercel.com/docs/analytics/privacy-policy)
+- [OpenStreetMap tile usage policy](https://operations.osmfoundation.org/policies/tiles/)
