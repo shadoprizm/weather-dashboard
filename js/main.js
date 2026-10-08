@@ -14,6 +14,7 @@ import { weatherIcon } from './icons.js';
 import { buildViewModel as toViewModel } from './viewmodel.js';
 import { createRadarMap } from './radar.js';
 import * as weatherWatch from './weather-watch.js';
+import { trackAction } from './analytics.js';
 import {
   renderHero, renderHourly, renderDetails, renderDaily, errorPanel,
 } from './views/forecast.js';
@@ -169,6 +170,7 @@ function setView(view, { focusPanel = false } = {}) {
   }
 
   session.view = view;
+  trackAction('Forecast section', { section: view });
 
   for (const name of VIEW_ORDER) {
     const tab = $(`#tab-${name}`);
@@ -648,6 +650,7 @@ function toggleSaved() {
     const added = state.addLocation(session.place);
     state.setActive(added.id);
     toast(`Saved ${session.place.name} — it will be here next time`);
+    trackAction('Location saved');
     loadComparisons();
   }
 
@@ -664,6 +667,7 @@ if (shareButton) {
     if (!session.data) return;
     // Loaded on demand: the canvas renderer is dead weight for the majority of
     // visits that never press it.
+    trackAction('Share opened');
     const { shareForecast } = await import('./share.js');
     shareForecast(buildViewModel(), { toast });
   });
@@ -723,6 +727,7 @@ if (watchForm) {
     const preset = new FormData(watchForm).get('watch-preset');
     try {
       weatherWatch.saveWatch({ place: session.place, preset, data: session.data });
+      trackAction('Device watch saved', { preset });
       renderWatchDialog();
       syncWatchButton();
       toast(`Watching ${session.place.name} on this device`);
@@ -824,7 +829,8 @@ function toast(message) {
 
 function viewFromUrl() {
   const requested = new URLSearchParams(window.location.search).get('view');
-  return VIEWS[requested] ? requested : DEFAULT_VIEW;
+  const serverView = { overview: 'today', hourly: 'today', '10-day': 'week', radar: 'radar' }[page.section];
+  return VIEWS[requested] ? requested : (serverView || DEFAULT_VIEW);
 }
 
 /**

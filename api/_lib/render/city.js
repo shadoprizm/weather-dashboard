@@ -130,9 +130,11 @@ function contextSection(city, section, { updatedAt, alerts, weatherProvider }) {
       <span class="nearby-distance">${Math.round(km)} km</span></li>`).join('');
 
   const PROVIDER_NAMES = { nws: 'the US National Weather Service', eccc: 'Environment and Climate Change Canada' };
-  const named = ((alerts && alerts.sources) || []).map((id) => PROVIDER_NAMES[id]).filter(Boolean);
+  const expectedSources = city.countryCode === 'US' ? ['nws'] : city.countryCode === 'CA' ? ['eccc'] : [];
+  const sourceIds = (alerts && alerts.sources && alerts.sources.length) ? alerts.sources : expectedSources;
+  const named = sourceIds.map((id) => PROVIDER_NAMES[id]).filter(Boolean);
   const official = named.length
-    ? `Official warnings for ${escapeHtml(city.name)} come from ${escapeHtml(named.join(' and '))}.`
+    ? `Official warning coverage for ${escapeHtml(city.name)} is provided by ${escapeHtml(named.join(' and '))}. Check the official service for current bulletins.`
     : 'No national weather service publishes point alerts here, so only computed watches are shown.';
   const forecastSource = weatherProvider === 'visual-crossing'
     ? 'Forecast data is provided by <a href="https://www.visualcrossing.com/" rel="noopener">Visual Crossing</a>'

@@ -22,7 +22,7 @@
   <link rel="apple-touch-icon" href="/icons/weatherview-192.png">
   <link rel="manifest" href="/manifest.webmanifest?v=4">
   <link rel="preconnect" href="https://basemaps.cartocdn.com" crossorigin>
-  <link rel="stylesheet" href="/style.css?v=11">
+  <link rel="stylesheet" href="/style.css?v=12">
 </head>
 <body>
   <div class="sky" data-sky="clear-day" aria-hidden="true">
@@ -161,7 +161,19 @@
       /weather/ fill them with the section's detail table and its context and
       internal links, so the whole forecast is in the HTML a crawler receives.
     -->
-    <section id="page-detail" class="stack" aria-label="Forecast detail"></section>
+    <section id="page-detail" class="stack" aria-label="Forecast detail">
+      <div class="panel panel-intro">
+        <h1>WeatherView — weather for your everyday plans</h1>
+        <p>Check current conditions, hourly and 14-day forecasts, live precipitation radar,
+          air quality and official Canadian and US alerts. Find a good time for a walk,
+          a bike ride or outdoor work in the Plan tab. No account is needed.</p>
+        <p>Start with <a href="/weather/toronto">Toronto</a>, <a href="/weather/ottawa">Ottawa</a>,
+          <a href="/weather/vancouver">Vancouver</a>, <a href="/weather/new-york">New York</a>,
+          or <a href="/weather">browse all 149 cities</a>. Search above for any other location.</p>
+        <p>Save a location with the star to find it again. Read the <a href="/weather-guide">weather guide</a>
+          for clear explanations of rain probability, forecast confidence and air quality.</p>
+      </div>
+    </section>
     <section id="page-context" class="stack" aria-label="About this forecast"></section>
   </main>
 
@@ -180,7 +192,8 @@
     <p class="footer-links">
       <a href="/weather">Weather by city</a> ·
       <a href="/">Dashboard</a> ·
-      <a href="/widgets">Free website widget</a>
+      <a href="/widgets">Free website widget</a> ·
+      <a href="/privacy">Privacy</a>
     </p>
     <p class="footer-keys">
       <kbd>/</kbd> search · <kbd>u</kbd> units · <kbd>r</kbd> refresh ·
@@ -247,6 +260,7 @@
     <p class="noscript">The live dashboard needs JavaScript. Every city page under <a href="/weather">/weather</a> is served fully rendered without it.</p>
   </noscript>
 
+  <script type="module" src="/js/analytics.js"></script>
   <script type="module" src="/js/main.js"></script>
 </body>
 </html>

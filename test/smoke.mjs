@@ -16,9 +16,15 @@ const views = await import(base + 'views/forecast.js');
 const panels = await import(base + 'views/panels.js');
 const tables = await import(base + 'views/tables.js');
 const viewmodel = await import(base + 'viewmodel.js');
+const { sanitizeEvent } = await import(base + 'analytics.js');
 const { buildFixture } = await import(new URL('./fixture.mjs', import.meta.url).href);
 
 const units = { temp: 'c', wind: 'kmh', precip: 'mm', pressure: 'hpa', distance: 'km', clock: '12' };
+assert.equal(sanitizeEvent({ type: 'pageview', url: 'https://www.weatherview.cloud/?lat=45.42&lon=-75.7&name=Home#private' }).url,
+  'https://www.weatherview.cloud/', 'analytics must remove location deep links');
+assert.equal(sanitizeEvent({ type: 'event', url: 'https://www.weatherview.cloud/weather/ottawa?view=plan' }).url,
+  'https://www.weatherview.cloud/weather/ottawa', 'public city paths remain measurable');
+assert.equal(sanitizeEvent({ url: 'invalid' }), null, 'invalid measurement URLs are dropped');
 const imperial = { temp: 'f', wind: 'mph', precip: 'in', pressure: 'inhg', distance: 'mi', clock: '24' };
 
 // --- formatting -----------------------------------------------------------
@@ -180,6 +186,19 @@ for (const [name, markup] of Object.entries(rendered)) {
 }
 assert.ok(rendered.hero.includes('&lt;img'), 'hero did not escape place name');
 assert.ok(rendered.briefing.includes('&lt;img'), 'briefing did not escape place name');
+const drySeries = series.map((hour) => ({ ...hour, pop: 5, precip: 0, snowfall: 0, code: 0 }));
+const dryQuestions = tables.forecastQuestions({ ...vm, series: drySeries,
+  days: daily.map((day) => ({ ...day, popMax: 100 })) });
+assert.match(dryQuestions[0].answer, /hourly chance peaks at 5%/,
+  'rain earlier today must not inflate the future precipitation answer');
+assert.ok(!ins.buildNarrative({ ...vm, placeName: 'Ottawa', series: drySeries }).join(' ').includes('radar'),
+  'forecast-derived narrative must not claim to have checked radar');
+const longRun = ins.activityWindows(series, 0).find((activity) => activity.window &&
+  activity.window.start.time.slice(0, 10) !== activity.window.end.time.slice(0, 10));
+assert.ok(longRun, 'fixture includes an overnight activity window');
+assert.ok(panels.renderActivities({ ...vm, nowIndex: 0 }).includes(
+  `${fmt.dayName(longRun.window.end.time)} ${fmt.hourLabel(longRun.window.end.time, units)}`),
+  'an overnight activity window names its ending day');
 
 // The hub is one card: the hero carries the briefing rather than it being a
 // separate panel the user has to scroll past.

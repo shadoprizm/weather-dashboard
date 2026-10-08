@@ -245,6 +245,9 @@ export function forecastQuestions(vm) {
   if (!current || !today) return out;
 
   const timing = precipTiming(series, nowIndex, 24);
+  const nextHours = series.slice(nowIndex, nowIndex + 24);
+  const probabilities = nextHours.map((hour) => hour.pop).filter(Number.isFinite);
+  const nextChance = probabilities.length ? fmt.percent(Math.max(...probabilities)) : 'unknown';
   if (timing && timing.state === 'active') {
     out.push({
       question: `Is it raining in ${place} right now?`,
@@ -254,16 +257,18 @@ export function forecastQuestions(vm) {
     });
   } else if (timing && timing.state === 'incoming') {
     out.push({
-      question: `Will it rain in ${place} today?`,
+      question: `Will it rain in ${place} in the next 24 hours?`,
       answer: `It is dry now. ${timing.type === 'snow' ? 'Snow' : 'Rain'} is most likely around ` +
         `${fmt.hourLabel(timing.startsAt, units)}` +
         (timing.endsAt ? `, easing by ${fmt.hourLabel(timing.endsAt, units)}.` : ', lingering into the evening.') +
-        ` The day peaks at a ${fmt.percent(today.popMax)} chance.`,
+        ` The next 24 hours peak at a ${nextChance} chance.`,
     });
   } else {
     out.push({
-      question: `Will it rain in ${place} today?`,
-      answer: `No — the next 24 hours in ${place} look dry, with the chance of precipitation peaking at ${fmt.percent(today.popMax)}.`,
+      question: `Will it rain in ${place} in the next 24 hours?`,
+      answer: timing
+        ? `No significant precipitation is forecast in ${place} in the next 24 hours. The hourly chance peaks at ${nextChance}.`
+        : `Hourly precipitation data is unavailable for ${place} right now. Check again for the next 24-hour outlook.`,
     });
   }
 

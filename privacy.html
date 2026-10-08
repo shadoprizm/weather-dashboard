@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy | WeatherView</title>
+  <meta name="description" content="How WeatherView handles saved places, location access and aggregate website analytics.">
+  <link rel="canonical" href="https://www.weatherview.cloud/privacy">
+  <link rel="stylesheet" href="/style.css?v=12">
+  <link rel="icon" href="/icons/weatherview-mark.svg" type="image/svg+xml">
+</head>
+<body>
+  <main class="layout">
+    <article class="panel panel-intro">
+      <p><a href="/">WeatherView home</a> · <a href="/weather">Weather by city</a></p>
+      <h1>Privacy at WeatherView</h1>
+      <p>Updated October 8, 2026.</p>
+      <h2>Saved places and device watches</h2>
+      <p>Your saved locations, unit preferences and device-only weather watches are stored in this browser.
+        Watches do not create an account, send notifications or run while the browser is closed.</p>
+      <h2>Location access</h2>
+      <p>Location access starts only when you select “Use my location” and grant your browser's permission.
+        Coordinates are sent to WeatherView to fetch the forecast. The browser also sends them to
+        <a href="https://www.bigdatacloud.com/privacy-policy">BigDataCloud</a> to find the place name;
+        that service receives your IP address with the request.</p>
+      <h2>Website measurement</h2>
+      <p>We use <a href="https://vercel.com/docs/analytics/privacy-policy">Vercel Web Analytics</a>
+        to understand visits and use of features such as forecast tabs, saving a place, opening sharing
+        and saving a device watch. These events do not include your coordinates, search text, saved place
+        name or watch contents. Query parameters and fragments are removed from page URLs before measurement.</p>
+      <p>Vercel Web Analytics does not use analytics cookies. Its documentation explains the request
+        information it processes and how it counts visitors. Hosting and weather providers also process
+        requests needed to serve the site. The embedded weather widget does not load our analytics module.</p>
+      <h2>Managing local data</h2>
+      <p>Remove saved locations with their × button, stop a watch in its dialog, or clear this site's data
+        in your browser settings. Clearing site data also removes cached forecasts and preferences.</p>
+    </article>
+  </main>
+  <script type="module" src="/js/analytics.js"></script>
+</body>
+</html>
