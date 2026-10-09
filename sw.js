@@ -62,7 +62,9 @@ self.addEventListener('activate', (event) => {
     // Refresh existing installations once, preserving URL and local preferences.
     if (previous.length) {
       const windows = await self.clients.matchAll({ type: 'window' });
-      await Promise.all(windows.map(client => client.navigate(client.url).catch(() => {})));
+      // Navigation can wait on activation before its fetch runs. Do not wait
+      // for navigation here, or both operations can wait on each other.
+      for (const client of windows) void client.navigate(client.url).catch(() => {});
     }
   })());
 });

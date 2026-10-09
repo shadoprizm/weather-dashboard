@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { runInNewContext } from 'node:vm';
 
 const source = await readFile(new URL('../sw.js', import.meta.url), 'utf8');
-function worker(initialKeys = []) {
+function worker(initialKeys = [], { holdNavigation = false } = {}) {
   const stores = new Map(initialKeys.map(key => [key, new Map()]));
   const listeners = {};
   const navigated = [];
@@ -28,7 +28,10 @@ function worker(initialKeys = []) {
       addEventListener: (name, handler) => { listeners[name] = handler; },
       clients: {
         claim: async () => { claimed++; },
-        matchAll: async () => [{ url: 'https://www.weatherview.cloud/?lat=45&lon=-75&view=radar', navigate: async url => { navigated.push(url); } }],
+        matchAll: async () => [{ url: 'https://www.weatherview.cloud/?lat=45&lon=-75&view=radar', navigate: async url => {
+          navigated.push(url);
+          if (holdNavigation) await new Promise(() => {});
+        } }],
       },
     },
   });
@@ -47,6 +50,12 @@ assert.deepEqual(updated.navigated, ['https://www.weatherview.cloud/?lat=45&lon=
 const first = worker(['weatherview-v19-shell']);
 await first.activate();
 assert.deepEqual(first.navigated, [], 'first installation must not cause a redundant page reload');
+const pendingNavigation = worker(['weatherview-v16-shell'], { holdNavigation: true });
+await Promise.race([
+  pendingNavigation.activate(),
+  new Promise((_, reject) => setTimeout(() => reject(new Error('activation waited on navigation')), 100)),
+]);
+assert.equal(pendingNavigation.navigated.length, 1, 'activation completes even while navigation awaits the new worker');
 
 const mixed = worker(['weatherview-v16-shell', 'weatherview-v19-shell']);
 mixed.stores.get('weatherview-v16-shell').set('https://www.weatherview.cloud/js/radar.js?v=19', { body: 'old map provider' });
