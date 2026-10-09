@@ -202,12 +202,7 @@ assert.match(dryQuestions[0].answer, /hourly chance peaks at 5%/,
   'rain earlier today must not inflate the future precipitation answer');
 assert.ok(!ins.buildNarrative({ ...vm, placeName: 'Ottawa', series: drySeries }).join(' ').includes('radar'),
   'forecast-derived narrative must not claim to have checked radar');
-const longRun = ins.activityWindows(series, 0).find((activity) => activity.window &&
-  activity.window.start.time.slice(0, 10) !== activity.window.end.time.slice(0, 10));
-assert.ok(longRun, 'fixture includes an overnight activity window');
-assert.ok(panels.renderActivities({ ...vm, nowIndex: 0 }).includes(
-  `${fmt.dayName(longRun.window.end.time)} ${fmt.hourLabel(longRun.window.end.time, units)}`),
-  'an overnight activity window names its ending day');
+assert.match(rendered.activities, /Make an outdoor plan/, 'planner offers duration-sized outings');
 
 // The hub is one card: the hero carries the briefing rather than it being a
 // separate panel the user has to scroll past.

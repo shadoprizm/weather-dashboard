@@ -271,6 +271,7 @@ async function renderCityPage(city, section = 'overview') {
     },
     bootstrap: {
       page: 'city',
+      data, alerts, almanac,
       slug: city.slug,
       section,
       basePath: seo.cityPath(city),

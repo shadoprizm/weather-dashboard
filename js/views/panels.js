@@ -3,12 +3,13 @@
  * the almanac and the multi-location comparison.
  */
 
+import { renderPlanner } from './planner.js';
 import { esc, safeUrl } from '../dom.js';
 import { describe } from '../wmo.js';
 import { weatherIcon, moonPhaseIcon, glyph } from '../icons.js';
 import * as fmt from '../format.js';
 import {
-  activityWindows, solarWindows, moonPhase, stargazingOutlook, daylightChange,
+  solarWindows, moonPhase, stargazingOutlook, daylightChange,
   computeWatches, aqiBand, rankLocations, almanacComparison, auroraOutlook,
 } from '../insights.js';
 
@@ -69,46 +70,7 @@ export function renderAlerts(vm) {
 
 /* ---------------------------------------------------------- activities */
 
-export function renderActivities(vm) {
-  const today = vm.days[vm.todayIndex];
-  const solar = solarWindows(today);
-  const ranked = activityWindows(vm.series, vm.nowIndex, { goldenHours: solar.goldenHours });
-
-  if (!ranked.length) return '';
-
-  return `
-    <header class="panel-head">
-      <h2>Best time to…</h2>
-      <p class="panel-sub">Scored hour by hour across the next two days.</p>
-    </header>
-    <ul class="activity-grid">
-      ${ranked.map((activity) => {
-        const window = activity.window;
-        const band = activity.bestScore >= 75 ? 'good'
-          : activity.bestScore >= 55 ? 'fair'
-            : activity.bestScore >= 35 ? 'poor' : 'bad';
-
-        const when = window
-          ? `${fmt.dayName(window.start.time)} ${fmt.hourLabel(window.start.time, vm.units)}–${window.start.time.slice(0, 10) !== window.end.time.slice(0, 10) ? `${fmt.dayName(window.end.time)} ` : ''}${fmt.hourLabel(window.end.time, vm.units)}`
-          : 'No good window in the next 48h';
-
-        return `
-          <li class="activity" data-band="${band}">
-            <div class="activity-top">
-              <span class="activity-icon">${glyph(activity.icon, { size: 18 })}</span>
-              <h3 class="activity-label">${esc(activity.label)}</h3>
-              <span class="activity-score">${activity.bestScore}</span>
-            </div>
-            <p class="activity-when">${esc(when)}</p>
-            <p class="activity-blurb">${esc(activity.blurb)}</p>
-            <div class="activity-meter" aria-hidden="true">
-              <span style="width:${activity.bestScore}%"></span>
-            </div>
-          </li>`;
-      }).join('')}
-    </ul>
-  `;
-}
+export function renderActivities(vm) { return renderPlanner(vm); }
 
 /* ---------------------------------------------------------- sun & moon */
 

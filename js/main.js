@@ -15,6 +15,9 @@ import { buildViewModel as toViewModel } from './viewmodel.js';
 import { createRadarMap } from './radar.js';
 import * as weatherWatch from './weather-watch.js';
 import { trackAction } from './analytics.js';
+import { planActivity } from './planning.js';
+import { calendarEvent } from './calendar.js';
+import { planReasons } from './views/planner.js';
 import {
   renderHero, renderHourly, renderDetails, renderDaily, errorPanel,
 } from './views/forecast.js';
@@ -105,6 +108,7 @@ function buildViewModel() {
     space: session.space,
     comparisons: session.comparisons,
     selectedDay: session.selectedDay,
+    planPreferences: state.getPlanPreferences(),
   });
   // Keep the server's H1 ("Toronto Weather", not "Toronto"): it is what the
   // page was indexed as, and swapping it after load would be a bait-and-switch.
@@ -139,15 +143,14 @@ function renderForecastSource() {
 
 /** Render the active view's panels, once per data revision. */
 function paintView() {
-  if (!session.data) return;
   const view = session.view;
 
-  if (view === 'radar') {
+  if (view === 'radar' && session.place) {
     mountRadar(session.place);
     return;
   }
 
-  if (session.painted.has(view)) return;
+  if (!session.data || session.painted.has(view)) return;
   const vm = buildViewModel();
   for (const id of VIEWS[view]) {
     setHTML(`#${id}`, RENDERERS[id](vm));
@@ -170,6 +173,7 @@ function setView(view, { focusPanel = false } = {}) {
   }
 
   session.view = view;
+  document.body.dataset.view = view;
   trackAction('Forecast section', { section: view });
 
   for (const name of VIEW_ORDER) {
@@ -240,6 +244,7 @@ async function loadPlace(place, { silent = false } = {}) {
     setHTML('#hero', '<div class="skeleton skeleton-hero" aria-hidden="true"></div>');
   }
   document.body.classList.add('is-loading');
+  if (session.view === 'radar') mountRadar(place);
 
   try {
     session.data = await api.fetchForecast(place.latitude, place.longitude);
@@ -274,6 +279,7 @@ function loadSecondary(place) {
     if (session.place !== place || !alerts) return;
     session.alerts = alerts;
     setHTML('#alerts', renderAlerts(buildViewModel()));
+    refreshPanel('activities');
   });
 
   api.soft(api.fetchAlmanac(place.latitude, place.longitude, localDate)).then((almanac) => {
@@ -343,10 +349,11 @@ function syncUrl(place) {
   // back to the dashboard rather than pretending the city page is showing
   // somewhere else.
   if (page.page === 'city') {
-    const path = page.sectionPaths[session.view] || page.basePath;
-    if (path && window.location.pathname !== path) {
-      window.history.replaceState(null, '', path + window.location.search);
-    }
+    const url = new URL(window.location.href);
+    url.pathname = page.sectionPaths[session.view] || page.basePath;
+    if (['plan', 'almanac'].includes(session.view)) url.searchParams.set('view', session.view);
+    else url.searchParams.delete('view');
+    window.history.replaceState(null, '', url);
     return;
   }
 
@@ -536,6 +543,7 @@ document.addEventListener('click', (event) => {
     paintView();
   }
 
+  if (action === 'plan-calendar') downloadPlan(trigger.dataset.start, trigger.dataset.end);
   if (action === 'open-watch') openWatchDialog();
   if (action === 'close-watch') $('#watch-dialog')?.close();
   if (action === 'remove-watch' && session.place) {
@@ -544,6 +552,38 @@ document.addEventListener('click', (event) => {
     syncWatchButton();
     toast(`Stopped watching ${session.place.name}`);
   }
+});
+
+function downloadPlan(start, end) {
+  if (!session.data) return;
+  const vm = buildViewModel();
+  const plan = planActivity(vm, state.getPlanPreferences());
+  const window = plan.windows.find(w => w.start === start && w.end === end);
+  if (!window) { refreshPanel('activities'); toast('That suggestion has passed. Choose a current window.'); return; }
+  try {
+    const text = calendarEvent({ window, activity: plan.activity, place: session.place,
+      timezone: vm.timezone, utcOffsetSeconds: vm.utcOffsetSeconds,
+      description: planReasons(window, plan.activity, vm.units).join(' · ') });
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/calendar;charset=utf-8' }));
+    const link = document.createElement('a'); link.href = url;
+    link.download = `weatherview-${plan.activity.id}-${window.start.slice(0,10)}.ics`;
+    document.body.append(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    trackAction('Plan calendar', plan.preferences);
+    toast('Open the downloaded calendar file to review and save your plan.');
+  } catch (error) { toast(error.message); }
+}
+
+document.addEventListener('change', (event) => {
+  const key = event.target.dataset.plan;
+  if (!key) return;
+  const id = event.target.id;
+  const change = { [key]: event.target.value };
+  if (key === 'activity') change.timeOfDay = change.activity === 'stargaze' ? 'night' : 'daylight';
+  state.setPlanPreferences(change);
+  trackAction('Plan preference', state.getPlanPreferences());
+  refreshPanel('activities');
+  document.getElementById(id)?.focus();
 });
 
 const tablist = $('.tabs');
@@ -851,6 +891,8 @@ function registerServiceWorker() {
 }
 
 function start() {
+  document.body.dataset.view = viewFromUrl();
+  document.body.dataset.section = page.section || 'overview';
   syncUnitButtons();
   renderPlaces();
   syncTopbarOffset();
@@ -869,6 +911,10 @@ function start() {
     // so nothing on screen is replaced by a skeleton.
     if (state.adoptUnits(page.units)) syncUnitButtons();
     session.place = state.normalizePlace(page.place);
+    if (page.data) {
+      session.data = page.data; session.alerts = page.alerts; session.almanac = page.almanac;
+      render();
+    } else paintView();
     syncSaveButton();
     loadPlace(session.place, { silent: true });
   } else if (page.page === 'app') {
@@ -904,6 +950,7 @@ function start() {
     if (session.data) {
       setHTML('#hero', renderHero(buildViewModel()));
       syncWatchButton();
+      refreshPanel('activities');
     }
   }, 60000);
 

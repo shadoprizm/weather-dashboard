@@ -16,6 +16,18 @@ npm test           # views + parsers, offline
 npm run verify     # checks the live upstream providers
 ```
 
+## Release 2.1 — outdoor plans
+
+The Plan tab accepts an activity, a 30–180 minute duration and daylight/night preferences.
+It returns up to three future, non-overlapping suggestions with complete hourly coverage and
+weather reasons. Missing rain or wind data never implies favourable conditions. Calendar
+export uses the forecast location's time zone and rejects clock-change intervals.
+Preferences remain on the visitor's device; analytics receives only activity, duration and
+time-of-day enums. `GET /api/plan?lat=&lon=&activity=run&duration=60&timeOfDay=daylight`
+exposes the same planner for native clients, with no cache of time-sensitive suggestions.
+Mobile section pages use a compact conditions header; city pages reuse server-delivered
+forecast data while refreshing in the background. Existing city URLs and structured data remain.
+
 ## What it does
 
 **Forecast**

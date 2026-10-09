@@ -10,7 +10,7 @@
  * whole store is versioned so a deploy replaces it wholesale.
  */
 
-const VERSION = 'weatherview-v16';
+const VERSION = 'weatherview-v17';
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-data`;
 const PAGE_CACHE = `${VERSION}-pages`;
@@ -18,7 +18,7 @@ const PAGE_CACHE = `${VERSION}-pages`;
 // Everything needed to paint the app with no network at all.
 const SHELL = [
   '/',
-  '/style.css?v=13',
+  '/style.css?v=14',
   '/manifest.webmanifest?v=4',
   '/icons/weatherview-mark.svg',
   '/js/main.js',
@@ -32,6 +32,9 @@ const SHELL = [
   '/js/icons.js',
   '/js/insights.js',
   '/js/viewmodel.js',
+  '/js/planning.js',
+  '/js/calendar.js',
+  '/js/views/planner.js',
   '/js/radar.js',
   '/js/weather-watch.js',
   '/js/views/forecast.js',

@@ -122,6 +122,7 @@ function renderDocument({
       .replace('<div class="views">', '<div class="views" hidden>');
   }
 
+  html = html.replace('<body data-sky="clear-day">', `<body data-sky="clear-day" data-view="${escapeHtml(view)}" data-section="${escapeHtml(bootstrap?.section || 'overview')}">`);
   if (sky) html = html.replace('data-sky="clear-day"', `data-sky="${escapeHtml(sky)}"`);
   if (theme) html = html.replace('<html lang="en">', `<html lang="en" data-theme="${escapeHtml(theme)}">`);
 
