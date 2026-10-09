@@ -10,7 +10,7 @@
  * whole store is versioned so a deploy replaces it wholesale.
  */
 
-const VERSION = 'weatherview-v18';
+const VERSION = 'weatherview-v19';
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-data`;
 const PAGE_CACHE = `${VERSION}-pages`;
@@ -21,7 +21,7 @@ const SHELL = [
   '/style.css?v=14',
   '/manifest.webmanifest?v=4',
   '/icons/weatherview-mark.svg',
-  '/js/main.js',
+  '/js/main.js?v=19',
   '/js/analytics.js',
   '/js/vercel-analytics.js',
   '/js/api.js',
@@ -35,7 +35,7 @@ const SHELL = [
   '/js/planning.js',
   '/js/calendar.js',
   '/js/views/planner.js',
-  '/js/radar.js',
+  '/js/radar.js?v=19',
   '/js/weather-watch.js',
   '/js/views/forecast.js',
   '/js/views/panels.js',
@@ -53,18 +53,23 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys()
-      .then((keys) => Promise.all(
-        keys.filter((key) => !key.startsWith(VERSION)).map((key) => caches.delete(key))
-      ))
-      .then(() => self.clients.claim())
-  );
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    const previous = keys.filter(key => key.startsWith('weatherview-v') && !key.startsWith(`${VERSION}-`));
+    await Promise.all(previous.map(key => caches.delete(key)));
+    await self.clients.claim();
+    // Claiming an old tab does not replace modules already executing in it.
+    // Refresh existing installations once, preserving URL and local preferences.
+    if (previous.length) {
+      const windows = await self.clients.matchAll({ type: 'window' });
+      await Promise.all(windows.map(client => client.navigate(client.url).catch(() => {})));
+    }
+  })());
 });
 
 /** Cache first: the shell never changes without a new deploy. */
 async function cacheFirst(request, cacheName) {
-  const cached = await caches.match(request);
+  const cached = await (await caches.open(cacheName)).match(request);
   if (cached) return cached;
   const response = await fetch(request);
   if (response.ok) (await caches.open(cacheName)).put(request, response.clone());
@@ -83,7 +88,7 @@ async function networkFirst(request, cacheName) {
     if (response.ok) (await caches.open(cacheName)).put(request, response.clone());
     return response;
   } catch (error) {
-    const cached = await caches.match(request);
+    const cached = await (await caches.open(cacheName)).match(request);
     if (cached) return cached;
     throw error;
   }
@@ -101,7 +106,7 @@ self.addEventListener('fetch', (event) => {
 
   if (request.mode === 'navigate') {
     event.respondWith(
-      networkFirst(request, PAGE_CACHE).catch(() => caches.match('/'))
+      networkFirst(request, PAGE_CACHE).catch(async () => (await caches.open(SHELL_CACHE)).match('/'))
     );
     return;
   }

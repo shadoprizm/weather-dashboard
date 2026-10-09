@@ -32,10 +32,12 @@ Release evidence and full-device App Store screenshots are saved locally under
 `output/releases/apple-1.0/` in the primary checkout. Build, upload and test logs
 are outside Git. Xcode confirmed successful upload of version 1.0, build 1, to
 App Store Connect at 18:39 EDT on October 9. Apple processed the package and
-shows build 1 as Ready to Submit. This does not establish installed TestFlight
-or public App Store availability.
-Three full-device iPad screenshots are saved in the listing. iPhone screenshots
-are being prepared for Apple's required medium Dynamic Island display slot.
+shows build 1 as Ready to Submit; the build is attached to version 1.0. This
+does not establish installed TestFlight or public App Store availability.
+Three full-device iPad screenshots and three iPhone screenshots are saved in
+the listing. iPhone screenshots use Apple's required medium Dynamic Island
+display slot. A signed development build is installed on the owner's paired
+iPhone; physical UI/Calendar save and TestFlight checks remain unfinished.
 Final phone verification also caught and corrected a server planning boundary:
 the complete daylight/night outing must fit between exact solar times, including
 the final partial hour. The correction is shared by the web and native clients.
@@ -75,13 +77,16 @@ ads or subscriptions, and am preparing its native iPhone and iPad release.
 
 Our server fetches Timeline data, normalizes the fields needed for our forecast
 and outdoor planning screens, caches the forecast response for five minutes,
-and returns that JSON only to our own website and native app. The native app
+and returns normalized hourly/daily forecast JSON and derived plan results
+through publicly reachable first-party endpoints for our website and native
+app. The native app
 keeps the last forecast on the user's device so an offline view can show its
 timestamp. We display Visual Crossing attribution; we do not offer bulk data
 or downloadable provider payloads.
 
 Please confirm which licence permits public website and App Store display,
-the five-minute server cache and each user's on-device last-forecast cache.
+these first-party JSON endpoints, the five-minute server cache and each user's
+on-device last-forecast cache.
 Are these allowed on Metered or Professional, or is another agreement required?
 Please also distinguish any permission needed if we later add ads or paid
 features. We would appreciate a written answer before public Apple distribution.

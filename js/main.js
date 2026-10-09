@@ -12,7 +12,7 @@ import { esc, $, delegate, setHTML } from './dom.js';
 import { skyTheme } from './wmo.js';
 import { weatherIcon } from './icons.js';
 import { buildViewModel as toViewModel } from './viewmodel.js';
-import { createRadarMap } from './radar.js';
+import { createRadarMap } from './radar.js?v=19';
 import * as weatherWatch from './weather-watch.js';
 import { trackAction } from './analytics.js';
 import { planActivity } from './planning.js';
@@ -883,11 +883,14 @@ function viewFromUrl() {
 function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
   if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') return;
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {
+  const register = () => {
+    navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).catch(() => {
       /* An unavailable service worker costs nothing; the app works without it. */
     });
-  });
+  };
+  // Cached modules can finish after load has already fired.
+  if (document.readyState === 'complete') register();
+  else window.addEventListener('load', register, { once: true });
 }
 
 function start() {
