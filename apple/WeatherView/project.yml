@@ -1,0 +1,44 @@
+name: WeatherView
+options:
+  bundleIdPrefix: cloud.weatherview
+  deploymentTarget:
+    iOS: '17.0'
+settings:
+  base:
+    SWIFT_VERSION: '5.0'
+    DEVELOPMENT_TEAM: YB6AA39J6R
+    MARKETING_VERSION: '1.0'
+    CURRENT_PROJECT_VERSION: '1'
+    TARGETED_DEVICE_FAMILY: '1,2'
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    GENERATE_INFOPLIST_FILE: NO
+targets:
+  WeatherView:
+    type: application
+    platform: iOS
+    sources:
+      - Sources
+      - Resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: cloud.weatherview.ios
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_FILE: Resources/Info.plist
+  WeatherViewTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: Tests
+    dependencies:
+      - target: WeatherView
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  WeatherView:
+    build:
+      targets:
+        WeatherView: all
+    test:
+      targets:
+        - WeatherViewTests

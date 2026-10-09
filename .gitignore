@@ -8,3 +8,9 @@
 /.firecrawl/
 /outreach/*.local.json
 .env*.local
+
+/apple/**/build/
+/apple/**/*.xcodeproj/xcuserdata/
+/apple/**/*.xcresult/
+/apple/**/*.xcarchive/
+/apple/**/*.ipa
