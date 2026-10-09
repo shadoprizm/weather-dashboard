@@ -12,6 +12,7 @@ const seo = require('../seo');
 const { renderDocument, escapeHtml } = require('./shell');
 
 const UPDATED = '2026-09-07';
+const MODIFIED = '2026-10-09';
 
 const ANSWERS = [
   {
@@ -196,6 +197,7 @@ function renderGuidePage() {
         <time datetime="${UPDATED}">September 7, 2026</time>. For live conditions,
         <a href="/weather">choose a city forecast</a>.
       </p>
+      <p>Need help using WeatherView? <a href="#app-support">Open app help or report a problem</a>.</p>
     </section>`;
 
   const contents = `
@@ -203,8 +205,32 @@ function renderGuidePage() {
       <header class="panel-head"><h2 id="guide-contents-title">In this guide</h2></header>
       <ol>
         ${ANSWERS.map((item) => `<li><a href="#${escapeHtml(item.id)}">${escapeHtml(item.question)}</a></li>`).join('')}
+        <li><a href="#app-support">WeatherView app help and support</a></li>
       </ol>
     </nav>`;
+
+  const support = `
+    <section class="panel guide-method" id="app-support" aria-labelledby="app-support-title">
+      <header class="panel-head"><h2 id="app-support-title">WeatherView app help and support</h2></header>
+      <p>WeatherView is free, with no account, ads or subscription required.</p>
+      <article class="guide-answer">
+      <h3>Find a city and keep your preferences</h3>
+      <p>On iPhone and iPad, open the places button at the top left to search for a city, save places and choose Celsius or Fahrenheit. On the website, use the city search and units control. Saved places and preferences stay on your device.</p>
+      </article>
+      <article class="guide-answer">
+      <h3>Radar or forecasts are not updating</h3>
+      <p>Check your internet connection and use Refresh. Radar needs an internet connection; an empty radar area can mean no rain or no radar coverage. In the app, a forecast labelled Saved is your last successful forecast, with its update time shown. Reconnect and refresh for current conditions and warnings.</p>
+      </article>
+      <article class="guide-answer">
+      <h3>Add an outing to Calendar</h3>
+      <p>Open Plan, choose an activity and duration, then select Add to calendar on a suggested window. Review the time and reminder in the calendar editor before saving. You can cancel without creating an event. WeatherView does not read your calendar.</p>
+      </article>
+      <article class="guide-answer">
+      <h3>Report a problem or ask for help</h3>
+      <p><a href="https://github.com/shadoprizm/weather-dashboard/issues/new" rel="noopener">Send a support report</a>. Tell us whether you are using the website, iPhone or iPad, the app version, the city you selected, and what you expected to happen.</p>
+      <p>Reports are public and require a GitHub account. Include only information you are comfortable sharing publicly; leave out private addresses, contact details and personal calendar entries.</p>
+      </article>
+    </section>`;
 
   const methodology = `
     <section class="panel guide-method" id="how-we-build-the-forecast">
@@ -242,7 +268,7 @@ function renderGuidePage() {
         description,
         path,
         datePublished: UPDATED,
-        dateModified: UPDATED,
+        dateModified: MODIFIED,
         about: ANSWERS.map((item) => ({ '@type': 'Thing', name: item.question })),
       }),
       seo.breadcrumbJsonLd([
@@ -260,7 +286,7 @@ function renderGuidePage() {
       hero,
       hourly: '', details: '', air: '', daily: '', activities: '', astro: '',
       almanac: '', compare: '',
-      'page-detail': `${contents}<section class="panel guide-answers" aria-label="Weather questions and answers">${ANSWERS.map(renderAnswer).join('')}</section>`,
+      'page-detail': `${contents}<section class="panel guide-answers" aria-label="Weather questions and answers">${ANSWERS.map(renderAnswer).join('')}</section>${support}`,
       'page-context': methodology,
     },
     tabs: false,

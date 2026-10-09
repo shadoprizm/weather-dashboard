@@ -1,6 +1,6 @@
 # Weather data release gate
 
-Last reviewed: September 7, 2026. Provider terms and pricing can change; check
+Last reviewed: October 9, 2026. Provider terms and pricing can change; check
 the linked primary sources again before signing or changing the product's
 commercial status.
 
@@ -21,12 +21,13 @@ boundary explicit:
 
 The preferred launch path is:
 
-1. Get written confirmation from Visual Crossing that WeatherView may return a
-   normalized, same-origin JSON forecast response to its own browser client on
-   the intended plan. Its public pricing page permits commercial and
-   public-facing display, but reserves "storable for shared external use" for
-   Enterprise. Our response is a transient display API, not a download product,
-   but that distinction should be confirmed rather than inferred.
+1. Establish whether the existing Visual Crossing licence covers WeatherView's
+   normalized, first-party forecast endpoints. Public display and storage are
+   permitted in its current published terms, but public raw-data retrieval is
+   restricted. A targeted clarification was sent to Visual Crossing with owner
+   approval on October 9; retain its answer with account records. Written
+   clarification is a precaution for this implementation, not a confirmed new
+   licence requirement simply because a native Apple client is being launched.
 2. If confirmed, use Visual Crossing as the primary forecast and purchase the
    capacity appropriate to measured traffic.
 3. Buy Open-Meteo Standard as the fallback and for air quality/geocoding, or
@@ -56,7 +57,22 @@ currently marks commercial use and public-facing display as permitted across
 its plans and requires attribution on Free, Metered and Professional. It also
 distinguishes display from data that is storable for shared external use.
 
-Before launch, email `sales@visualcrossing.com` with this exact question:
+The current [October 2026 terms](https://www.visualcrossing.com/weather-service-terms/)
+permit data storage in section 10, while section 11 restricts public raw-data
+retrieval and section 13 restricts competing weather data services. Use the
+singular `weather-service-terms` URL: the older plural URL still serves January
+2023 terms and should not be treated as the current account agreement.
+
+Its [storage and caching guide](https://www.visualcrossing.com/resources/documentation/can-i-cache-and-store-visual-crossing-weather-data/)
+distinguishes an application cache from a public data service and an archived
+forecast from current operational data. WeatherView keeps its provider key
+server-side and labels offline forecasts as saved. The remaining account-specific
+question is its publicly reachable forecast endpoints, not a general prohibition
+on storing a forecast. Current account plan and any separate agreement must also
+be verified before certifying content rights.
+
+The expanded inquiry in [APPLE_LAUNCH.md](APPLE_LAUNCH.md) was sent once to
+`sales@visualcrossing.com` with owner approval. It supersedes this earlier question:
 
 > WeatherView fetches Timeline data on its server, normalizes only the fields
 > needed by its forecast UI, caches the response for five minutes, and returns
@@ -87,8 +103,9 @@ not the first choice.
 
 ## Launch checklist
 
-- [ ] Written Visual Crossing response retained, or a different commercial
-      provider selected.
+- [x] Targeted Visual Crossing inquiry sent with owner approval and verified in Sent.
+- [ ] Applicable provider scope established from the existing agreement, a written
+      clarification, or a different permitted provider path.
 - [ ] Forecast, fallback, air quality, geocoding and archive use all licensed.
 - [ ] Provider attribution matches the purchased plan and appears wherever
       required.

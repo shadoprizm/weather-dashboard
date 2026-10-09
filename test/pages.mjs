@@ -189,7 +189,7 @@ assert.match(guide.body, /weather\.gov\/ffc\/pop/);
 assert.match(guide.body, /"@type":"FAQPage"/);
 assert.match(guide.body, /What is the difference between wind speed and wind gusts\?/);
 assert.match(guide.body, /Are AQI and Canada’s AQHI the same scale\?/);
-assert.match(guide.body, /"dateModified":"2026-09-07"/);
+assert.match(guide.body, /"dateModified":"2026-10-09"/);
 assert.match(html, /href="\/weather-guide">sourced weather guide<\/a>/,
   'forecast context links to the guide without adding it to the primary nav');
 

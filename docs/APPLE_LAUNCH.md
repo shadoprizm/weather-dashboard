@@ -1,6 +1,6 @@
 # WeatherView Apple launch record
 
-Prepared October 9, 2026. The web planning release 2.1 is live at
+Updated October 9, 2026. The web planning and radar recovery release 2.1.2 is live at
 https://www.weatherview.cloud. The iPhone/iPad client is a native SwiftUI app,
 not a web wrapper.
 
@@ -15,9 +15,16 @@ not a web wrapper.
 - Description, promotional text, keywords, Weather category, review instructions,
   copyright and English (Canada) localization entered.
 - Age questionnaire completed; Apple calculated 9+ with outdoor lifestyle topics.
-- Privacy URL: https://www.weatherview.cloud/privacy.html. Search History preview:
-  app functionality, not linked to identity, not used for tracking.
+- Privacy URL: https://www.weatherview.cloud/privacy.html. Apple confirms the
+  Search History declaration is published: app functionality, not linked to
+  identity, not used for tracking.
 - Review sign-in requirement disabled: there is no login.
+- Review contact saved using the owner's approved existing Apple review details.
+  Private contact values are not retained in this repository.
+- Automatic release after App Review is selected.
+- Customer support is available at `/weather-guide#app-support`, including app
+  troubleshooting and a public problem-report link. Reports require a GitHub
+  account; the page explains their public visibility before the user follows it.
 
 ## Verification
 
@@ -42,29 +49,37 @@ Final phone verification also caught and corrected a server planning boundary:
 the complete daylight/night outing must fit between exact solar times, including
 the final partial hour. The correction is shared by the web and native clients.
 
-## Public release steps still requiring owner/provider input
+## Remaining public release steps
 
-1. Resolve the provider display/storage gate in [WEATHER_DATA.md](WEATHER_DATA.md).
-   Visual Crossing's pricing permits public-facing display, but its current
-   storage clause requires permission under the applicable licence. Confirm both
-   five-minute first-party JSON and the native app's on-device last-forecast
-   cache in writing. This is an unresolved scope question, not a finding that
-   the account is licensed for native storage. Do not certify content rights
-   without evidence. Open-Meteo secondary services also need the appropriate
-   permitted path if the product becomes commercial.
-2. Fill Apple's required review contact name, phone and email. Reuse existing
-   account contact details only with approval to transmit them to this listing.
-3. Publish the prepared Apple privacy answers after the owner approves Apple's
-   accuracy/compliance attestation.
-4. On a real iPhone/iPad, check the uploaded build, calendar save/cancel, radar,
+1. Resolve the provider scope question in [WEATHER_DATA.md](WEATHER_DATA.md).
+   Visual Crossing's October 2026 terms permit storage and public viewing, but
+   restrict public raw-data retrieval. The open question is how those terms
+   apply to WeatherView's first-party forecast endpoints. A targeted inquiry
+   covering display, those endpoints and caches was sent with owner approval;
+   a written reply has not arrived. This is not a confirmed requirement to buy
+   another licence or to obtain fresh permission simply for an iPhone app.
+   Establish the applicable rights before certifying Apple's Content Rights.
+   Open-Meteo secondary services need the appropriate permitted path if the
+   product becomes commercial.
+2. On a real iPhone/iPad, check the uploaded build, calendar save/cancel, radar,
    reconnect and persisted preferences. A simulator does not confirm a physical
    device's Calendar integration or TestFlight installation.
-5. Once rights and metadata are complete, choose the processed build and submit
+3. Once rights and device checks are complete, submit the selected processed build
    for App Review. Public availability follows Apple's approval and release.
+
+Apple's Add for Review validation was run after the review contact and privacy
+declaration were completed. The only reported metadata requirement is Content
+Rights Information. The truthful selection is third-party content with the
+necessary rights; that declaration has not been made while the forecast endpoint
+scope is unresolved. Version 1.0 remains Prepare for Submission.
+
+The paired iPhone is available to Xcode. iPhone Mirroring requires an owner
+unlock on the device before it can connect; this is an authentication handoff,
+not a native test pass. No physical iPad is currently paired with this Mac.
 
 Do not describe a prepared listing or TestFlight upload as an App Store launch.
 
-## Provider email for owner review only
+## Approved provider inquiry sent
 
 Recipient: sales@visualcrossing.com
 
@@ -73,26 +88,26 @@ Subject: WeatherView website and iPhone/iPad display and caching permission
 Hello Visual Crossing team,
 
 I operate WeatherView (https://www.weatherview.cloud), a free weather app without
-ads or subscriptions, and am preparing its native iPhone and iPad release.
+ads or subscriptions, and am preparing its iPhone and iPad release.
 
-Our server fetches Timeline data, normalizes the fields needed for our forecast
-and outdoor planning screens, caches the forecast response for five minutes,
-and returns normalized hourly/daily forecast JSON and derived plan results
-through publicly reachable first-party endpoints for our website and native
-app. The native app
-keeps the last forecast on the user's device so an offline view can show its
-timestamp. We display Visual Crossing attribution; we do not offer bulk data
-or downloadable provider payloads.
+Our server fetches Timeline data and caches it for five minutes. Forecast JSON
+containing normalized hourly/daily fields and derived outdoor-plan results is
+returned through publicly reachable first-party endpoints for our website and
+native app. The app also saves each user's last forecast on their device for an
+offline view labelled with its timestamp. We display Visual Crossing attribution
+and do not resell data or offer bulk datasets.
 
-Please confirm which licence permits public website and App Store display,
-these first-party JSON endpoints, the five-minute server cache and each user's
-on-device last-forecast cache.
-Are these allowed on Metered or Professional, or is another agreement required?
-Please also distinguish any permission needed if we later add ads or paid
-features. We would appreciate a written answer before public Apple distribution.
+Please confirm which licence permits public website and App Store display, these
+first-party JSON endpoints, the five-minute server cache, and users' on-device
+forecast caches. Are these allowed on Metered or Professional, or is another
+agreement required? Please also clarify what changes if we later add ads or paid
+features.
+
+We would appreciate written confirmation before public Apple distribution.
 
 Thank you,
 Jeramy Ratelle
 
-This draft has not been sent. User approval of the recipients, subject and full
-message is required before sending.
+Sent once with explicit owner approval on October 9. Gmail Sent readback verified
+the recipient, subject and both plain-text and HTML bodies. The sent message link
+is stored in local release evidence; no private account metadata is published here.
