@@ -81,6 +81,12 @@ function drawIcon(size, { padding = 0 } = {}) {
   return surface.toPng();
 }
 
+if (process.argv.includes('--apple')) {
+  const apple = path.join(ROOT, 'apple/WeatherView/Resources/Assets.xcassets/AppIcon.appiconset');
+  mkdirSync(apple, { recursive: true });
+  writeFileSync(path.join(apple, 'AppIcon.png'), drawIcon(1024, { padding: 0.06 }));
+  console.log('WeatherView Apple icon generated from the existing brand mark.');
+} else {
 mkdirSync(OUT, { recursive: true });
 
 for (const size of [192, 512]) {
@@ -92,3 +98,5 @@ for (const size of [192, 512]) {
 // keep it inside the safe zone.
 writeFileSync(path.join(OUT, 'weatherview-maskable-512.png'), drawIcon(512, { padding: 0.12 }));
 console.log('icons/weatherview-maskable-512.png');
+
+}

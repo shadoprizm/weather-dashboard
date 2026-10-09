@@ -14,7 +14,7 @@ async function plan(query = {}) {
   if (response.status !== 200) return response;
   const data = response.body;
   const vm = viewmodel.buildViewModel({ data, place: data.location, units: {} });
-  return { status: 200, body: planning.planActivity(vm, preferences), maxAge: 0 };
+  return { status: 200, body: { ...planning.planActivity(vm, preferences), weatherProvider: data.weatherProvider }, maxAge: 0 };
 }
 
 module.exports = { plan };
