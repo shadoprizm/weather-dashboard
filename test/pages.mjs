@@ -202,6 +202,8 @@ function bootstrapOf(html) {
 }
 
 const overviewBoot = bootstrapOf(overview.body);
+assert.ok(overviewBoot.data?.hourly?.time?.length, 'city hydration reuses the server forecast');
+assert.match(overview.body, /data-view="today"/, 'server declares initial section before first paint');
 assert.equal(overviewBoot.page, 'city');
 assert.equal(overviewBoot.slug, 'toronto');
 assert.equal(overviewBoot.heading, 'Toronto Weather', 'the H1 survives hydration');

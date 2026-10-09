@@ -1642,3 +1642,29 @@ body.is-loading .layout { opacity: .72; transition: opacity .2s ease; }
   .data-table { font-size: 0.8rem; }
   .guide-contents ol { grid-template-columns: 1fr; }
 }
+
+/* Plans sized for an actual outing. */
+.plan-controls { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 14px; }
+.plan-controls label { display: grid; gap: 7px; color: var(--text-dim); font-size: .86rem; }
+.plan-controls select { width: 100%; min-height: 44px; padding: 9px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-strong); color: var(--text); font: inherit; }
+.plan-preferences, .plan-method { color: var(--text-dim); font-size: .86rem; margin-top: 16px; }
+.plan-windows { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; margin-top: 20px; }
+.plan-window { border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+.plan-fit { color: var(--good); font-size: .8rem; font-weight: 650; margin: 0 0 8px; }
+.plan-window[data-band="fair"] .plan-fit { color: var(--text-dim); }
+.plan-window h3 { font-size: 1.05rem; line-height: 1.4; }
+.plan-reasons { padding: 0; list-style: none; color: var(--text-dim); font-size: .84rem; line-height: 1.7; margin: 12px 0; }
+.plan-caution, .plan-empty { padding: 16px; border-radius: 12px; background: var(--surface); line-height: 1.5; }
+.plan-method summary { cursor: pointer; min-height: 32px; }
+.plan-method p { line-height: 1.6; margin-top: 12px; }
+@media (max-width: 900px) { .plan-windows { grid-template-columns: 1fr; } }
+@media (max-width: 680px) {
+  .plan-controls { grid-template-columns: 1fr 1fr; }
+  .plan-controls label:first-child { grid-column: 1 / -1; }
+  body:is([data-view="radar"],[data-view="week"],[data-view="plan"],[data-view="almanac"],[data-section="hourly"]) .hero :is(.watch-trigger,.hero-side,.briefing,.hero-stats) { display: none; }
+  body:is([data-view="radar"],[data-view="week"],[data-view="plan"],[data-view="almanac"],[data-section="hourly"]) .hero-body { margin-top: 14px; }
+  body:is([data-view="radar"],[data-view="week"],[data-view="plan"],[data-view="almanac"],[data-section="hourly"]) .hero-icon { width: 52px; height: 52px; }
+  body:is([data-view="radar"],[data-view="week"],[data-view="plan"],[data-view="almanac"],[data-section="hourly"]) .hero-temp { font-size: 2.4rem; }
+  body:is([data-view="radar"],[data-view="week"],[data-view="plan"],[data-view="almanac"],[data-section="hourly"]) .hero-readout { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+  body:is([data-view="radar"],[data-view="week"],[data-view="plan"],[data-view="almanac"],[data-section="hourly"]) .hero-feels { flex-basis: 100%; }
+}

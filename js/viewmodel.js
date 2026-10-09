@@ -32,6 +32,7 @@ export function buildViewModel({
   space = null,
   comparisons = [],
   selectedDay = null,
+  planPreferences,
 }) {
   const series = hourlySeries(data);
   const days = dailySeries(data);
@@ -44,6 +45,8 @@ export function buildViewModel({
   return {
     place,
     units,
+    planPreferences,
+    timezone: data.location?.timezone || place?.timezone || null,
     utcOffsetSeconds: data.location ? data.location.utcOffsetSeconds : 0,
     current: data.current,
     air: data.air,

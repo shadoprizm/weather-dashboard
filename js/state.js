@@ -8,6 +8,8 @@
 // Deliberately unchanged through the rename: this key holds real visitors'
 // saved locations and unit preferences, and a new one would quietly discard
 // them on the first load after deploy.
+import { normalizePlanPreferences } from './planning.js';
+
 const STORAGE_KEY = 'skywatch.v2';
 
 const DEFAULT_UNITS = {
@@ -90,6 +92,7 @@ const state = (() => {
     // have, a page that arrives knowing where it is (a US city page, say) may
     // set a sensible default without overriding anyone's choice.
     unitsChosen: Boolean(saved && saved.unitsChosen),
+    plan: normalizePlanPreferences(saved?.plan || {}),
     locations,
     activeId: (saved && saved.activeId) || locations[0].id,
     theme: (saved && saved.theme) || 'auto', // auto | dark | light
@@ -194,5 +197,11 @@ export function moveLocation(id, offset) {
   if (index < 0 || target < 0 || target >= state.locations.length) return;
   const [item] = state.locations.splice(index, 1);
   state.locations.splice(target, 0, item);
+  emit();
+}
+
+export function getPlanPreferences() { return { ...state.plan }; }
+export function setPlanPreferences(preferences) {
+  state.plan = normalizePlanPreferences({ ...state.plan, ...preferences });
   emit();
 }
