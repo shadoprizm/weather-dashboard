@@ -8,7 +8,10 @@ const series = Array.from({ length: 48 }, (_, i) => ({
   time: new Date(Date.UTC(2026,9,9,8+i)).toISOString().slice(0,16),
   temp: 11, feels: 11, pop: 0, wind: 8, cloud: 0, isDay: 1,
 }));
-const vm = { series, days: [], nowIndex: 0, utcOffsetSeconds: -14400,
+const days = ['2026-10-09', '2026-10-10', '2026-10-11'].map(time => ({
+  time, sunrise: `${time}T07:15`, sunset: `${time}T18:23`, daylight: 40080,
+}));
+const vm = { series, days, nowIndex: 0, utcOffsetSeconds: -14400,
   timezone: 'America/Toronto', planNow: '2026-10-09T08:15',
   place: { name: 'Toronto' }, units: { temp: 'c', wind: 'kmh', clock: '12' } };
 const options = { activity: 'run', duration: 90, timeOfDay: 'daylight' };
@@ -29,6 +32,14 @@ assert.equal(planActivity({ ...vm, series: [series[1],series[3]] }, { ...options
 assert.equal(planActivity({ ...vm, series: series.map(h => ({ ...h, isDay: 0 })) }, options).windows.length, 0);
 assert.equal(planActivity(vm, { ...options, activity: 'stargaze', timeOfDay: 'night' }).windows.length, 0);
 assert.ok(planActivity({ ...vm, series: series.map(h => ({ ...h, isDay: 0 })) }, { activity: 'stargaze', duration: 60, timeOfDay: 'night' }).windows.length);
+const solarCase = (time, isDay) => ({ ...vm, planNow: '2026-10-09T00:00', series: [{ ...series[0], time, isDay }] });
+assert.equal(planActivity(solarCase('2026-10-09T18:00', 1), { ...options, duration: 60 }).windows.length, 0, 'daylight outing cannot cross sunset within its final hourly slot');
+assert.equal(planActivity(solarCase('2026-10-09T17:00', 1), { ...options, duration: 60 }).windows.length, 1);
+assert.equal(planActivity(solarCase('2026-10-09T07:00', 0), { activity: 'stargaze', duration: 60, timeOfDay: 'night' }).windows.length, 0, 'night outing cannot cross sunrise within an hourly slot');
+assert.equal(planActivity({ ...solarCase('2026-10-09T17:00', 1), days: [] }, { ...options, duration: 30 }).windows.length, 0, 'unknown solar boundaries cannot qualify a daylight plan');
+assert.equal(planActivity(solarCase('2026-10-09T08:00', 1), { activity: 'photo', duration: 30, timeOfDay: 'daylight' }).windows.length, 0, 'photo outing must fit entirely inside golden hour');
+assert.equal(planActivity({ ...solarCase('2026-10-09T08:00', 1), days: [{ ...days[0], sunrise: '2026-10-09T07:40' }] }, { activity: 'photo', duration: 30, timeOfDay: 'daylight' }).windows.length, 1, 'a complete golden-hour outing still qualifies');
+assert.equal(planActivity({ ...solarCase('2026-10-09T12:00', 1), days: [{ time: '2026-10-09', daylight: 86400 }] }, { ...options, duration: 60 }).windows.length, 1, 'explicit polar daylight still qualifies');
 const overnight = { ...vm, planNow: '2026-10-09T22:15', series: series.filter(h => h.time >= '2026-10-09T23:00') };
 const overnightPlan = planActivity(overnight, { ...options, duration: 120, timeOfDay: 'any' });
 assert.equal(overnightPlan.windows[0].end, '2026-10-10T01:00');
@@ -40,7 +51,7 @@ assert.equal(wallTimeToUtc('2026-11-01T03:00', 'America/Toronto').toISOString(),
 const crossing = { ...vm, planNow: '2026-03-08T00:15', series: [
   { ...series[0], time: '2026-03-08T01:00' }, { ...series[0], time: '2026-03-08T02:00' },
 ] };
-assert.equal(planActivity(crossing, { ...options, duration: 120 }).windows.length, 0, 'DST gaps cannot yield false durations');
+assert.equal(planActivity(crossing, { ...options, duration: 120, timeOfDay: 'any' }).windows.length, 0, 'DST gaps cannot yield false durations');
 const event = calendarEvent({ window: result.windows[0], activity: { id: 'run', label: 'Go for a run' },
   place: { name: 'Toronto, ON; home\nBEGIN:bad' }, timezone: vm.timezone, description: 'é'.repeat(120) });
 assert.match(event, /DTSTART:20261009T130000Z/);

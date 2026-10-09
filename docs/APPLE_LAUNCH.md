@@ -30,8 +30,15 @@ the navigation drawer, including iPad modal presentation.
 
 Release evidence and full-device App Store screenshots are saved locally under
 `output/releases/apple-1.0/` in the primary checkout. Build, upload and test logs
-are outside Git. Record confirmed upload/processing status here after Apple
-accepts the binary; an archive alone does not confirm delivery.
+are outside Git. Xcode confirmed successful upload of version 1.0, build 1, to
+App Store Connect at 18:39 EDT on October 9. Apple processed the package and
+shows build 1 as Ready to Submit. This does not establish installed TestFlight
+or public App Store availability.
+Three full-device iPad screenshots are saved in the listing. iPhone screenshots
+are being prepared for Apple's required medium Dynamic Island display slot.
+Final phone verification also caught and corrected a server planning boundary:
+the complete daylight/night outing must fit between exact solar times, including
+the final partial hour. The correction is shared by the web and native clients.
 
 ## Public release steps still requiring owner/provider input
 

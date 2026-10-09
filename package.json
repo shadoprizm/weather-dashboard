@@ -1,6 +1,6 @@
 {
   "name": "weatherview",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "private": true,
   "description": "WeatherView: a fast, ad-free weather service with server-rendered city pages, live radar, air quality, almanac normals and a free embeddable widget.",
   "main": "server.js",
