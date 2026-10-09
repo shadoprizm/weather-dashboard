@@ -72,7 +72,7 @@ assert.match(html, /<link rel="canonical" href="https:\/\/www\.weatherview\.clou
 assert.match(html, /<h1 class="hero-place">Toronto Weather<\/h1>/);
 assert.match(html, /data-action="open-watch"/, 'city forecasts expose the device-local watch beta');
 assert.match(html, /id="watch-dialog"/, 'the shared shell carries the watch configuration dialog');
-assert.match(html, /<script type="module" src="\/js\/main\.js"><\/script>/,
+assert.match(html, /<script type="module" src="\/js\/main\.js\?v=\d+"><\/script>/,
   'nested city routes load the app from an origin-absolute URL');
 assert.ok(!html.includes('src="js/main.js"'), 'nested city routes never resolve the app below /weather');
 const siteNav = html.match(/<nav class="site-nav"[\s\S]*?<\/nav>/)?.[0] || '';
