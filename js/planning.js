@@ -15,6 +15,30 @@ export function normalizePlanPreferences(value = {}) {
 function wallMillis(time) { return Date.parse(`${time.slice(0, 16)}:00Z`); }
 function wallTime(millis) { return new Date(millis).toISOString().slice(0, 16); }
 
+/** Hourly day/night flags describe an instant, not the whole outing. */
+function fitsSolarWindow(days, start, end, mode) {
+  for (let midnight = Math.floor(start / 86400000) * 86400000; midnight < end; midnight += 86400000) {
+    const day = days.find(d => d.time.slice(0, 10) === wallTime(midnight).slice(0, 10));
+    const from = Math.max(start, midnight);
+    const to = Math.min(end, midnight + 86400000);
+    const sunrise = day?.sunrise ? wallMillis(day.sunrise) : NaN;
+    const sunset = day?.sunset ? wallMillis(day.sunset) : NaN;
+    if (!Number.isFinite(sunrise) || !Number.isFinite(sunset) || sunrise >= sunset) {
+      // Explicit polar day/night can qualify; missing solar data cannot.
+      if (mode === 'daylight' && day?.daylight >= 86400) continue;
+      if (mode === 'night' && day?.daylight === 0) continue;
+      return false;
+    }
+    if (mode === 'daylight' && (from < sunrise || to > sunset)) return false;
+    if (mode === 'night' && from < sunset && to > sunrise) return false;
+    if (mode === 'golden' && !(
+      (from >= sunrise && to <= sunrise + 55 * 60000) ||
+      (from >= sunset - 55 * 60000 && to <= sunset)
+    )) return false;
+  }
+  return true;
+}
+
 export function locationNow(utcOffsetSeconds = 0, now = Date.now()) {
   return wallTime(now + utcOffsetSeconds * 1000);
 }
@@ -44,6 +68,10 @@ export function planActivity(vm, preferences = DEFAULT_PLAN, { nowTime, hours = 
     if (covered.some(h => (activity.daylight || prefs.timeOfDay === 'daylight') && h.isDay !== 1)) continue;
     if (covered.some(h => (activity.night || prefs.timeOfDay === 'night') && h.isDay !== 0)) continue;
     if (activity.id === 'photo' && covered.some(h => !goldenHours.has(h.time))) continue;
+    const lightMode = activity.id === 'photo' ? 'golden'
+      : activity.daylight || prefs.timeOfDay === 'daylight' ? 'daylight'
+      : activity.night || prefs.timeOfDay === 'night' ? 'night' : null;
+    if (lightMode && !fitsSolarWindow(vm.days, start, start + durationMs, lightMode)) continue;
     const end = wallTime(start + durationMs);
     try {
       if (wallTimeToUtc(end, vm.timezone, vm.utcOffsetSeconds) - wallTimeToUtc(first.time, vm.timezone, vm.utcOffsetSeconds) !== durationMs) continue;
