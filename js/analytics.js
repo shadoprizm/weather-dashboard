@@ -15,8 +15,18 @@ export function sanitizeEvent(event) {
 
 export function trackAction(name, properties) {
   if (typeof window === 'undefined' || !enabled) return;
-  try { track(name, properties); } catch { /* Measurement never blocks the forecast. */ }
+  try { track(name, { ...properties, ...campaign }); } catch { /* Measurement never blocks the forecast. */ }
 }
+
+const campaign = (() => {
+  if (typeof window === 'undefined') return {};
+  const params = new URLSearchParams(window.location.search);
+  const source = params.get('utm_source');
+  return ['launch', 'hackernews', 'reddit'].includes(source) && params.get('utm_campaign') === 'planning'
+    ? { campaign: 'planning', source } : {};
+})();
 
 const enabled = typeof window !== 'undefined' && window.location.hostname === 'www.weatherview.cloud';
 if (enabled) inject({ mode: 'production', debug: false, beforeSend: sanitizeEvent });
+
+if (enabled && campaign.source) trackAction('Planning campaign visit');

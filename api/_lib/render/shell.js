@@ -119,7 +119,8 @@ function renderDocument({
   if (!tabs) {
     html = html
       .replace('<nav class="tabs" role="tablist"', '<nav class="tabs" role="tablist" hidden')
-      .replace('<div class="views">', '<div class="views" hidden>');
+      .replace('<div class="views">', '<div class="views" hidden>')
+      .replace('<section id="plan-intro"', '<section hidden id="plan-intro"');
   }
 
   html = html.replace('<body data-sky="clear-day">', `<body data-sky="clear-day" data-view="${escapeHtml(view)}" data-section="${escapeHtml(bootstrap?.section || 'overview')}">`);

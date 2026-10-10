@@ -1,13 +1,13 @@
 {
   "name": "weatherview",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "private": true,
   "description": "WeatherView: a fast, ad-free weather service with server-rendered city pages, live radar, air quality, almanac normals and a free embeddable widget.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node test/smoke.mjs && node test/radar.mjs && node test/planning.mjs && node test/service-worker.mjs && node test/parsers.mjs && node test/geocode.mjs && node test/stories.mjs && node test/pages.mjs && node test/providers.mjs && node test/monitoring.mjs && node test/monitoring-trial.mjs && node test/weather-watch.mjs && node test/widget-outreach.mjs",
+    "test": "node test/smoke.mjs && node test/radar.mjs && node test/planning.mjs && node test/plan-share.mjs && node test/service-worker.mjs && node test/parsers.mjs && node test/geocode.mjs && node test/stories.mjs && node test/pages.mjs && node test/providers.mjs && node test/monitoring.mjs && node test/monitoring-trial.mjs && node test/weather-watch.mjs && node test/widget-outreach.mjs",
     "verify": "node scripts/verify-providers.mjs",
     "providers:compare": "node scripts/compare-weather-providers.mjs",
     "monitoring:sample": "node scripts/sample-monitoring-trial.mjs",

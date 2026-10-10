@@ -30,6 +30,7 @@ export function renderPlanner(vm) {
         const when = `${fmt.dayName(w.start)} ${fmt.dayNumber(w.start)}, ${fmt.timeLabel(w.start, vm.units)}–${w.start.slice(0,10) !== w.end.slice(0,10) ? `${fmt.dayName(w.end)} ` : ''}${fmt.timeLabel(w.end, vm.units)}`;
         return `<li class="plan-window" data-band="${w.band}"><p class="plan-fit">${index === 0 ? 'Best fit' : 'Another option'} · ${w.band === 'good' ? 'Good' : 'Fair'} conditions</p>
           <h3>${esc(when)}</h3><ul class="plan-reasons">${planReasons(w, plan.activity, vm.units).map(r => `<li>${esc(r)}</li>`).join('')}</ul>
+          <button type="button" class="ghost-button" data-action="plan-share" data-start="${esc(w.start)}" data-end="${esc(w.end)}">Share this plan</button>
           <button type="button" class="ghost-button" data-action="plan-calendar" data-start="${esc(w.start)}" data-end="${esc(w.end)}">Add to calendar</button></li>`;
       }).join('')}</ol>` : `<p class="plan-empty">${plan.status === 'unavailable' ? 'Not enough complete hourly data to suggest a time. Try refreshing the forecast.' : `No full ${prefs.duration}-minute window fits these conditions. Try a shorter duration or another time of day.`}</p>`}
     </div>
@@ -37,4 +38,16 @@ export function renderPlanner(vm) {
       <p>${esc(plan.activity.blurb)}. We compare feels-like temperature, hourly precipitation chance and wind using the forecast. Every hour of an outing must meet the activity's minimum score; the highest average fit comes first. Suggestions start on the next available whole hour.</p>
       <p>Garden work, laundry and golden-hour photos need daylight; stargazing needs darkness. Photos also need a forecast hour near sunrise or sunset. Weather can change. Check the latest forecast and official warnings before going out.</p>
     </details>`;
+}
+
+/** A first useful answer before visitors need to discover the Plan tab. */
+export function renderPlanPreview(vm) {
+  const plan = planActivity(vm, vm.planPreferences);
+  const best = plan.windows[0];
+  return `<p class="eyebrow">${esc(plan.activity.label)} · ${plan.preferences.duration} minutes · ${esc(vm.place.name)}</p>
+    ${best ? `<p class="planning-time">${esc(fmt.dayName(best.start))} ${esc(fmt.dayNumber(best.start))}, ${esc(fmt.timeLabel(best.start, vm.units))}–${esc(fmt.timeLabel(best.end, vm.units))}${best.start.slice(0,10) !== best.end.slice(0,10) ? ` (${esc(fmt.dayName(best.end))})` : ''}</p>
+      <p>${planReasons(best, plan.activity, vm.units).map(esc).join(' · ')}</p>`
+      : `<p>${plan.status === 'unavailable' ? 'Hourly data is unavailable for a suggestion right now. Check the forecast or try refreshing.' : 'No full window fits these choices. Try a shorter outing or a different time of day.'}</p>`}
+    <button type="button" class="ghost-button" data-action="open-plan">${best ? 'Find a time / compare options' : 'Adjust your plan'} →</button>
+    <p class="planning-small">Forecast-based suggestions for the next 48 hours. Check official warnings before heading out.</p>`;
 }

@@ -164,7 +164,7 @@ const sitemap = await pages.sitemap();
 assert.match(sitemap.contentType, /application\/xml/);
 const locs = [...sitemap.body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
 assert.equal(new Set(locs).size, locs.length, 'no duplicate URLs in the sitemap');
-assert.equal(locs.length, 4 + cities.CITIES.length * seo.SECTION_ORDER.length);
+assert.equal(locs.length, 6 + cities.CITIES.length * seo.SECTION_ORDER.length);
 for (const loc of locs) assert.ok(loc.startsWith(site.origin), `${loc} is absolute`);
 assert.ok(locs.includes(site.url('/weather/toronto/10-day')));
 assert.ok(locs.includes(site.url('/weather-guide')), 'the reviewed guide is part of the crawlable site');
@@ -291,3 +291,14 @@ await assert.rejects(() => ogCard({}), /required/);
 await assert.rejects(() => ogCard({ city: 'atlantis' }), /Unknown city/);
 
 console.log('All widget, builder and share-card checks passed.');
+
+const planningGuide = await pages.planningPage();
+assert.equal(planningGuide.status, 200);
+assert.match(planningGuide.body, /rel="canonical" href="https:\/\/www\.weatherview\.cloud\/outdoor-planning"/);
+assert.match(planningGuide.body, /Forecast|forecast/);
+assert.match(planningGuide.body, /activity=walk/);
+assert.match(planningGuide.body, /<section hidden id="plan-intro"/);
+assert.ok(locs.includes(site.url('/outdoor-planning')));
+assert.ok(locs.includes(site.url('/launch')));
+assert.match(overview.body, /id="plan-preview"/);
+console.log('Planning guide, discovery and server preview: passed');

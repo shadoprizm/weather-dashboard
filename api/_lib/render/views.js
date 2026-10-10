@@ -35,8 +35,9 @@ function load() {
     from('state.js'),
     from('icons.js'),
     from('planning.js'),
-  ]).then(([viewmodel, forecast, panels, tables, insights, format, wmo, state, icons, planning]) => ({
-    viewmodel, forecast, panels, tables, insights, format, wmo, state, icons, planning,
+    from('views/planner.js'),
+  ]).then(([viewmodel, forecast, panels, tables, insights, format, wmo, state, icons, planning, planner]) => ({
+    viewmodel, forecast, panels, tables, insights, format, wmo, state, icons, planning, planner,
   }));
 
   return pending;

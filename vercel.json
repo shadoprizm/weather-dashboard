@@ -13,6 +13,8 @@
   },
 
   "rewrites": [
+    { "source": "/outdoor-planning", "destination": "/api/planning" },
+    { "source": "/launch", "destination": "/api/launch" },
     { "source": "/robots.txt", "destination": "/api/robots" },
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/widgets", "destination": "/api/widgets" },

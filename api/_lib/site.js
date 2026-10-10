@@ -36,11 +36,8 @@ const site = {
   // "www." and it costs a tenth of the card's width.
   displayHost: ORIGIN.replace(/^https?:\/\//, '').replace(/^www\./, ''),
 
-  tagline: 'Fast, ad-free weather',
-  description:
-    'Fast, ad-free weather. Current conditions, hourly and 14-day forecasts, ' +
-    'live radar, air quality, sunrise and sunset, official alerts and 20-year ' +
-    'normals — with a plain-English read on what the day actually holds.',
+  tagline: 'Weather that helps you make plans',
+  description: 'Find a good time for your outdoor plans. Free, ad-free weather with a 48-hour activity planner, forecasts, precipitation radar, air quality and official alerts.',
 
   locale: 'en',
   themeColor: '#0b1220',
