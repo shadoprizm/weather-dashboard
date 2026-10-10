@@ -3,7 +3,7 @@
  * the almanac and the multi-location comparison.
  */
 
-import { renderPlanner } from './planner.js';
+import { renderPlanner } from './planner.js?v=23';
 import { esc, safeUrl } from '../dom.js';
 import { describe } from '../wmo.js';
 import { weatherIcon, moonPhaseIcon, glyph } from '../icons.js';

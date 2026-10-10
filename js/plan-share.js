@@ -1,7 +1,7 @@
 import { ACTIVITIES } from './insights.js';
 import { PLAN_DURATIONS, normalizePlanPreferences } from './planning.js';
 import * as fmt from './format.js';
-import { planReasons } from './views/planner.js';
+import { planReasons } from './views/planner.js?v=23';
 
 /** Only recognized choices from a planning link can replace saved preferences. */
 export function planPreferencesFromUrl(value, saved = {}) {
