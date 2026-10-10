@@ -1,6 +1,6 @@
 # WeatherView Apple launch record
 
-Updated October 9, 2026. The web planning and radar recovery release 2.1.2 is live at
+Updated October 10, 2026. The web future-radar release 2.2.0 is live at
 https://www.weatherview.cloud. The iPhone/iPad client is a native SwiftUI app,
 not a web wrapper.
 
@@ -53,13 +53,13 @@ the final partial hour. The correction is shared by the web and native clients.
 
 ### October 10 radar update
 
-The release candidate now uses ECCC / NOAA observed radar and ECCC radar
+Web release 2.2.0 uses ECCC / NOAA observed radar and ECCC radar
 extrapolation in North America. It projects existing echoes up to 72 minutes
 from the source observation, with the actual available time ahead shown in
 the UI. No paid radar trial or subscription is required. Build 2 is prepared
 and passes eight native unit checks, including the government tile contract;
 build 1 remains the processed build currently selected in App Store Connect.
-Build 2 still needs native visual verification, upload and selection. See
+Build 2 still needs native visual verification, upload and selection. Native computer-use access timed out during the October 10 check; this is not a visual test pass. See
 [RADAR.md](RADAR.md) for data sources, coverage and failure handling.
 
 The six professional iPhone/iPad marketing images are saved in English
