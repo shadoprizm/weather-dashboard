@@ -15,6 +15,7 @@ const cache = require('./cache');
 const alertRegistry = require('./alerts');
 const visualCrossing = require('./weather-providers/visual-crossing');
 const openMeteo = require('./weather-providers/open-meteo-access');
+const governmentRadar = require('./radar-eccc');
 
 const RAINVIEWER_INDEX = 'https://api.rainviewer.com/public/weather-maps.json';
 const NOAA_KP = 'https://services.swpc.noaa.gov/json/planetary_k_index_1m.json';
@@ -431,8 +432,12 @@ async function alerts(query) {
 
 /* ------------------------------------------------------------------ radar */
 
-/** RainViewer's recent radar frames, plus forecast frames when supplied. */
-async function radar() {
+/** v1 remains compatible with installed Apple build 1 and older web shells. */
+async function radar(query = {}) {
+  if (String(query.v) === '2' && query.region === 'north-america') {
+    const body = await governmentRadar.radarFeed();
+    if (body.available) return { status: 200, body, maxAge: 60 };
+  }
   const body = await cache.memo('radar:index', 120, async () => {
     const data = await fetchJsonSoft(RAINVIEWER_INDEX, null);
     if (!data || !data.radar) return { available: false, host: null, frames: [] };
@@ -452,6 +457,14 @@ async function radar() {
     };
   });
 
+  if (String(query.v) === '2') return { status: 200, maxAge: 60, body: {
+    ...body, provider: 'rainviewer', sourceName: 'RainViewer', sourceUrl: 'https://www.rainviewer.com/',
+    frames: body.frames.filter(f => f.kind === 'past' && f.time <= Date.now() / 1000),
+    futureAvailable: false, futureThrough: null,
+    futureUnavailableReason: query.region === 'north-america'
+      ? 'Future radar is temporarily unavailable. Showing recent radar from RainViewer.'
+      : 'Future radar is available within the North American radar domain. Showing recent radar here.',
+  } };
   return { status: 200, body, maxAge: 120 };
 }
 

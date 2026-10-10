@@ -996,6 +996,13 @@ kbd {
 .radar-status[hidden] { display: none; }
 
 .radar-controls { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+.radar-modes { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+.radar-mode, .radar-refresh { padding: 8px 14px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-strong); color: var(--text); font-size: .85rem; }
+.radar-mode[aria-pressed='true'] { border-color: var(--accent); color: var(--accent); }
+.radar-mode:disabled { opacity: .45; cursor: default; }
+.radar-refresh { margin-left: auto; }
+.radar-horizon { margin-top: 9px; color: var(--text-dim); font-size: .8rem; line-height: 1.5; }
+.radar-explainer { margin-top: 9px; color: var(--text-faint); font-size: .75rem; line-height: 1.5; }
 
 .radar-play {
   display: grid; place-items: center;
@@ -1020,7 +1027,7 @@ kbd {
 .radar-scrub { flex: 1; min-width: 0; accent-color: var(--accent); }
 .radar-scrub:disabled { opacity: .55; }
 .radar-time {
-  min-width: 128px; text-align: right;
+  min-width: 142px; text-align: right;
   font-size: 0.83rem; font-variant-numeric: tabular-nums; color: var(--text-dim);
 }
 .radar-time.is-forecast { color: var(--accent); }
@@ -1032,6 +1039,9 @@ kbd {
 .radar-legend-bar {
   flex: 1; height: 6px; border-radius: 99px;
   background: linear-gradient(90deg, #6ddcff, #168cff, #ffe36b, #ff9f43, #ef4444, #d946ef);
+}
+.radar[data-provider='eccc'] .radar-legend-bar {
+  background: linear-gradient(90deg, #99ccff, #0099ff, #00ff00, #ffff00, #ff9900, #ff0000, #ff00ff);
 }
 
 /* -------------------------------------------------------------- misc --- */

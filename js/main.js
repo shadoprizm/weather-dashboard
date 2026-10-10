@@ -12,7 +12,7 @@ import { esc, $, delegate, setHTML } from './dom.js';
 import { skyTheme } from './wmo.js';
 import { weatherIcon } from './icons.js';
 import { buildViewModel as toViewModel } from './viewmodel.js';
-import { createRadarMap } from './radar.js?v=19';
+import { createRadarMap } from './radar.js?v=21';
 import * as weatherWatch from './weather-watch.js';
 import { trackAction } from './analytics.js';
 import { planActivity } from './planning.js';

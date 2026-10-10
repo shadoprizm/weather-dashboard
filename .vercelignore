@@ -1,0 +1,11 @@
+.git
+.github
+node_modules
+output
+apple
+.firecrawl
+.playwright-cli
+.env*
+monitoring-trial
+test
+outreach/*.local.json

@@ -3,25 +3,24 @@
  *
  * A minimal slippy map built from plain <img> tiles -- no Leaflet, no
  * MapLibre, no bundler. Base tiles come from OpenStreetMap,
- * precipitation frames from RainViewer. Tiles are never read back into a
+ * observed and projected radar from Environment Canada, with RainViewer
+ * history as a fallback. Tiles are never read back into a
  * canvas, so cross-origin tainting is a non-issue.
  */
 
 import { fetchRadarIndex } from './api.js';
 import { timeLabel } from './format.js';
 import { clamp } from './dom.js';
+import { radarRegion, sampleFrames, radarTileUrl as tileUrl } from './radar-data.js?v=21';
 
 // Slippy-map coordinates use 256 CSS-pixel tiles. RainViewer returns 512-pixel
 // images for those same coordinates, keeping radar edges crisp on Retina
 // displays without changing the map maths or geographic scale.
 const TILE = 256;
-const SOURCE_TILE = 512;
 const MIN_ZOOM = 3;
 const MAX_ZOOM = 7;       // RainViewer's public tile pyramid stops at zoom 7
 const MAX_FRAMES = 8;
 const RADAR_TILE_BUDGET = 42; // leave room for an immediate zoom or short pan
-const COLOR_SCHEME = 2;   // RainViewer's supported Universal Blue palette
-const TILE_OPTIONS = '1_1'; // smoothed, snow rendered separately
 const FRAME_INTERVAL = 850;
 
 /* --------------------------------------------------- web mercator maths */
@@ -54,15 +53,19 @@ export function createRadarMap(container, options = {}) {
     lon: options.lon ?? -75.7,
     zoom: clamp(options.zoom ?? 6, MIN_ZOOM, MAX_ZOOM),
     frames: [],
+    index: null,
+    mode: 'future',
+    partial: false,
     host: null,
     frameIndex: 0,
-    playing: true,
+    playing: false,
     theme: options.theme === 'light' ? 'light' : 'dark',
     units: options.units || { clock: '12' },
   };
 
   let timer = null;
   let destroyed = false;
+  let loadGeneration = 0;
 
   container.classList.add('radar');
   // Published before the first paint so the viewport never flashes the wrong
@@ -81,10 +84,17 @@ export function createRadarMap(container, options = {}) {
       </div>
       <p class="radar-attribution">
         Radar <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> ·
+        <a class="radar-licence" href="https://eccc-msc.github.io/open-data/licence/readme_en/" target="_blank" rel="noopener" hidden>Licence</a>
         Map © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors
       </p>
       <div class="radar-status" hidden></div>
     </div>
+    <div class="radar-modes" role="group" aria-label="Radar timeline">
+      <button type="button" class="radar-mode" data-radar="recent" aria-pressed="false">Recent</button>
+      <button type="button" class="radar-mode" data-radar="future" aria-pressed="true">Future</button>
+      <button type="button" class="radar-refresh" data-radar="refresh">Refresh</button>
+    </div>
+    <p class="radar-horizon" aria-live="polite"></p>
     <div class="radar-controls">
       <button type="button" class="radar-play" data-radar="toggle" aria-label="Pause animation">
         <span class="radar-play-icon" aria-hidden="true"></span>
@@ -98,6 +108,7 @@ export function createRadarMap(container, options = {}) {
       <div class="radar-legend-bar"></div>
       <span>Heavy</span>
     </div>
+    <p class="radar-explainer">An empty area may have no precipitation or no radar coverage.</p>
   `;
 
   const viewport = container.querySelector('.radar-viewport');
@@ -110,6 +121,11 @@ export function createRadarMap(container, options = {}) {
   const playButton = container.querySelector('[data-radar="toggle"]');
   const zoomInButton = container.querySelector('[data-radar="zoom-in"]');
   const zoomOutButton = container.querySelector('[data-radar="zoom-out"]');
+  const recentButton = container.querySelector('[data-radar="recent"]');
+  const futureButton = container.querySelector('[data-radar="future"]');
+  const horizon = container.querySelector('.radar-horizon');
+  const explainer = container.querySelector('.radar-explainer');
+  const sourceLink = container.querySelector('.radar-attribution a');
 
   let paintGeneration = 0;
 
@@ -123,7 +139,7 @@ export function createRadarMap(container, options = {}) {
   }
 
   function radarTileUrl(frame, z, x, y) {
-    return `${state.host}${frame.path}/${SOURCE_TILE}/${z}/${x}/${y}/${COLOR_SCHEME}/${TILE_OPTIONS}.png`;
+    return tileUrl(state.index, frame, z, x, y);
   }
 
   /** Build one layer's worth of <img> tiles for the current viewport. */
@@ -145,7 +161,7 @@ export function createRadarMap(container, options = {}) {
         const wrappedX = ((x % span) + span) % span; // but the map wraps east-west
         parts.push(
           `<img class="radar-tile" src="${urlFor(state.zoom, wrappedX, y)}" alt=""
-                width="${SOURCE_TILE}" height="${SOURCE_TILE}"
+                width="512" height="512"
                 loading="eager" decoding="async" draggable="false"
                 style="left:${x * TILE - originX}px; top:${y * TILE - originY}px">`
         );
@@ -159,10 +175,12 @@ export function createRadarMap(container, options = {}) {
     const tiles = [...layer.querySelectorAll('.radar-tile')];
     const readiness = tiles.map((tile) => new Promise((resolve) => {
       let settled = false;
+      const timeout = setTimeout(() => { finish(false); }, 12000);
 
       const finish = async (loaded) => {
         if (settled) return;
         settled = true;
+        clearTimeout(timeout);
         if (!loaded) tile.style.visibility = 'hidden';
         if (loaded && typeof tile.decode === 'function') {
           try { await tile.decode(); } catch (error) { /* load still succeeded */ }
@@ -215,7 +233,7 @@ export function createRadarMap(container, options = {}) {
 
     // Zooming in exposes more tiles. Trim the oldest frames again at the new
     // scale so a zoom cannot undo the request budget established at startup.
-    const candidates = state.frames.slice(-frameLimit());
+    const candidates = sampleFrames(state.frames, frameLimit());
     framesLayer.innerHTML = candidates
       .map((_, i) => `<div class="radar-layer radar-frame" data-frame="${i}"></div>`)
       .join('');
@@ -223,7 +241,9 @@ export function createRadarMap(container, options = {}) {
     // Fetch newest first so the most useful image is ready earliest. Frames
     // load one at a time, keeping network pressure predictable.
     const ready = [];
-    const order = candidates.map((_, i) => i).reverse();
+    const preferred = candidates.findIndex(f => f.time === preferredFrame?.time && f.kind === preferredFrame?.kind);
+    const order = [...new Set([preferred < 0 ? candidates.length - 1 : preferred,
+      ...candidates.map((_, i) => i)])];
     for (const i of order) {
       const frame = candidates[i];
       const layer = framesLayer.querySelector(`[data-frame="${i}"]`);
@@ -234,6 +254,7 @@ export function createRadarMap(container, options = {}) {
       // with the animation and reads as corrupt radar data.
       if (result.total > 0 && result.loaded === result.total) {
         ready.push({ frame, layer, originalIndex: i });
+        if (ready.length === 1) { layer.classList.add('is-current'); setStatus(''); }
       } else {
         layer.remove();
       }
@@ -244,14 +265,17 @@ export function createRadarMap(container, options = {}) {
       state.frames = [];
       framesLayer.innerHTML = '';
       setStatus('Radar imagery is unavailable right now.');
+      horizon.textContent = state.mode === 'future' ? 'Future imagery could not load. Try Recent or Refresh.' : 'Recent imagery could not load. Try Refresh.';
+      stop();
       return false;
     }
 
     framesLayer.replaceChildren(...ready.map((entry) => entry.layer));
     ready.forEach((entry, i) => { entry.layer.dataset.frame = String(i); });
     state.frames = ready.map((entry) => entry.frame);
+    state.partial = ready.length < candidates.length;
     const preferredIndex = state.frames.findIndex((frame) =>
-      frame.path === preferredFrame?.path && frame.time === preferredFrame?.time);
+      frame.kind === preferredFrame?.kind && frame.time === preferredFrame?.time);
     state.frameIndex = preferredIndex >= 0 ? preferredIndex : state.frames.length - 1;
 
     scrub.max = String(state.frames.length - 1);
@@ -259,6 +283,7 @@ export function createRadarMap(container, options = {}) {
     playButton.disabled = state.frames.length < 2;
     showFrame(state.frameIndex);
     setStatus('');
+    updateHorizon();
     if (shouldResume && state.frames.length > 1) play();
     else if (state.frames.length < 2) stop();
     return true;
@@ -267,7 +292,7 @@ export function createRadarMap(container, options = {}) {
   function repaint() {
     world.style.transform = 'translate3d(0,0,0)';
     paintBase();
-    void paintFrames();
+    selectTimeline(state.frames[state.frameIndex]);
   }
 
   function showFrame(index) {
@@ -285,8 +310,7 @@ export function createRadarMap(container, options = {}) {
     const stamp = new Date(frame.time * 1000);
     const pad = (n) => String(n).padStart(2, '0');
     const local = `${stamp.getFullYear()}-${pad(stamp.getMonth() + 1)}-${pad(stamp.getDate())}T${pad(stamp.getHours())}:${pad(stamp.getMinutes())}`;
-    timeOut.textContent =
-      `${timeLabel(local, state.units)}${frame.kind === 'forecast' ? ' · nowcast' : ''}`;
+    timeOut.textContent = `${timeLabel(local, state.units)} · ${frame.kind === 'forecast' ? 'Projected' : 'Observed'}`;
     timeOut.classList.toggle('is-forecast', frame.kind === 'forecast');
   }
 
@@ -388,6 +412,8 @@ export function createRadarMap(container, options = {}) {
     if (kind === 'zoom-in') setZoom(state.zoom + 1);
     if (kind === 'zoom-out') setZoom(state.zoom - 1);
     if (kind === 'toggle') (state.playing ? stop() : play());
+    if (kind === 'recent' || kind === 'future') { state.mode = kind; stop(); selectTimeline(); }
+    if (kind === 'refresh') void load();
   });
 
   scrub.addEventListener('input', () => {
@@ -400,46 +426,91 @@ export function createRadarMap(container, options = {}) {
 
   /* ----------------------------------------------------------- startup */
 
+  function updateHorizon() {
+    const future = state.frames.filter(f => f.kind === 'forecast' && f.time > Date.now() / 1000);
+    if (state.mode === 'future' && future.length) {
+      const minutes = Math.floor((future.at(-1).time * 1000 - Date.now()) / 60000);
+      horizon.textContent = `Future radar · up to ${Math.max(1, minutes)} minutes ahead${state.partial ? ' · some frames unavailable' : ''}`;
+    } else {
+      const past = state.frames.filter(f => f.kind === 'past');
+      const age = past.length ? Math.max(0, Math.floor((Date.now() / 1000 - past.at(-1).time) / 60)) : null;
+      horizon.textContent = `${age === null ? 'Recent radar unavailable' : `Latest observation · ${age} minutes ago`}${futureButton.disabled ? ` · ${state.index?.futureUnavailableReason || 'Future radar is temporarily unavailable.'}` : ''}`;
+    }
+  }
+
+  function selectTimeline(preferredFrame) {
+    if (!state.index) return;
+    ++paintGeneration;
+    clearPlaybackTimer();
+    const now = Date.now() / 1000;
+    const past = state.index.frames.filter(f => f.kind === 'past' && f.time <= now);
+    const future = state.index.frames.filter(f => f.kind === 'forecast' && f.time > now);
+    recentButton.disabled = !past.length;
+    futureButton.disabled = !future.length;
+    if (state.mode === 'future' && !future.length) state.mode = 'recent';
+    if (state.mode === 'recent' && !past.length && future.length) state.mode = 'future';
+    recentButton.setAttribute('aria-pressed', String(state.mode === 'recent'));
+    futureButton.setAttribute('aria-pressed', String(state.mode === 'future'));
+    // Include the newest observation as the starting point, and sample the
+    // full future sequence so a request budget never hides its farthest frame.
+    const selected = state.mode === 'future' ? [...past.slice(-1), ...future]
+      : past.filter(f => f.time >= (past.at(-1)?.time || now) - 2 * 3600);
+    state.frames = sampleFrames(selected, frameLimit());
+    state.frameIndex = state.mode === 'future' ? 0 : Math.max(0, state.frames.length - 1);
+    updateHorizon();
+    if (state.frames.length) void paintFrames(preferredFrame || state.frames[state.frameIndex]);
+    else { framesLayer.innerHTML = ''; setStatus('Radar imagery is unavailable right now.'); }
+  }
+
   async function load() {
+    const generation = ++loadGeneration;
+    ++paintGeneration;
+    stop();
+    state.frames = [];
+    framesLayer.innerHTML = '';
+    playButton.disabled = true; scrub.disabled = true;
     setStatus('Loading radar…');
     paintBase();
 
     try {
-      const index = await fetchRadarIndex();
-      if (destroyed) return;
+      const index = await fetchRadarIndex(radarRegion(state.lat, state.lon));
+      if (destroyed || generation !== loadGeneration) return;
 
       if (!index.available || !index.frames.length) {
         setStatus('Radar imagery is unavailable right now.');
+        futureButton.disabled = true; recentButton.disabled = true;
+        horizon.textContent = 'Try Refresh to check for new radar imagery.';
         return;
       }
 
       state.host = index.host;
-      // Keep enough history to show useful movement without bursting through
-      // RainViewer's public tile-request limit on a wide desktop viewport.
-      const limit = frameLimit();
-      const forecast = index.frames.filter((f) => f.kind === 'forecast');
-      const forecastCount = Math.min(forecast.length, Math.floor(limit / 3));
-      const past = index.frames.filter((f) => f.kind === 'past')
-        .slice(-(limit - forecastCount));
-      state.frames = [...past, ...forecast.slice(0, forecastCount)];
-
-      state.frameIndex = Math.max(0, past.length - 1); // start on "now"
-      await paintFrames(state.frames[state.frameIndex]);
+      state.index = index;
+      container.dataset.provider = index.provider;
+      sourceLink.href = index.provider === 'eccc' ? 'https://eccc-msc.github.io/open-data/msc-data/obs_radar/readme_radar_geomet_en/' : 'https://www.rainviewer.com/';
+      sourceLink.textContent = index.provider === 'eccc' ? 'ECCC / NOAA' : 'RainViewer';
+      container.querySelector('.radar-licence').hidden = index.provider !== 'eccc';
+      explainer.textContent = `${index.provider === 'eccc' ? 'Future frames project existing radar echoes; storms can grow or fade. ' : ''}An empty area may have no precipitation or no radar coverage.`;
+      selectTimeline();
     } catch (error) {
+      if (destroyed || generation !== loadGeneration) return;
       setStatus('Radar imagery is unavailable right now.');
+      horizon.textContent = 'Check your connection, then use Refresh.';
+      futureButton.disabled = true; recentButton.disabled = true;
     }
   }
 
   updateZoomButtons();
   load();
+  const refreshTimer = setInterval(() => { if (!destroyed && document.visibilityState === 'visible') void load(); }, 6 * 60 * 1000);
 
   return {
     setCenter(lat, lon, zoom) {
+      if (state.lat === lat && state.lon === lon && !zoom) return;
       state.lat = lat;
       state.lon = lon;
       if (zoom) state.zoom = clamp(zoom, MIN_ZOOM, MAX_ZOOM);
       updateZoomButtons();
-      repaint();
+      void load();
     },
     setTheme(theme) {
       const next = theme === 'light' ? 'light' : 'dark';
@@ -454,6 +525,7 @@ export function createRadarMap(container, options = {}) {
     destroy() {
       destroyed = true;
       stop();
+      clearInterval(refreshTimer);
       window.removeEventListener('resize', onResize);
       container.innerHTML = '';
     },

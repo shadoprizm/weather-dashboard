@@ -43,6 +43,23 @@ final class WeatherViewTests: XCTestCase {
         XCTAssertNotNil(forecast.updated, "Saved forecasts must always show their age")
         XCTAssertTrue(forecast.nextHours.isEmpty)
     }
+    func testGovernmentRadarPinsItsRunAndUsesMercatorCoordinates() throws {
+        let data = Data(#"{"available":true,"provider":"eccc","host":"https://geo.weather.gc.ca/geomet","frames":[{"time":1791626760,"kind":"forecast","layer":"Radar_1km_RainPrecipRate-Extrapolation","referenceTime":"2026-10-10T10:00:00Z"}]}"#.utf8)
+        let feed = try JSONDecoder().decode(RadarFeed.self, from: data)
+        let frame = try XCTUnwrap(feed.frames.first)
+        let url = try XCTUnwrap(feed.tileURL(frame, z: 1, x: 1, y: 0))
+        let params = try XCTUnwrap(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems)
+        XCTAssertEqual(params.first { $0.name == "DIM_REFERENCE_TIME" }?.value, "2026-10-10T10:00:00Z")
+        let bbox = try XCTUnwrap(params.first { $0.name == "BBOX" }?.value).split(separator: ",").compactMap { Double($0) }
+        XCTAssertEqual(bbox, [0, 0, 20037508.342789244, 20037508.342789244])
+        XCTAssertTrue(frame.projected)
+        for host in ["https://geo.weather.gc.ca/other", "https://geo.weather.gc.ca.evil.example/geomet", "https://user@geo.weather.gc.ca/geomet"] {
+            let bad = try JSONDecoder().decode(RadarFeed.self, from: JSONSerialization.data(withJSONObject: ["available":true,"provider":"eccc","host":host,"frames":[]]))
+            XCTAssertNil(bad.safeHost)
+        }
+        let unavailable = try JSONDecoder().decode(RadarFeed.self, from: Data(#"{"available":false,"host":null,"frames":[]}"#.utf8))
+        XCTAssertNil(unavailable.safeHost)
+    }
     func testSavedCityIdentityIsStable() {
         let a = Place(name: "Toronto", latitude: 43.65, longitude: -79.38)
         let b = Place(name: "Toronto, Ontario", latitude: 43.65001, longitude: -79.38001)
