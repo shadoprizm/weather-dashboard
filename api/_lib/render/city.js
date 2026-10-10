@@ -146,7 +146,7 @@ function contextSection(city, section, { updatedAt, alerts, weatherProvider }) {
       <p>
         Updated ${escapeHtml(new Date(updatedAt || Date.now()).toISOString().replace('T', ' ').slice(0, 16))} UTC,
         and refreshed automatically every few minutes. ${forecastSource}; radar frames from
-        RainViewer; the 20-year normals and records from
+        Environment Canada / NOAA in North America, with RainViewer for recent-radar fallback; the 20-year normals and records from
         the ERA5 reanalysis archive. ${official}
       </p>
       <p>

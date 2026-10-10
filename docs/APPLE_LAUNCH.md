@@ -51,6 +51,22 @@ the final partial hour. The correction is shared by the web and native clients.
 
 ## Remaining public release steps
 
+### October 10 radar update
+
+The release candidate now uses ECCC / NOAA observed radar and ECCC radar
+extrapolation in North America. It projects existing echoes up to 72 minutes
+from the source observation, with the actual available time ahead shown in
+the UI. No paid radar trial or subscription is required. Build 2 is prepared
+and passes eight native unit checks, including the government tile contract;
+build 1 remains the processed build currently selected in App Store Connect.
+Build 2 still needs native visual verification, upload and selection. See
+[RADAR.md](RADAR.md) for data sources, coverage and failure handling.
+
+The six professional iPhone/iPad marketing images are saved in English
+(Canada). They use real app captures and overlays; their radar copy describes
+recent precipitation. They do not claim that a future-radar build is already
+publicly available.
+
 1. Resolve the provider scope question in [WEATHER_DATA.md](WEATHER_DATA.md).
    Visual Crossing's October 2026 terms permit storage and public viewing, but
    restrict public raw-data retrieval. The open question is how those terms

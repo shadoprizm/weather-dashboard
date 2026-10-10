@@ -95,16 +95,46 @@ struct OutdoorPlan: Decodable {
 struct RadarFeed: Decodable {
     struct Frame: Decodable, Identifiable {
         let time: Double
-        let path: String
-        var id: Double { time }
+        let path: String?
+        let kind: String?
+        let layer: String?
+        let referenceTime: String?
+        var id: String { "\(kind ?? "past"):\(time)" }
+        var projected: Bool { kind == "forecast" }
     }
     let available: Bool
-    let host: String
+    let host: String?
     let frames: [Frame]
+    let provider: String?
+    let futureUnavailableReason: String?
     var safeHost: String? {
-        guard let url = URL(string: host), url.scheme == "https", let hostname = url.host,
-              hostname == "rainviewer.com" || hostname.hasSuffix(".rainviewer.com") else { return nil }
+        guard let host, let url = URL(string: host), url.scheme == "https", let hostname = url.host,
+              url.user == nil, url.password == nil, url.port == nil, url.query == nil, url.fragment == nil else { return nil }
+        if provider == "eccc" { return host == "https://geo.weather.gc.ca/geomet" ? host : nil }
+        guard (hostname == "rainviewer.com" || hostname.hasSuffix(".rainviewer.com")), url.path.isEmpty || url.path == "/" else { return nil }
         return host
+    }
+    func tileURL(_ frame: Frame, z: Int, x: Int, y: Int) -> URL? {
+        guard let host = safeHost, frame.time.isFinite else { return nil }
+        if provider == "eccc" {
+            guard let layer = frame.layer, ["RADAR_1KM_RRAI", "Radar_1km_RainPrecipRate-Extrapolation"].contains(layer) else { return nil }
+            let edge = 20037508.342789244, span = 2 * edge / pow(2, Double(z))
+            let left = -edge + Double(x) * span, top = edge - Double(y) * span
+            var url = URLComponents(string: host)!
+            let formatter = ISO8601DateFormatter()
+            var values = ["SERVICE":"WMS", "VERSION":"1.3.0", "REQUEST":"GetMap", "LAYERS":layer,
+                          "STYLES":"Radar-Rain_14colors", "FORMAT":"image/png", "TRANSPARENT":"TRUE", "CRS":"EPSG:3857",
+                          "BBOX":"\(left),\(top-span),\(left+span),\(top)", "WIDTH":"512", "HEIGHT":"512",
+                          "TIME":formatter.string(from: Date(timeIntervalSince1970: frame.time))]
+            if frame.projected {
+                guard let reference = frame.referenceTime, formatter.date(from: reference) != nil else { return nil }
+                values["DIM_REFERENCE_TIME"] = reference
+            }
+            url.queryItems = values.sorted { $0.key < $1.key }.map { URLQueryItem(name: $0.key, value: $0.value) }
+            return url.url
+        }
+        guard let path = frame.path, path.range(of: #"^/v2/radar/[0-9]+$"#, options: .regularExpression) != nil else { return nil }
+        return URL(string: "\(host.trimmingCharacters(in: CharacterSet(charactersIn: "/")))\(path)/512/\(z)/\(x)/\(y)/2/1_1.png")
     }
 }
 enum WeatherClock {

@@ -199,7 +199,7 @@ export function renderRadarSummary(vm) {
     <section class="panel">
       <header class="panel-head">
         <h2>Rain and snow timing for ${esc(vm.place.name)}</h2>
-        <p class="panel-sub">The radar shows where precipitation is. This shows when it reaches you.</p>
+        <p class="panel-sub">Hourly forecast timing, separate from the observed and projected radar map.</p>
       </header>
       <p class="radar-verdict">${esc(verdict)}</p>
       <ul class="nowcast-strip">${strip}</ul>

@@ -22,7 +22,7 @@
   <link rel="apple-touch-icon" href="/icons/weatherview-192.png">
   <link rel="manifest" href="/manifest.webmanifest?v=4">
   <link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin>
-  <link rel="stylesheet" href="/style.css?v=14">
+  <link rel="stylesheet" href="/style.css?v=15">
 </head>
 <body>
   <div class="sky" data-sky="clear-day" aria-hidden="true">
@@ -139,8 +139,8 @@
       <div class="view" id="view-radar" role="tabpanel" aria-labelledby="tab-radar" tabindex="0" hidden>
         <section id="radar-panel" class="panel" aria-label="Precipitation radar">
           <header class="panel-head">
-            <h2>Live radar</h2>
-            <p class="panel-sub">Drag to pan, scroll to zoom, or scrub through recent frames.</p>
+            <h2>Precipitation radar</h2>
+            <p class="panel-sub">Watch recent movement or project radar ahead. Drag to pan; use + / − or scroll to zoom.</p>
           </header>
           <div id="radar-mount"></div>
         </section>
@@ -180,7 +180,8 @@
   <footer class="footer">
     <p>
       <span id="forecast-source">Weather Data Provided by <a href="https://www.visualcrossing.com/" target="_blank" rel="noopener">Visual Crossing</a></span> ·
-      Radar <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> ·
+      Radar <a href="https://eccc-msc.github.io/open-data/msc-data/obs_radar/readme_radar_geomet_en/" target="_blank" rel="noopener">ECCC / NOAA</a>
+      / <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> ·
       Alerts <a href="https://eccc-msc.github.io/open-data/" target="_blank" rel="noopener">ECCC</a> and
       <a href="https://www.weather.gov/" target="_blank" rel="noopener">NWS</a> ·
       Space weather <a href="https://www.swpc.noaa.gov/" target="_blank" rel="noopener">NOAA SWPC</a>
@@ -261,6 +262,6 @@
   </noscript>
 
   <script type="module" src="/js/analytics.js"></script>
-  <script type="module" src="/js/main.js?v=19"></script>
+  <script type="module" src="/js/main.js?v=21"></script>
 </body>
 </html>

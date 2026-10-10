@@ -1,14 +1,15 @@
 # WeatherView for iPhone and iPad
 
 Native SwiftUI client for WeatherView's first-party HTTPS services. Requires
-iOS/iPadOS 17 or later. Version 1.0, build 1, bundle `cloud.weatherview.ios`.
+iOS/iPadOS 17 or later. Version 1.0, build 2, bundle `cloud.weatherview.ios`.
 
 ## Features
 
 - Current conditions, the next 24 hours, ten-day forecast and official bulletins.
 - Search and saved cities, Celsius/km/h or Fahrenheit/mph, local forecast cache
   with an explicit saved/updated timestamp.
-- Native Apple Maps with RainViewer precipitation frames and animation.
+- Native Apple Maps with Environment Canada / NOAA observed radar and radar-based
+  projections in North America, plus RainViewer recent-radar fallback.
 - The same activity/duration/daylight planning engine as the website. Apple's
   event editor reviews a selected future window before saving it, with an
   editable one-hour reminder. The app never requests calendar read access.
@@ -34,7 +35,7 @@ xcodebuild -project apple/WeatherView/WeatherView.xcodeproj \
 
 The generated project and shared scheme are checked in. Regenerate after adding
 files or changing `project.yml`. There are no external Swift package dependencies.
-Seven unit checks cover city dates/DST, nullable measurements, saved identity,
+Eight unit checks cover city dates/DST, nullable measurements, saved identity,
 planner contracts, forecast age, nighttime icons and trusted radar hosts.
 
 ## Distribution

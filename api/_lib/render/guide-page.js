@@ -237,7 +237,11 @@ function renderGuidePage() {
       <header class="panel-head"><h2>How WeatherView builds the forecast</h2></header>
       <p>
         WeatherView turns current conditions and forecast data from the configured
-        provider into hourly and extended views. RainViewer supplies radar frames;
+        provider into hourly and extended views. Environment Canada supplies observed
+        and projected North American radar, including NOAA observations. Future frames
+        project existing echoes up to 72 minutes from their starting observation;
+        the available time ahead is shown on the map. RainViewer supplies recent
+        radar outside that domain and when the government feed is unavailable;
         Environment and Climate Change Canada and the US National Weather Service
         supply official alerts. Forecast pages show when their data was refreshed
         and update automatically every few minutes.
@@ -251,6 +255,7 @@ function renderGuidePage() {
       <p class="guide-source">
         Data sources: <a href="https://www.visualcrossing.com/" rel="noopener">Visual Crossing</a>,
         <a href="https://www.rainviewer.com/" rel="noopener">RainViewer</a>,
+        <a href="https://eccc-msc.github.io/open-data/licence/readme_en/" rel="noopener">ECCC data licence</a>,
         <a href="https://www.weather.gc.ca/" rel="noopener">Environment Canada</a> and
         <a href="https://www.weather.gov/" rel="noopener">National Weather Service</a>.
       </p>

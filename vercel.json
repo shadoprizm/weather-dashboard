@@ -31,7 +31,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://tile.openstreetmap.org https://*.rainviewer.com; connect-src 'self' https://api.bigdatacloud.net; font-src 'self'; frame-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'"
+          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://tile.openstreetmap.org https://*.rainviewer.com https://geo.weather.gc.ca; connect-src 'self' https://api.bigdatacloud.net; font-src 'self'; frame-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'"
         },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
         { "key": "X-Content-Type-Options", "value": "nosniff" },

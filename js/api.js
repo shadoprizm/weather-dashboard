@@ -43,8 +43,8 @@ export function fetchAlerts(lat, lon) {
   return get('/api/alerts', { lat, lon });
 }
 
-export function fetchRadarIndex() {
-  return get('/api/radar');
+export function fetchRadarIndex(region) {
+  return get('/api/radar', { v: 2, region });
 }
 
 export function fetchAlmanac(lat, lon, date) {
