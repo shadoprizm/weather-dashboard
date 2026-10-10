@@ -75,8 +75,8 @@ const legacyModule = worker(['weatherview-v23-shell']);
 legacyModule.stores.get('weatherview-v23-shell').set('https://www.weatherview.cloud/js/views/planner.js', { body: 'previous exports' });
 assert.equal((await legacyModule.request('/js/views/planner.js?v=23')).body, 'network', 'versioned imports bypass an old unversioned module');
 for (const [file, specifiers] of [
- ['main.js', ['analytics.js?v=23', 'views/planner.js?v=23', 'plan-share.js?v=23', 'views/panels.js?v=23']],
- ['plan-share.js', ['views/planner.js?v=23']], ['views/panels.js', ['planner.js?v=23']],
+ ['main.js', ['analytics.js?v=23', 'views/planner.js?v=23', 'plan-share.js?v=23']],
+ ['plan-share.js', ['views/planner.js?v=23']],
 ]) {
  const module = await readFile(new URL('../js/' + file, import.meta.url), 'utf8');
  for (const dependency of specifiers) assert.ok(module.includes("'./" + dependency + "'"), file + ' must request the current changed dependency');

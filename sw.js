@@ -41,7 +41,7 @@ const SHELL = [
   '/js/radar-data.js?v=21',
   '/js/weather-watch.js',
   '/js/views/forecast.js',
-  '/js/views/panels.js?v=23',
+  '/js/views/panels.js',
   '/js/views/tables.js',
 ];
 
