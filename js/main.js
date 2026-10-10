@@ -14,16 +14,16 @@ import { weatherIcon } from './icons.js';
 import { buildViewModel as toViewModel } from './viewmodel.js';
 import { createRadarMap } from './radar.js?v=21';
 import * as weatherWatch from './weather-watch.js';
-import { trackAction } from './analytics.js';
+import { trackAction } from './analytics.js?v=23';
 import { planActivity } from './planning.js';
 import { calendarEvent } from './calendar.js';
-import { planReasons, renderPlanPreview } from './views/planner.js';
-import { planPreferencesFromUrl, sharePlan } from './plan-share.js';
+import { planReasons, renderPlanPreview, renderPlanner } from './views/planner.js?v=23';
+import { planPreferencesFromUrl, sharePlan } from './plan-share.js?v=23';
 import {
   renderHero, renderHourly, renderDetails, renderDaily, errorPanel,
 } from './views/forecast.js';
 import {
-  renderAlerts, renderActivities, renderAstro, renderAir, renderAlmanac, renderCompare,
+  renderAlerts, renderAstro, renderAir, renderAlmanac, renderCompare,
 } from './views/panels.js';
 
 const REFRESH_MS = 10 * 60 * 1000;
@@ -76,7 +76,7 @@ const RENDERERS = {
   details: renderDetails,
   air: renderAir,
   daily: renderDaily,
-  activities: renderActivities,
+  activities: renderPlanner,
   astro: renderAstro,
   almanac: renderAlmanac,
   compare: renderCompare,

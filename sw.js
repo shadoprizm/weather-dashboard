@@ -10,7 +10,7 @@
  * whole store is versioned so a deploy replaces it wholesale.
  */
 
-const VERSION = 'weatherview-v22';
+const VERSION = 'weatherview-v23';
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-data`;
 const PAGE_CACHE = `${VERSION}-pages`;
@@ -21,8 +21,8 @@ const SHELL = [
   '/style.css?v=16',
   '/manifest.webmanifest?v=4',
   '/icons/weatherview-mark.svg',
-  '/js/main.js?v=22',
-  '/js/analytics.js',
+  '/js/main.js?v=23',
+  '/js/analytics.js?v=23',
   '/js/vercel-analytics.js',
   '/js/api.js',
   '/js/state.js',
@@ -33,10 +33,10 @@ const SHELL = [
   '/js/insights.js',
   '/js/viewmodel.js',
   '/js/planning.js',
-  '/js/plan-share.js',
+  '/js/plan-share.js?v=23',
   '/js/share.js',
   '/js/calendar.js',
-  '/js/views/planner.js',
+  '/js/views/planner.js?v=23',
   '/js/radar.js?v=21',
   '/js/radar-data.js?v=21',
   '/js/weather-watch.js',
