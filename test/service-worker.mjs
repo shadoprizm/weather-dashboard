@@ -41,13 +41,13 @@ function worker(initialKeys = [], { holdNavigation = false } = {}) {
   };
 }
 
-const updated = worker(['weatherview-v16-shell', 'weatherview-v23-shell', 'unrelated-cache']);
+const updated = worker(['weatherview-v16-shell', 'weatherview-v24-shell', 'unrelated-cache']);
 await updated.activate();
 assert.equal(updated.stores.has('weatherview-v16-shell'), false);
 assert.equal(updated.stores.has('unrelated-cache'), true);
 assert.equal(updated.claimed(), 1);
 assert.deepEqual(updated.navigated, ['https://www.weatherview.cloud/?lat=45&lon=-75&view=radar'], 'legacy tabs must execute the new modules without losing location or view');
-const first = worker(['weatherview-v23-shell']);
+const first = worker(['weatherview-v24-shell']);
 await first.activate();
 assert.deepEqual(first.navigated, [], 'first installation must not cause a redundant page reload');
 const pendingNavigation = worker(['weatherview-v16-shell'], { holdNavigation: true });
@@ -57,22 +57,22 @@ await Promise.race([
 ]);
 assert.equal(pendingNavigation.navigated.length, 1, 'activation completes even while navigation awaits the new worker');
 
-const mixed = worker(['weatherview-v16-shell', 'weatherview-v23-shell']);
+const mixed = worker(['weatherview-v16-shell', 'weatherview-v24-shell']);
 mixed.stores.get('weatherview-v16-shell').set('https://www.weatherview.cloud/js/radar.js?v=21', { body: 'old map provider' });
-mixed.stores.get('weatherview-v23-shell').set('https://www.weatherview.cloud/js/radar.js?v=21', { body: 'current map provider' });
+mixed.stores.get('weatherview-v24-shell').set('https://www.weatherview.cloud/js/radar.js?v=21', { body: 'current map provider' });
 assert.equal((await mixed.request('/js/radar.js?v=21')).body, 'current map provider', 'cache lookup must stay within the active generation');
 mixed.offline();
 mixed.stores.set('weatherview-v16-data', new Map([['https://www.weatherview.cloud/api/radar', { body: 'expired frames' }]]));
 await assert.rejects(mixed.request('/api/radar'), /offline/, 'old radar indexes must not leak across cache generations');
 mixed.stores.get('weatherview-v16-shell').set('https://www.weatherview.cloud/', { body: 'old page' });
-mixed.stores.get('weatherview-v23-shell').set('https://www.weatherview.cloud/', { body: 'current offline page' });
+mixed.stores.get('weatherview-v24-shell').set('https://www.weatherview.cloud/', { body: 'current offline page' });
 const offlinePage = await mixed.request('/weather/ottawa', 'navigate');
 assert.equal(offlinePage.body, 'current offline page', 'offline navigation uses the current shell');
 console.log('Service-worker upgrade, preserved URL, first install and scoped cache checks passed.');
 
 // A returning installation may still cache unversioned modules during an upgrade.
-const legacyModule = worker(['weatherview-v23-shell']);
-legacyModule.stores.get('weatherview-v23-shell').set('https://www.weatherview.cloud/js/views/planner.js', { body: 'previous exports' });
+const legacyModule = worker(['weatherview-v24-shell']);
+legacyModule.stores.get('weatherview-v24-shell').set('https://www.weatherview.cloud/js/views/planner.js', { body: 'previous exports' });
 assert.equal((await legacyModule.request('/js/views/planner.js?v=23')).body, 'network', 'versioned imports bypass an old unversioned module');
 for (const [file, specifiers] of [
  ['main.js', ['analytics.js?v=23', 'views/planner.js?v=23', 'plan-share.js?v=23']],
@@ -82,3 +82,10 @@ for (const [file, specifiers] of [
  for (const dependency of specifiers) assert.ok(module.includes("'./" + dependency + "'"), file + ' must request the current changed dependency');
 }
 console.log('Returning-visitor module upgrade checks passed.');
+
+const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+const main = await readFile(new URL('../js/main.js', import.meta.url), 'utf8');
+const pageAnalytics = html.match(/<script type="module" src="\/js\/(analytics\.js[^"]*)"/)[1];
+const appAnalytics = main.match(/from '\.\/(analytics\.js[^']*)'/)[1];
+assert.equal(pageAnalytics, appAnalytics, 'page and application must load one analytics module instance');
+console.log('Single analytics-module instance check passed.');
