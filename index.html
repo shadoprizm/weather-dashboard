@@ -6,23 +6,25 @@
   <meta name="color-scheme" content="dark light">
   <meta name="theme-color" content="#0b1220">
   <!--wv:head-->
-  <title>WeatherView — fast, ad-free weather</title>
-  <meta name="description" content="Fast, ad-free weather. Current conditions, hourly and 14-day forecasts, live radar, air quality, official alerts and 20-year normals — plus a plain-English read on what the day actually holds.">
+  <title>WeatherView — weather that helps you make plans</title>
+  <meta name="description" content="Find a good time for your outdoor plans with WeatherView. Free, ad-free forecasts, a 48-hour activity planner, precipitation radar, air quality and official alerts.">
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
   <link rel="canonical" href="https://www.weatherview.cloud/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="WeatherView">
-  <meta property="og:title" content="WeatherView — fast, ad-free weather">
-  <meta property="og:description" content="Weather without the ads, popups and autoplay video. Just the forecast.">
+  <meta property="og:title" content="WeatherView — weather that helps you make plans">
+  <meta property="og:description" content="See what’s coming. Find a good time to get outside. Check the radar before you go. Free and ad-free.">
   <meta property="og:url" content="https://www.weatherview.cloud/">
-  <meta name="twitter:card" content="summary">
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"WeatherView","url":"https://www.weatherview.cloud/","description":"Fast, ad-free weather with current conditions, hourly and 14-day forecasts, live radar, air quality, official alerts and 20-year normals.","publisher":{"@type":"Organization","name":"WeatherView","url":"https://www.weatherview.cloud/","logo":"https://www.weatherview.cloud/icons/weatherview-512.png"}}</script>
+  <meta property="og:image" content="https://www.weatherview.cloud/media/weather-planning.png">
+  <meta property="og:image:alt" content="WeatherView: weather that helps you make plans">
+  <meta name="twitter:card" content="summary_large_image">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"WeatherView","url":"https://www.weatherview.cloud/","description":"Free, ad-free weather with a 48-hour activity planner, forecasts, precipitation radar, air quality and official alerts.","publisher":{"@type":"Organization","name":"WeatherView","url":"https://www.weatherview.cloud/","logo":"https://www.weatherview.cloud/icons/weatherview-512.png"}}</script>
   <!--/wv:head-->
   <link rel="icon" href="/icons/weatherview-mark.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icons/weatherview-192.png">
   <link rel="manifest" href="/manifest.webmanifest?v=4">
   <link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin>
-  <link rel="stylesheet" href="/style.css?v=15">
+  <link rel="stylesheet" href="/style.css?v=16">
 </head>
 <body>
   <div class="sky" data-sky="clear-day" aria-hidden="true">
@@ -112,6 +114,15 @@
       <div class="skeleton skeleton-hero" aria-hidden="true"></div>
     </section>
 
+    <section id="plan-intro" class="panel planning-intro" aria-label="Plan your time outside">
+      <div class="planning-promise"><p class="eyebrow">Free · Ad-free · No account needed</p>
+        <h2>Weather that helps you make plans.</h2>
+        <p>See what’s coming. Find a good time to get outside. Check the radar before you go.</p></div>
+      <div id="plan-preview"><p>Choose an activity and how long you need. Compare suitable times in the next 48 hours.</p>
+        <button type="button" class="ghost-button" data-action="open-plan">Find a time →</button></div>
+      <a class="planning-guide-link" href="/outdoor-planning">How to plan around the weather</a>
+    </section>
+
     <nav class="tabs" role="tablist" aria-label="Forecast sections">
       <button class="tab" role="tab" id="tab-today" data-view="today"
               aria-controls="view-today" aria-selected="true" tabindex="0">Today</button>
@@ -163,7 +174,7 @@
     -->
     <section id="page-detail" class="stack" aria-label="Forecast detail">
       <div class="panel panel-intro">
-        <h1>WeatherView — weather for your everyday plans</h1>
+        <h1>WeatherView — weather that helps you make plans</h1>
         <p>Check current conditions, hourly and 14-day forecasts, live precipitation radar,
           air quality and official Canadian and US alerts. Find a good time for a walk,
           a bike ride or outdoor work in the Plan tab. No account is needed.</p>
@@ -193,6 +204,8 @@
     <p class="footer-links">
       <a href="/weather">Weather by city</a> ·
       <a href="/">Dashboard</a> ·
+      <a href="/outdoor-planning">Outdoor planning</a> ·
+      <a href="/launch">What’s new</a> ·
       <a href="/widgets">Free website widget</a> ·
       <a href="/privacy">Privacy</a>
     </p>
@@ -262,6 +275,6 @@
   </noscript>
 
   <script type="module" src="/js/analytics.js"></script>
-  <script type="module" src="/js/main.js?v=21"></script>
+  <script type="module" src="/js/main.js?v=22"></script>
 </body>
 </html>

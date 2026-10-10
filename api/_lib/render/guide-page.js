@@ -173,6 +173,7 @@ function renderAnswer(item) {
       <h2>${escapeHtml(item.question)}</h2>
       <p class="answer-summary">${escapeHtml(item.answer)}</p>
       ${item.detail.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join('')}
+      <p>Want to put these numbers to use? <a href="/outdoor-planning">Find a good time for outdoor plans</a>.</p>
       <p class="guide-source">Source: <a href="${escapeHtml(item.source.href)}" rel="noopener">${escapeHtml(item.source.label)}</a>.</p>
     </article>`;
 }

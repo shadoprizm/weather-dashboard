@@ -28,7 +28,9 @@ function renderSitemap({ now = new Date(), storyList = null } = {}) {
   const entries = [
     urlEntry({ loc: site.url('/'), lastmod: forecastLastmod, changefreq: 'hourly', priority: '1.0' }),
     urlEntry({ loc: site.url('/weather'), lastmod: forecastLastmod, changefreq: 'daily', priority: '0.8' }),
-    urlEntry({ loc: site.url('/weather-guide'), lastmod: '2026-09-07', changefreq: 'monthly', priority: '0.6' }),
+    urlEntry({ loc: site.url('/weather-guide'), lastmod: '2026-10-09', changefreq: 'monthly', priority: '0.6' }),
+    urlEntry({ loc: site.url('/outdoor-planning'), lastmod: '2026-10-10', changefreq: 'monthly', priority: '0.7' }),
+    urlEntry({ loc: site.url('/launch'), lastmod: '2026-10-10', changefreq: 'monthly', priority: '0.5' }),
     urlEntry({ loc: site.url('/widgets'), changefreq: 'monthly', priority: '0.5' }),
   ];
 

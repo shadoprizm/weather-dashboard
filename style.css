@@ -1678,3 +1678,16 @@ body.is-loading .layout { opacity: .72; transition: opacity .2s ease; }
   body:is([data-view="radar"],[data-view="week"],[data-view="plan"],[data-view="almanac"],[data-section="hourly"]) .hero-readout { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
   body:is([data-view="radar"],[data-view="week"],[data-view="plan"],[data-view="almanac"],[data-section="hourly"]) .hero-feels { flex-basis: 100%; }
 }
+
+/* A useful planning answer alongside the everyday forecast. */
+.planning-intro { padding: 22px; }
+.planning-intro h2 { font-size: clamp(1.25rem, 3vw, 1.65rem); margin: 6px 0; }
+.planning-intro p { line-height: 1.55; margin: 8px 0; }
+.planning-promise > p:not(.eyebrow), .planning-small { color: var(--text-dim); }
+#plan-preview { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+.planning-time { font-size: 1.3rem; font-weight: 650; }
+.planning-small, .planning-guide-link { font-size: .82rem; }
+.planning-guide-link { display: inline-block; margin-top: 8px; }
+.plan-window .ghost-button { margin: 6px 8px 0 0; }
+.launch-media { display: grid; gap: 20px; }
+.launch-media img { display: block; width: 100%; height: auto; border-radius: 16px; }

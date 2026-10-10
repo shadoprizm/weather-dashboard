@@ -20,6 +20,8 @@ const { renderStoriesIndex, renderStoryPage } = require('./render/stories-page')
 const { renderSitemap, renderRobots } = require('./render/sitemap');
 const { renderDocument, escapeHtml } = require('./render/shell');
 
+const { renderPlanningPage, renderLaunchPage } = require('./render/planning-page');
+
 const HTML = 'text/html; charset=utf-8';
 
 /**
@@ -182,6 +184,8 @@ module.exports = {
   cityIndex,
   widgetsPage,
   guidePage,
+  planningPage: async () => ({ status: 200, contentType: HTML, body: renderPlanningPage(), maxAge: 3600 }),
+  launchPage: async () => ({ status: 200, contentType: HTML, body: renderLaunchPage(), maxAge: 3600 }),
   storiesIndex,
   weatherStoryPage,
   sitemap,

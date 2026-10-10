@@ -260,6 +260,7 @@ async function renderCityPage(city, section = 'overview') {
       air: panels.renderAir(vm),
       daily: views.renderDaily(vm),
       activities: panels.renderActivities(vm),
+      'plan-preview': mods.planner.renderPlanPreview(vm),
       astro: panels.renderAstro(vm),
       almanac: panels.renderAlmanac(vm),
       'page-detail': detail,

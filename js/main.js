@@ -17,7 +17,8 @@ import * as weatherWatch from './weather-watch.js';
 import { trackAction } from './analytics.js';
 import { planActivity } from './planning.js';
 import { calendarEvent } from './calendar.js';
-import { planReasons } from './views/planner.js';
+import { planReasons, renderPlanPreview } from './views/planner.js';
+import { planPreferencesFromUrl, sharePlan } from './plan-share.js';
 import {
   renderHero, renderHourly, renderDetails, renderDaily, errorPanel,
 } from './views/forecast.js';
@@ -94,6 +95,7 @@ const session = {
   view: DEFAULT_VIEW,
   // Views already painted for the current data; cleared whenever it changes.
   painted: new Set(),
+  measuredPlan: null,
 };
 
 /* ---------------------------------------------------------------- render */
@@ -125,6 +127,7 @@ function render() {
   const vm = buildViewModel();
   setHTML('#hero', renderHero(vm));
   setHTML('#alerts', renderAlerts(vm));
+  setHTML('#plan-preview', renderPlanPreview(vm));
 
   paintView();
   applySky(vm);
@@ -144,6 +147,7 @@ function renderForecastSource() {
 /** Render the active view's panels, once per data revision. */
 function paintView() {
   const view = session.view;
+  if (view === 'plan' && session.data) measurePlanResults();
 
   if (view === 'radar' && session.place) {
     mountRadar(session.place);
@@ -175,6 +179,7 @@ function setView(view, { focusPanel = false } = {}) {
   session.view = view;
   document.body.dataset.view = view;
   trackAction('Forecast section', { section: view });
+  if (view === 'plan') trackAction('Planning entered', { source: 'tab-or-link' });
 
   for (const name of VIEW_ORDER) {
     const tab = $(`#tab-${name}`);
@@ -188,6 +193,14 @@ function setView(view, { focusPanel = false } = {}) {
   paintView();
   syncUrl(session.place);
   if (focusPanel) $(`#view-${view}`).focus();
+}
+
+function measurePlanResults() {
+  const plan = planActivity(buildViewModel(), state.getPlanPreferences());
+  const key = JSON.stringify([session.place.id, session.data.fetchedAt, plan.preferences, plan.windows[0]?.start]);
+  if (key === session.measuredPlan) return;
+  session.measuredPlan = key;
+  trackAction('Planning results', { ...plan.preferences, status: plan.status, hasResults: Boolean(plan.windows.length) });
 }
 
 /** Drive the page gradient and the auto light/dark decision from the sky. */
@@ -353,6 +366,7 @@ function syncUrl(place) {
     url.pathname = page.sectionPaths[session.view] || page.basePath;
     if (['plan', 'almanac'].includes(session.view)) url.searchParams.set('view', session.view);
     else url.searchParams.delete('view');
+    syncPlanParameters(url);
     window.history.replaceState(null, '', url);
     return;
   }
@@ -368,7 +382,15 @@ function syncUrl(place) {
   }
   if (session.view && session.view !== DEFAULT_VIEW) url.searchParams.set('view', session.view);
   else url.searchParams.delete('view');
+  syncPlanParameters(url);
   window.history.replaceState(null, '', url);
+}
+
+function syncPlanParameters(url) {
+  for (const [key, value] of Object.entries(state.getPlanPreferences())) {
+    if (session.view === 'plan') url.searchParams.set(key, value);
+    else url.searchParams.delete(key);
+  }
 }
 
 /**
@@ -543,6 +565,12 @@ document.addEventListener('click', (event) => {
     paintView();
   }
 
+  if (action === 'open-plan') {
+    trackAction('Planning CTA', { source: 'forecast-preview' });
+    setView('plan', { focusPanel: true });
+    document.getElementById('activities')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  if (action === 'plan-share') shareSelectedPlan(trigger.dataset.start, trigger.dataset.end);
   if (action === 'plan-calendar') downloadPlan(trigger.dataset.start, trigger.dataset.end);
   if (action === 'open-watch') openWatchDialog();
   if (action === 'close-watch') $('#watch-dialog')?.close();
@@ -553,6 +581,16 @@ document.addEventListener('click', (event) => {
     toast(`Stopped watching ${session.place.name}`);
   }
 });
+
+async function shareSelectedPlan(start, end) {
+  if (!session.data) return;
+  const vm = buildViewModel();
+  const plan = planActivity(vm, state.getPlanPreferences());
+  const selected = plan.windows.find(w => w.start === start && w.end === end);
+  if (!selected) { refreshPanel('activities'); toast('That suggestion has passed. Choose a current window.'); return; }
+  const method = await sharePlan(vm, plan, selected, { toast });
+  if (method) trackAction('Plan shared', { ...plan.preferences, method });
+}
 
 function downloadPlan(start, end) {
   if (!session.data) return;
@@ -582,7 +620,9 @@ document.addEventListener('change', (event) => {
   if (key === 'activity') change.timeOfDay = change.activity === 'stargaze' ? 'night' : 'daylight';
   state.setPlanPreferences(change);
   trackAction('Plan preference', state.getPlanPreferences());
+  syncUrl(session.place);
   refreshPanel('activities');
+  if (session.data) { setHTML('#plan-preview', renderPlanPreview(buildViewModel())); measurePlanResults(); }
   document.getElementById(id)?.focus();
 });
 
@@ -902,6 +942,8 @@ function start() {
 
   // Restore the section from the URL before the first paint, so a shared
   // link opens on the section it was shared from.
+  const linkedPlan = planPreferencesFromUrl(window.location.href, state.getPlanPreferences());
+  if (linkedPlan) state.setPlanPreferences(linkedPlan);
   const initialView = viewFromUrl();
   if (initialView !== DEFAULT_VIEW) {
     session.view = DEFAULT_VIEW;
@@ -954,6 +996,7 @@ function start() {
       setHTML('#hero', renderHero(buildViewModel()));
       syncWatchButton();
       refreshPanel('activities');
+      setHTML('#plan-preview', renderPlanPreview(buildViewModel()));
     }
   }, 60000);
 
