@@ -247,27 +247,28 @@ export function forecastQuestions(vm) {
   const timing = precipTiming(series, nowIndex, 24);
   const nextHours = series.slice(nowIndex, nowIndex + 24);
   const probabilities = nextHours.map((hour) => hour.pop).filter(Number.isFinite);
-  const nextChance = probabilities.length ? fmt.percent(Math.max(...probabilities)) : 'unknown';
+  const nextChance = probabilities.length ? fmt.percent(Math.max(...probabilities)) : null;
+  const chanceNote = nextChance ? ` The next 24 hours peak at a ${nextChance} chance.` : ' Rain probabilities are not supplied; timing uses forecast precipitation amounts.';
   if (timing && timing.state === 'active') {
     out.push({
       question: `Is it raining in ${place} right now?`,
-      answer: timing.openEnded
+      answer: vm.currentIsForecast ? `The forecast estimates precipitation around the current hour in ${place}${timing.endsAt ? `, easing around ${fmt.hourLabel(timing.endsAt,units)}` : ', continuing into the next day'}. Check recent radar for observations.` : timing.openEnded
         ? `Yes — precipitation is falling in ${place} and the models keep it going through the next day.`
         : `Yes — precipitation is falling in ${place} and should ease around ${fmt.hourLabel(timing.endsAt, units)}.`,
     });
   } else if (timing && timing.state === 'incoming') {
     out.push({
       question: `Will it rain in ${place} in the next 24 hours?`,
-      answer: `It is dry now. ${timing.type === 'snow' ? 'Snow' : 'Rain'} is most likely around ` +
+      answer: `${vm.currentIsForecast ? 'The current-hour forecast is dry.' : 'It is dry now.'} ${timing.type === 'snow' ? 'Snow' : 'Rain'} is forecast around ` +
         `${fmt.hourLabel(timing.startsAt, units)}` +
         (timing.endsAt ? `, easing by ${fmt.hourLabel(timing.endsAt, units)}.` : ', lingering into the evening.') +
-        ` The next 24 hours peak at a ${nextChance} chance.`,
+        chanceNote,
     });
   } else {
     out.push({
       question: `Will it rain in ${place} in the next 24 hours?`,
       answer: timing
-        ? `No significant precipitation is forecast in ${place} in the next 24 hours. The hourly chance peaks at ${nextChance}.`
+        ? `No significant precipitation is forecast in ${place} in the next 24 hours.${nextChance ? ` The hourly chance peaks at ${nextChance}.` : chanceNote}`
         : `Hourly precipitation data is unavailable for ${place} right now. Check again for the next 24-hour outlook.`,
     });
   }
@@ -300,7 +301,7 @@ export function forecastQuestions(vm) {
       question: `What is the weather in ${place} tomorrow?`,
       answer: `${describe(tomorrow.code, 1).label}, with a high of ${fmt.temp(tomorrow.high, units, { withUnit: true })} ` +
         `and a low of ${fmt.temp(tomorrow.low, units, { withUnit: true })} — ${direction}. ` +
-        `Chance of precipitation peaks at ${fmt.percent(tomorrow.popMax)}.`,
+        (Number.isFinite(tomorrow.popMax) ? `Chance of precipitation peaks at ${fmt.percent(tomorrow.popMax)}.` : `Estimated precipitation: ${fmt.precip(tomorrow.precipSum,units)} across available forecast periods.`),
     });
   }
 

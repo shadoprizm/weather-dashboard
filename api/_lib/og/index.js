@@ -72,6 +72,7 @@ async function ogCard(query = {}) {
     : { label: 'Unavailable', icon: 'clear-day' };
 
   const png = renderCard({
+    weatherProvider: data.weatherProvider,
     place: place.name,
     region: place.region,
     temperature: vm.current ? fmt.temp(vm.current.temperature_2m, vm.units) : '--',

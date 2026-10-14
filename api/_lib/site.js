@@ -37,7 +37,7 @@ const site = {
   displayHost: ORIGIN.replace(/^https?:\/\//, '').replace(/^www\./, ''),
 
   tagline: 'Weather that helps you make plans',
-  description: 'Find a good time for your outdoor plans. Free, ad-free weather with a 48-hour activity planner, forecasts, precipitation radar, air quality and official alerts.',
+  description: 'Find a good time for your outdoor plans. Free, ad-free weather with a 48-hour activity planner, forecasts, precipitation radar and official alerts.',
 
   locale: 'en',
   themeColor: '#0b1220',

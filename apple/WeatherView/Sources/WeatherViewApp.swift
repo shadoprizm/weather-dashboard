@@ -67,6 +67,7 @@ struct ForecastView: View {
                             Text("Feels like \(WeatherClock.temperature(current.apparent_temperature, imperial: imperial)) · \(imperial ? "Fahrenheit" : "Celsius")")
                             HStack { Label(WeatherClock.wind(current.wind_speed_10m, imperial: imperial), systemImage: "wind"); Spacer(); Label(WeatherClock.percent(current.relative_humidity_2m), systemImage: "humidity") }.foregroundStyle(.secondary)
                             if let updated = forecast.updated { Text("\(weather.offline ? "Saved" : "Updated") \(updated.formatted(.relative(presentation: .named)))").font(.caption).foregroundStyle(.secondary) }
+                            if forecast.currentIsForecast == true { Text("Forecast estimate for \(WeatherClock.label(current.time, zone: forecast.zone, format: "ha"))").font(.caption).foregroundStyle(.secondary) }
                         }.padding(24).frame(maxWidth: .infinity, alignment: .leading).background(LinearGradient(colors: [.blue.opacity(0.16), .cyan.opacity(0.06)], startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 26))
                     }
                     Text("The next 24 hours").font(.title2.bold())
@@ -78,7 +79,7 @@ struct ForecastView: View {
                                     Text(WeatherClock.label(forecast.hourly.time[i], zone: forecast.zone, format: "ha")).font(.caption)
                                     Image(systemName: WeatherClock.condition(forecast.hourly.weather_code.at(i) ?? nil, isDay: forecast.isDay(at: i)).1).symbolRenderingMode(.hierarchical).foregroundStyle(.blue).font(.title2)
                                     Text(WeatherClock.temperature(forecast.hourly.temperature_2m.at(i) ?? nil, imperial: imperial)).font(.title3.bold())
-                                    Label(WeatherClock.percent(forecast.hourly.precipitation_probability.at(i) ?? nil), systemImage: "drop.fill").font(.caption).foregroundStyle(.blue)
+                                    Label(WeatherSource.precipitation(forecast.hourly.precipitation_probability.at(i) ?? nil, amount: forecast.hourly.precipitation?.at(i) ?? nil, imperial: imperial), systemImage: "drop.fill").font(.caption).foregroundStyle(.blue)
                                 }.padding(14).frame(minWidth: 86).background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 18))
                             }
                         }
@@ -91,7 +92,8 @@ struct ForecastView: View {
     }
     func sources(_ forecast: Forecast) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Link(forecast.weatherProvider == "visual-crossing" ? "Weather Data Provided by Visual Crossing" : "Weather data by Open-Meteo", destination: URL(string: forecast.weatherProvider == "visual-crossing" ? "https://www.visualcrossing.com" : "https://open-meteo.com")!)
+            Link(forecast.sourceText, destination: forecast.sourceURL)
+            if let note = forecast.forecastNote { Text(note) }
             Text("Warning coverage varies by country. Always check your national weather service before an outdoor activity.")
             Link("Open this forecast on WeatherView", destination: webURL(weather.selected))
             ShareLink(item: webURL(weather.selected)) { Label("Share forecast", systemImage: "square.and.arrow.up") }
@@ -117,11 +119,12 @@ struct WeekView: View {
                         Spacer()
                         VStack(alignment: .trailing) {
                             Text("\(WeatherClock.temperature(forecast.daily.temperature_2m_max.at(i) ?? nil, imperial: imperial)) / \(WeatherClock.temperature(forecast.daily.temperature_2m_min.at(i) ?? nil, imperial: imperial))")
-                            Label(WeatherClock.percent(forecast.daily.precipitation_probability_max.at(i) ?? nil), systemImage: "drop").font(.caption).foregroundStyle(.secondary)
+                            Label(WeatherSource.precipitation(forecast.daily.precipitation_probability_max.at(i) ?? nil, amount: forecast.daily.precipitation_sum?.at(i) ?? nil, imperial: imperial), systemImage: "drop").font(.caption).foregroundStyle(.secondary)
                         }
                     }.padding(.vertical, 8)
                 }
-                Link(forecast.weatherProvider == "visual-crossing" ? "Weather Data Provided by Visual Crossing" : "Weather data by Open-Meteo", destination: URL(string: forecast.weatherProvider == "visual-crossing" ? "https://www.visualcrossing.com" : "https://open-meteo.com")!).font(.footnote)
+                Link(forecast.sourceText, destination: forecast.sourceURL).font(.footnote)
+                if let note = forecast.forecastNote { Text(note).font(.footnote).foregroundStyle(.secondary) }
                 Text("Forecast confidence decreases further ahead. Times and dates are local to \(weather.selected.name).").font(.footnote).foregroundStyle(.secondary)
             } else { Text("Load a forecast in Today to see the week ahead.") }
         }.refreshable { await weather.refresh() }
@@ -148,6 +151,7 @@ struct PlacesView: View {
                     ForEach(weather.places) { place in placeButton(place).swipeActions { if weather.places.count > 1 { Button("Remove", role: .destructive) { weather.remove(place) } } } }
                 }
                 Text("Places stay on this device. Search by city, region or country.").font(.footnote).foregroundStyle(.secondary)
+                Link("Place data: GeoNames · CC BY 4.0", destination: URL(string: "https://www.geonames.org/export/")!).font(.footnote)
             }.navigationTitle("Your places")
                 .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search any city")
                 .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }

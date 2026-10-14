@@ -138,7 +138,9 @@ function contextSection(city, section, { updatedAt, alerts, weatherProvider }) {
     : 'Official alerts are not integrated for this location; check your local weather service for current warnings. Computed watches are shown here.';
   const forecastSource = weatherProvider === 'visual-crossing'
     ? 'Forecast data is provided by <a href="https://www.visualcrossing.com/" rel="noopener">Visual Crossing</a>'
-    : 'Forecast data comes from <a href="https://open-meteo.com/" rel="noopener">Open-Meteo</a>';
+    : weatherProvider === 'met-no'
+      ? 'Forecast data comes from <a href="https://api.met.no/doc/License" rel="noopener">MET Norway</a> under CC BY 4.0, normalized by WeatherView'
+      : 'Forecast data comes from <a href="https://open-meteo.com/" rel="noopener">Open-Meteo</a>';
 
   return `
     <section class="panel panel-context">
@@ -146,7 +148,7 @@ function contextSection(city, section, { updatedAt, alerts, weatherProvider }) {
       <p>
         Updated ${escapeHtml(new Date(updatedAt || Date.now()).toISOString().replace('T', ' ').slice(0, 16))} UTC,
         and refreshed automatically every few minutes. ${forecastSource}; radar frames from
-        Environment Canada / NOAA in North America, with RainViewer for recent-radar fallback; the 20-year normals and records from
+        Environment Canada / NOAA in North America; optional historical normals and records from
         the ERA5 reanalysis archive. ${official}
       </p>
       <p>

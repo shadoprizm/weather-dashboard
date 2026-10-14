@@ -18,9 +18,11 @@ async function get(path, params = {}) {
   return response.json();
 }
 
-export function fetchForecast(lat, lon) {
-  return get('/api/weather', { lat, lon });
+export function fetchForecast(lat, lon, preferences = {}) {
+  return get('/api/weather', { lat, lon, v: 3, ...preferences });
 }
+
+export function fetchPlan(lat, lon, preferences) { return get('/api/plan', { lat, lon, ...preferences }); }
 
 export function searchPlaces(query) {
   // Version the request URL so a newly improved parser is not shadowed by an

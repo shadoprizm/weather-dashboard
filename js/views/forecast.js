@@ -63,6 +63,7 @@ export function renderHero(vm) {
             <p class="hero-temp">${esc(fmt.temp(current.temperature_2m, units))}</p>
             <p class="hero-condition">${esc(condition.label)}</p>
             <p class="hero-feels">Feels like ${esc(fmt.temp(current.apparent_temperature, units))}</p>
+            ${vm.currentIsForecast ? `<p class="hero-feels">Forecast estimate for ${esc(fmt.hourLabel(current.time,units))}</p>` : ''}
           </div>
         </div>
 
@@ -100,7 +101,7 @@ export function renderHero(vm) {
         ${stat('drop', 'Humidity', fmt.percent(current.relative_humidity_2m))}
         ${stat('cloud', 'Cloud', fmt.percent(current.cloud_cover))}
         ${today ? stat('uv', 'UV peak', today.uvMax === null ? '--' : String(Math.round(today.uvMax))) : ''}
-        ${today ? stat('humidity', 'Rain chance', fmt.percent(today.popMax)) : ''}
+        ${today ? stat('humidity', Number.isFinite(today.popMax) ? 'Rain chance' : 'Precipitation', Number.isFinite(today.popMax) ? fmt.percent(today.popMax) : fmt.precip(today.precipSum, units)) : ''}
       </ul>
     </div>
   `;
@@ -204,7 +205,8 @@ export function renderHourly(vm) {
   const line = smoothPath(points);
   const area = `${line} L ${points[points.length - 1].x} ${CURVE_HEIGHT} L ${points[0].x} ${CURVE_HEIGHT} Z`;
 
-  const maxPop = Math.max(10, ...hours.map((h) => h.pop || 0));
+  const useAmounts = !hours.some(h => Number.isFinite(h.pop));
+  const maxPop = Math.max(useAmounts ? 0.5 : 10, ...hours.map(h => (useAmounts ? h.precip : h.pop) || 0));
 
   return `
     <header class="panel-head">
@@ -233,16 +235,17 @@ export function renderHourly(vm) {
         </svg>
 
         <div class="hourly-cols">
-          ${hours.map((hour, i) => hourColumn(hour, i, units, maxPop)).join('')}
+          ${hours.map((hour, i) => hourColumn(hour, i, units, maxPop, useAmounts)).join('')}
         </div>
       </div>
     </div>
   `;
 }
 
-function hourColumn(hour, index, units, maxPop) {
+function hourColumn(hour, index, units, maxPop, useAmounts) {
   const condition = describe(hour.code, hour.isDay);
-  const pop = hour.pop || 0;
+  const pop = (useAmounts ? hour.precip : hour.pop) || 0;
+  const rainText = useAmounts ? `${fmt.precip(hour.precip,units)}/h` : fmt.percent(hour.pop);
   const barHeight = Math.round((pop / maxPop) * 100);
   const isNow = index === 0;
   const dayBreak = hour.date && hour.date.getHours() === 0;
@@ -253,10 +256,10 @@ function hourColumn(hour, index, units, maxPop) {
       ${dayBreak ? `<p class="h-daylabel">${esc(fmt.dayName(hour.time))}</p>` : ''}
       ${weatherIcon(condition.icon, { size: 30, className: 'h-icon', title: condition.label })}
       <div class="h-curve-space" style="height:${CURVE_HEIGHT}px"></div>
-      <div class="h-precip" title="${esc(`${Math.round(pop)}% chance`)}">
+      <div class="h-precip" title="${esc(useAmounts ? `${rainText} average over the forecast period` : `${rainText} chance`)}">
         <div class="h-precip-bar" style="height:${barHeight}%"></div>
       </div>
-      <p class="h-pop ${pop >= 30 ? 'is-wet' : ''}">${pop ? `${Math.round(pop)}%` : ''}</p>
+      <p class="h-pop ${pop >= (useAmounts ? 0.5 : 30) ? 'is-wet' : ''}">${esc(rainText)}</p>
       <p class="h-wind">
         ${windArrow(hour.windDir, { size: 13 })}
         ${esc(fmt.wind(hour.wind, units, { withUnit: false }))}
@@ -329,7 +332,7 @@ export function renderDetails(vm) {
       value: (today.snowSum || 0) > 0.2
         ? fmt.snow(today.snowSum, units)
         : fmt.precip(today.precipSum, units),
-      note: today.precipHours ? `Over about ${Math.round(today.precipHours)}h` : 'None expected',
+      note: Number.isFinite(today.precipHours) ? today.precipHours ? `Over about ${Math.round(today.precipHours)}h` : 'None expected' : 'Estimated from available forecast periods',
     },
   ];
 
@@ -397,7 +400,7 @@ export function renderDaily(vm) {
 
   return `
     <header class="panel-head">
-      <h2>Next 14 days</h2>
+      <h2>Daily outlook · ${forecast.length} days</h2>
       <p class="panel-sub">Pick a day to load its hour-by-hour detail.</p>
     </header>
     <ol class="daily-list">
@@ -416,7 +419,7 @@ export function renderDaily(vm) {
               <span class="d-date">${esc(fmt.dayNumber(day.time))}</span>
               ${weatherIcon(condition.icon, { size: 30, className: 'd-icon', title: condition.label })}
               <span class="d-pop ${(day.popMax || 0) >= 30 ? 'is-wet' : ''}">
-                ${day.popMax ? `${Math.round(day.popMax)}%` : ''}
+                ${esc(Number.isFinite(day.popMax) ? fmt.percent(day.popMax) : fmt.precip(day.precipSum,units))}
               </span>
               <span class="d-low">${esc(fmt.temp(day.low, units))}</span>
               <span class="d-bar" aria-hidden="true">

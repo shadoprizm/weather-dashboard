@@ -28,6 +28,7 @@ struct Forecast: Codable {
         let precipitation_probability: [Double?]
         let weather_code: [Int?]
         let wind_speed_10m: [Double?]
+        var precipitation: [Double?]? = nil
     }
     struct Daily: Codable {
         let time: [String]
@@ -37,6 +38,7 @@ struct Forecast: Codable {
         let precipitation_probability_max: [Double?]
         let sunrise: [String?]
         let sunset: [String?]
+        var precipitation_sum: [Double?]? = nil
     }
     let location: Location
     let current: Current?
@@ -44,6 +46,10 @@ struct Forecast: Codable {
     let daily: Daily
     let fetchedAt: String
     let weatherProvider: String?
+    var forecastNote: String? = nil
+    var currentIsForecast: Bool? = nil
+    var sourceText: String { WeatherSource.text(weatherProvider) }
+    var sourceURL: URL { WeatherSource.url(weatherProvider) }
     var zone: TimeZone { location.timezone.flatMap(TimeZone.init(identifier:)) ?? TimeZone(secondsFromGMT: Int(location.utcOffsetSeconds ?? 0)) ?? .gmt }
     var updated: Date? {
         let formatter = ISO8601DateFormatter(); formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -52,7 +58,7 @@ struct Forecast: Codable {
     var nextHours: [Int] {
         hourly.time.indices.filter { i in
             guard let date = WeatherClock.date(hourly.time[i], zone: zone) else { return false }
-            return date.addingTimeInterval(3600) > Date()
+            return date.addingTimeInterval(3600) > Date() && date < Date().addingTimeInterval(86400)
         }.prefix(24).map { $0 }
     }
     func isDay(at hour: Int) -> Bool? {
@@ -61,6 +67,21 @@ struct Forecast: Codable {
               let rise = daily.sunrise.at(day) ?? nil, let set = daily.sunset.at(day) ?? nil,
               let sunrise = WeatherClock.date(rise, zone: zone), let sunset = WeatherClock.date(set, zone: zone) else { return nil }
         return time >= sunrise && time < sunset
+    }
+}
+enum WeatherSource {
+    static func text(_ provider: String?) -> String {
+        if provider == "visual-crossing" { return "Weather Data Provided by Visual Crossing" }
+        if provider == "met-no" { return "Forecast data from MET Norway · CC BY 4.0 · normalized by WeatherView" }
+        return "Weather data by Open-Meteo"
+    }
+    static func url(_ provider: String?) -> URL {
+        URL(string: provider == "visual-crossing" ? "https://www.visualcrossing.com" : provider == "met-no" ? "https://api.met.no/doc/License" : "https://open-meteo.com")!
+    }
+    static func precipitation(_ chance: Double?, amount: Double?, imperial: Bool) -> String {
+        if let chance { return WeatherClock.percent(chance) }
+        if let amount { return imperial ? String(format: "%.2f in", amount / 25.4) : String(format: "%.1f mm", amount) }
+        return "—"
     }
 }
 struct AlertFeed: Decodable {
@@ -80,7 +101,8 @@ struct OutdoorPlan: Decodable {
     struct Activity: Decodable { let id: String; let label: String; let blurb: String }
     struct Window: Decodable, Identifiable {
         let start: String; let end: String; let duration: Int; let score: Int; let band: String
-        let maxRainChance: Double; let maxWind: Double; let minFeels: Double; let maxFeels: Double; let maxCloud: Double
+        let maxRainChance: Double?; let maxWind: Double; let minFeels: Double; let maxFeels: Double; let maxCloud: Double
+        var maxPrecipMmPerHour: Double? = nil
         var id: String { start + end }
     }
     let weatherProvider: String?

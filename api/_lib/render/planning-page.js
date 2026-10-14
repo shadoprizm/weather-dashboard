@@ -53,7 +53,7 @@ function renderLaunchPage() {
     <p class="eyebrow">WeatherView · Free · Ad-free · No account needed</p>
     <h1>Weather that helps you make plans.</h1>
     <p class="lede">See what’s coming. Find a good time to get outside. Check the radar before you go.</p>
-    <p>Choose an activity and how long you need. Compare suitable times in the next 48 hours, see the reasons, and save or share a plan. Keep current conditions, hourly forecasts, air quality and official alerts close at hand.</p>
+    <p>Choose an activity and how long you need. Compare suitable times in the next 48 hours, see the reasons, and save or share a plan. Keep current conditions, hourly forecasts and official alerts close at hand.</p>
     <p><a href="/?view=plan&amp;utm_source=launch&amp;utm_medium=owned&amp;utm_campaign=planning">Try the planner →</a> · <a href="/outdoor-planning">How it works</a></p>
     <h2>See it in action</h2>
     <p>These are real product captures from this release. Weather and suggested times change; open the app for the latest conditions.</p>

@@ -53,7 +53,7 @@ function renderIndexPage() {
       <h1>Weather by city</h1>
       <p class="lede">
         Every city below has a full forecast page: current conditions, an
-        hour-by-hour table, a 14-day outlook, live radar, air quality, sunrise
+        hour-by-hour table, a daily outlook, precipitation radar, sunrise
         and sunset, official alerts and 20-year normals — with a plain-English
         read on what the day actually holds.
       </p>
@@ -70,7 +70,7 @@ function renderIndexPage() {
     title: `Weather by City — Forecasts for ${cities.CITIES.length} Cities | ${site.name}`,
     description:
       `Fast, ad-free weather for ${cities.CITIES.length} cities across Canada, the United States ` +
-      'and beyond. Hourly and 14-day forecasts, live radar, air quality and official alerts.',
+      'and beyond. Hourly and daily forecasts, live radar, air quality and official alerts.',
     canonical: site.url('/weather'),
     image: site.url('/api/og'),
     imageAlt: `${site.name} — weather by city`,
