@@ -77,8 +77,8 @@ function cityTitle(city, section) {
 function cityDescription(city, section, summary) {
   const place = city.label;
   if (!summary) {
-    return `${place} weather: current conditions, hourly and 14-day forecast, ` +
-      `live radar, air quality, sunrise and sunset, and official alerts. Fast and ad-free.`;
+    return `${place} weather: current conditions, hourly and daily forecast, ` +
+      `precipitation radar, sunrise and sunset, and official alerts. Fast and ad-free.`;
   }
 
   const now = `${place} weather right now: ${summary.temperature}, ${summary.condition.toLowerCase()}.`;
@@ -86,16 +86,16 @@ function cityDescription(city, section, summary) {
   switch (section) {
     case 'hourly':
       return `${now} Hour-by-hour forecast for the next 48 hours — temperature, ` +
-        `feels-like, chance of rain, wind and humidity. ${summary.rain}`;
+        `feels-like, precipitation, wind and humidity. ${summary.rain}`;
     case '10-day':
-      return `${now} 14-day outlook with daily highs and lows, precipitation, ` +
+      return `${now} daily outlook with daily highs and lows, precipitation, ` +
         `wind, UV and daylight. Today ${summary.range}.`;
     case 'radar':
       return `${now} Live precipitation radar for ${city.name} with a short-range ` +
         `nowcast. ${summary.rain}`;
     default:
-      return `${now} Today ${summary.range}. ${summary.rain} Hourly and 14-day ` +
-        `forecast, radar, air quality and alerts — no ads, no popups.`;
+      return `${now} Today ${summary.range}. ${summary.rain} Hourly and daily ` +
+        `forecast, radar and alerts — no ads, no popups.`;
   }
 }
 

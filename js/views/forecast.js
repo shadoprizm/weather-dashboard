@@ -332,7 +332,7 @@ export function renderDetails(vm) {
       value: (today.snowSum || 0) > 0.2
         ? fmt.snow(today.snowSum, units)
         : fmt.precip(today.precipSum, units),
-      note: today.precipHours ? `Over about ${Math.round(today.precipHours)}h` : 'None expected',
+      note: Number.isFinite(today.precipHours) ? today.precipHours ? `Over about ${Math.round(today.precipHours)}h` : 'None expected' : 'Estimated from available forecast periods',
     },
   ];
 
