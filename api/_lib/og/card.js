@@ -185,6 +185,10 @@ function renderCard(card) {
     weight: 0.085, align: 'right',
   });
 
+  if (card.weatherProvider === 'met-no') drawText(surface, 'Data: MET Norway - CC BY 4.0 - normalized by WeatherView', {
+    x: MARGIN, y: HEIGHT - 22, size: 17, rgb: WHITE, alpha: 0.8, weight: 0.05,
+  });
+
   return surface.toPng();
 }
 

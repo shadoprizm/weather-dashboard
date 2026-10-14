@@ -43,6 +43,18 @@ export function locationNow(utcOffsetSeconds = 0, now = Date.now()) {
   return wallTime(now + utcOffsetSeconds * 1000);
 }
 
+/** Use derived server recommendations; never calculate them from hidden provider rows. */
+export function resolvePlan(vm, preferences = DEFAULT_PLAN) {
+  const prefs = normalizePlanPreferences(preferences);
+  const result = vm.planResult;
+  if (result && ['activity','duration','timeOfDay'].every(key => result.preferences?.[key] === prefs[key])) {
+    const now = locationNow(vm.utcOffsetSeconds);
+    const windows = result.windows.filter(window => window.start >= now);
+    return { ...result, windows, status: windows.length ? 'available' : result.windows.length ? 'unavailable' : result.status };
+  }
+  return planActivity(vm, prefs);
+}
+
 /** Suggestions use full hourly coverage; unknown rain/wind never means dry/calm. */
 export function planActivity(vm, preferences = DEFAULT_PLAN, { nowTime, hours = 48, limit = 3 } = {}) {
   const prefs = normalizePlanPreferences(preferences);
@@ -62,7 +74,10 @@ export function planActivity(vm, preferences = DEFAULT_PLAN, { nowTime, hours = 
     if (!Number.isFinite(start) || start < nowMs || start + durationMs > horizon) continue;
     const covered = vm.series.slice(i, i + count);
     if (covered.length !== count || covered.some((h, j) => wallMillis(h.time) !== start + j * 3600000)) continue;
-    if (covered.some(h => !Number.isFinite(h.feels ?? h.temp) || !Number.isFinite(h.pop) || !Number.isFinite(h.wind))) continue;
+    if (covered.some(h => !Number.isFinite(h.feels ?? h.temp) || !Number.isFinite(h.wind))) continue;
+    const probabilityKnown = covered.every(h => Number.isFinite(h.pop));
+    const amountBased = !probabilityKnown && vm.weatherProvider === 'met-no' && covered.every(h => Number.isFinite(h.precip));
+    if (!probabilityKnown && !amountBased) continue;
     if ((activity.id === 'stargaze' || activity.id === 'photo') && covered.some(h => !Number.isFinite(h.cloud))) continue;
     completeWindows += 1;
     if (covered.some(h => (activity.daylight || prefs.timeOfDay === 'daylight') && h.isDay !== 1)) continue;
@@ -76,7 +91,9 @@ export function planActivity(vm, preferences = DEFAULT_PLAN, { nowTime, hours = 
     try {
       if (wallTimeToUtc(end, vm.timezone, vm.utcOffsetSeconds) - wallTimeToUtc(first.time, vm.timezone, vm.utcOffsetSeconds) !== durationMs) continue;
     } catch { continue; }
-    const scores = covered.map(h => Math.max(0, Math.min(100, Math.round(activity.score(h, { goldenHours })))));
+    // Missing probability is not 0%. Amount-based fits apply a separate intensity
+    // penalty and report the amount, never a manufactured probability.
+    const scores = covered.map(h => Math.max(0, Math.min(100, Math.round(activity.score(h, { goldenHours }) - (amountBased ? Math.min(80, h.precip * 20) : 0)))));
     // Every part of the outing must qualify, rather than averaging away a bad hour.
     if (scores.some(score => !Number.isFinite(score) || score < 55)) continue;
     const score = Math.round(scores.reduce((sum, s) => sum + s, 0) / scores.length);
@@ -84,7 +101,9 @@ export function planActivity(vm, preferences = DEFAULT_PLAN, { nowTime, hours = 
     candidates.push({
       start: first.time.slice(0, 16), end, duration: prefs.duration,
       score, band: score >= 75 ? 'good' : 'fair',
-      maxRainChance: Math.max(...covered.map(h => h.pop)),
+      maxRainChance: probabilityKnown ? Math.max(...covered.map(h => h.pop)) : null,
+      maxPrecipMmPerHour: covered.every(h => Number.isFinite(h.precip)) ? Math.max(...covered.map(h => h.precip)) : null,
+      rainBasis: probabilityKnown ? 'probability' : 'amount',
       maxWind: Math.max(...covered.map(h => h.wind)),
       minFeels: Math.min(...feels), maxFeels: Math.max(...feels),
       maxCloud: Math.max(...covered.map(h => h.cloud ?? 0)),

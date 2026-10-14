@@ -38,7 +38,7 @@ struct PlanView: View {
                             Text("\(index == 0 ? "Best fit" : "Another option") · \(window.band == "good" ? "Good" : "Fair") conditions").font(.subheadline.bold()).foregroundStyle(window.band == "good" ? .green : .secondary)
                             Text("\(WeatherClock.label(window.start, zone: plan.zone, format: "EEE, MMM d · h:mm a"))–\(WeatherClock.label(window.end, zone: plan.zone, format: window.start.prefix(10) == window.end.prefix(10) ? "h:mm a" : "EEE h:mm a"))").font(.title3.bold())
                             Label("Feels like \(WeatherClock.temperature(window.minFeels, imperial: imperial))–\(WeatherClock.temperature(window.maxFeels, imperial: imperial))", systemImage: "thermometer.medium")
-                            Label("Highest hourly rain chance \(WeatherClock.percent(window.maxRainChance))", systemImage: "drop")
+                            Label(rainReason(window), systemImage: "drop")
                             Label("Wind up to \(WeatherClock.wind(window.maxWind, imperial: imperial))", systemImage: "wind")
                             if plan.activity.id == "stargaze" { Label("Cloud cover up to \(WeatherClock.percent(window.maxCloud))", systemImage: "cloud") }
                             Button { openCalendar(window, plan: plan) } label: { Label("Add to calendar", systemImage: "calendar.badge.plus") }.buttonStyle(.borderedProminent)
@@ -46,11 +46,11 @@ struct PlanView: View {
                     }
                     DisclosureGroup("How these suggestions work") {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("\(plan.activity.blurb). We compare feels-like temperature, precipitation chance and wind. Every hour of the outing must meet the activity's minimum score. The highest average fit comes first.")
+                            Text("\(plan.activity.blurb). We compare feels-like temperature, precipitation and wind. Where rain probability is unavailable, we compare forecast amounts instead; unknown chance is never shown as 0%. Every hour of the outing must meet the activity's minimum score. The highest average fit comes first.")
                             Text("Garden work, laundry and golden-hour photos need daylight; stargazing needs darkness. Photos also need an hour near sunrise or sunset. These suggestions use forecasts, not observations of the route. Check the latest forecast and official warnings before going out.")
                         }.font(.footnote).foregroundStyle(.secondary).padding(.top)
                     }
-                    Link(plan.weatherProvider == "open-meteo" ? "Weather data by Open-Meteo" : "Weather Data Provided by Visual Crossing", destination: URL(string: plan.weatherProvider == "open-meteo" ? "https://open-meteo.com" : "https://www.visualcrossing.com")!).font(.footnote)
+                    Link(WeatherSource.text(plan.weatherProvider), destination: WeatherSource.url(plan.weatherProvider)).font(.footnote)
                 }
             }.padding(20).frame(maxWidth: 850).frame(maxWidth: .infinity)
         }
@@ -58,6 +58,10 @@ struct PlanView: View {
         .onChange(of: activity) { _, value in timeOfDay = value == "stargaze" ? "night" : "daylight" }
         .refreshable { await load() }
         .fullScreenCover(item: $calendarPlan) { CalendarEditor(plan: $0).ignoresSafeArea() }
+    }
+    func rainReason(_ window: OutdoorPlan.Window) -> String {
+        if window.maxRainChance != nil { return "Highest hourly rain chance \(WeatherClock.percent(window.maxRainChance))" }
+        return "Forecast precipitation up to \(WeatherSource.precipitation(nil, amount: window.maxPrecipMmPerHour, imperial: imperial)) per hour"
     }
     func load() async {
         plan = nil; message = nil; loading = true
@@ -73,7 +77,7 @@ struct PlanView: View {
         guard let start = WeatherClock.date(window.start, zone: plan.zone), let end = WeatherClock.date(window.end, zone: plan.zone), start > Date(), abs(end.timeIntervalSince(start) - Double(window.duration * 60)) < 1 else {
             message = "That window has passed or crosses a clock change. Refresh to choose a current suggestion."; return
         }
-        calendarPlan = CalendarPlan(title: "\(plan.activity.label) — \(place.name)", place: place.name, start: start, end: end, notes: "Feels like \(WeatherClock.temperature(window.minFeels, imperial: imperial))–\(WeatherClock.temperature(window.maxFeels, imperial: imperial)). Highest hourly rain chance \(WeatherClock.percent(window.maxRainChance)); wind up to \(WeatherClock.wind(window.maxWind, imperial: imperial)).\nBased on a WeatherView forecast. Check the latest forecast and official warnings before going out.")
+        calendarPlan = CalendarPlan(title: "\(plan.activity.label) — \(place.name)", place: place.name, start: start, end: end, notes: "Feels like \(WeatherClock.temperature(window.minFeels, imperial: imperial))–\(WeatherClock.temperature(window.maxFeels, imperial: imperial)). \(rainReason(window)); wind up to \(WeatherClock.wind(window.maxWind, imperial: imperial)).\nBased on a WeatherView forecast. Check the latest forecast and official warnings before going out.")
     }
 }
 struct CalendarPlan: Identifiable {

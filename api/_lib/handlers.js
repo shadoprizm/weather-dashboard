@@ -15,6 +15,7 @@ const cache = require('./cache');
 const alertRegistry = require('./alerts');
 const visualCrossing = require('./weather-providers/visual-crossing');
 const openMeteo = require('./weather-providers/open-meteo-access');
+const metNo = require('./weather-providers/met-no');
 const governmentRadar = require('./radar-eccc');
 
 const RAINVIEWER_INDEX = 'https://api.rainviewer.com/public/weather-maps.json';
@@ -284,13 +285,33 @@ async function fetchWeather({ lat, lon, openMeteoUrl, provider = configuredWeath
  * The dashboard's primary payload: current conditions, 48h+ of hourly data,
  * 16 days of daily data, and air quality, in one round trip.
  */
+// Public forecast rows come only from a source licensed for redistribution.
+// Visual Crossing is reserved for the server-side recommendation calculation.
 async function forecast(query) {
   const { lat, lon } = coords(query);
-  const requestedProvider = configuredWeatherProvider();
-  const key = `forecast:v2:${requestedProvider}:${lat},${lon}`;
+  const response = await metNo.fetchForecast({ lat, lon });
+  let recommendation;
+  try { recommendation = await require('./planner').plan(query); }
+  catch { recommendation = { status: 503, body: null }; }
+  return { status: 200, body: { ...response.body,
+    activityPlan: recommendation.status === 200 ? recommendation.body : null,
+    features: { almanac: Boolean(openMeteo.apiKey()) },
+  }, maxAge: Math.min(300, response.maxAge) };
+}
 
-  const body = await cache.memo(key, 300, async () => {
-    const forecastUrl = openMeteo.canUse() ? openMeteo.serviceUrl('forecast', {
+/** Internal only. Never mount this function as a raw-data HTTP endpoint. */
+async function planningForecast(query) {
+  const { lat, lon } = coords(query);
+  const requestedProvider = configuredWeatherProvider();
+  if (requestedProvider !== 'visual-crossing' && !openMeteo.apiKey()) {
+    const result = await metNo.fetchForecast({ lat, lon });
+    return { status: 200, ...result };
+  }
+  const key = `planning-input:v3:${requestedProvider}:${lat},${lon}`;
+
+  let body;
+  try { body = await cache.memo(key, 300, async () => {
+    const forecastUrl = openMeteo.apiKey() ? openMeteo.serviceUrl('forecast', {
       latitude: lat,
       longitude: lon,
       current: CURRENT_FIELDS,
@@ -305,7 +326,7 @@ async function forecast(query) {
       precipitation_unit: 'mm',
     }) : null;
 
-    const airUrl = openMeteo.canUse() ? openMeteo.serviceUrl('air', {
+    const airUrl = openMeteo.apiKey() ? openMeteo.serviceUrl('air', {
       latitude: lat,
       longitude: lon,
       current: AIR_CURRENT_FIELDS,
@@ -353,7 +374,10 @@ async function forecast(query) {
       air: air ? { current: air.current || null, hourly: air.hourly || null } : null,
       fetchedAt: new Date().toISOString(),
     };
-  });
+  }); } catch {
+    const fallback = await metNo.fetchForecast({ lat, lon });
+    return { status: 200, body: { ...fallback.body, weatherProviderFallback: true }, maxAge: Math.min(300,fallback.maxAge) };
+  }
 
   return { status: 200, body, maxAge: 300 };
 }
@@ -368,8 +392,10 @@ async function geocode(query) {
   }
 
   const plan = geocodePlan(term);
-  if (!openMeteo.canUse()) {
-    throw new UpstreamError('No commercially licensed place-search provider is configured', 503);
+  if (!openMeteo.apiKey()) {
+    return { status: 200, body: { results: require('./geonames').search(term), source: {
+      name: 'GeoNames', url: 'https://www.geonames.org/export/', license: 'CC BY 4.0', licenseUrl: 'https://creativecommons.org/licenses/by/4.0/', modifications: 'WeatherView normalizes the local place-search index.',
+    } }, maxAge: 86400 };
   }
   const key = `geocode:v2:${term.toLowerCase()}`;
   let body = cache.get(key);
@@ -438,6 +464,12 @@ async function radar(query = {}) {
     const body = await governmentRadar.radarFeed();
     if (body.available) return { status: 200, body, maxAge: 60 };
   }
+  if (process.env.RAINVIEWER_LICENSED !== '1') return { status: 200, maxAge: 60, body: {
+    available: false, provider: 'eccc', sourceName: 'Environment Canada / NOAA',
+    sourceUrl: 'https://eccc-msc.github.io/open-data/msc-data/obs_radar/readme_radar_geomet_en/',
+    host: 'https://geo.weather.gc.ca/geomet', frames: [], futureAvailable: false, futureThrough: null,
+    futureUnavailableReason: query.region === 'north-america' ? 'Government radar is temporarily unavailable. Try Refresh shortly.' : 'Radar imagery is available within the North American radar domain. Forecasts and activity planning remain available here.',
+  } };
   const body = await cache.memo('radar:index', 120, async () => {
     const data = await fetchJsonSoft(RAINVIEWER_INDEX, null);
     if (!data || !data.radar) return { available: false, host: null, frames: [] };
@@ -482,7 +514,7 @@ function mean(values) {
  */
 async function almanac(query) {
   const { lat, lon } = coords(query);
-  if (!openMeteo.canUse()) {
+  if (!openMeteo.apiKey()) {
     return { status: 200, body: { available: false }, maxAge: 300 };
   }
   // The client passes the location's local date so the comparison lines up
@@ -609,8 +641,11 @@ async function health(query = {}) {
     cache: cache.stats(),
     time: new Date().toISOString(),
     weatherData: {
-      primary: configuredWeatherProvider(),
-      openMeteo: openMeteo.status(),
+      primary: 'met-no',
+      planning: configuredWeatherProvider() === 'visual-crossing' ? 'visual-crossing-derived-only' : openMeteo.apiKey() ? 'open-meteo' : 'met-no',
+      publicVisualCrossingRows: false,
+      placeSearch: openMeteo.apiKey() ? 'open-meteo-customer' : 'geonames-local',
+      openMeteo: { ...openMeteo.status(), usable: Boolean(openMeteo.apiKey()) },
     },
   };
 
@@ -630,6 +665,7 @@ async function health(query = {}) {
 
 module.exports = {
   forecast,
+  planningForecast,
   geocode,
   alerts,
   radar,

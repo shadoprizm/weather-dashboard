@@ -183,7 +183,9 @@ async function renderWidget(query = {}) {
     : '';
   const sourceCredit = data.weatherProvider === 'visual-crossing'
     ? '<a href="https://www.visualcrossing.com/" target="_blank" rel="noopener">Weather Data Provided by Visual Crossing</a>'
-    : '<a href="https://open-meteo.com/" target="_blank" rel="noopener">Weather data by Open-Meteo</a>';
+    : data.weatherProvider === 'met-no'
+      ? '<a href="https://api.met.no/doc/License" target="_blank" rel="noopener">Data from MET Norway · CC BY 4.0 · normalized by WeatherView</a>'
+      : '<a href="https://open-meteo.com/" target="_blank" rel="noopener">Weather data by Open-Meteo</a>';
 
   const body = `
     <a class="wv" href="${escapeHtml(link)}" target="_blank" rel="noopener">

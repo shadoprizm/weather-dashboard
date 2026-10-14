@@ -18,6 +18,16 @@ final class WeatherViewTests: XCTestCase {
         XCTAssertNil(values.at(999))
         XCTAssertEqual(values.at(1)!, 0)
     }
+    func testOpenForecastAttributionAndAmountBasedPlan() throws {
+        XCTAssertEqual(WeatherSource.url("met-no").host, "api.met.no")
+        XCTAssertTrue(WeatherSource.text("met-no").contains("CC BY 4.0"))
+        XCTAssertEqual(WeatherSource.precipitation(nil, amount: 0.3, imperial: false), "0.3 mm")
+        XCTAssertEqual(WeatherSource.precipitation(nil, amount: nil, imperial: false), "—")
+        let json = Data(#"{"start":"2026-10-15T08:00","end":"2026-10-15T09:00","duration":60,"score":80,"band":"good","maxRainChance":null,"maxPrecipMmPerHour":0.3,"maxWind":8,"minFeels":12,"maxFeels":13,"maxCloud":40}"#.utf8)
+        let window = try JSONDecoder().decode(OutdoorPlan.Window.self, from: json)
+        XCTAssertNil(window.maxRainChance)
+        XCTAssertEqual(window.maxPrecipMmPerHour, 0.3)
+    }
     func testPlanContractSupportsNoFitAndOvernightWindows() throws {
         let noFit = Data(#"{"activity":{"id":"run","label":"Go for a run","blurb":"Cool, calm and dry"},"windows":[],"status":"no-fit","timezone":"America/Toronto","utcOffsetSeconds":-14400,"updatedAt":"2026-10-09T22:00:00Z"}"#.utf8)
         let plan = try JSONDecoder().decode(OutdoorPlan.self, from: noFit)

@@ -5,23 +5,24 @@
  * pure; everything that touches the network, the DOM or the URL lives here.
  */
 
-import * as api from './api.js';
+import * as api from './api.js?v=24';
 import * as state from './state.js';
 import * as fmt from './format.js';
 import { esc, $, delegate, setHTML } from './dom.js';
 import { skyTheme } from './wmo.js';
 import { weatherIcon } from './icons.js';
-import { buildViewModel as toViewModel } from './viewmodel.js';
+import { buildViewModel as toViewModel } from './viewmodel.js?v=24';
 import { createRadarMap } from './radar.js?v=21';
 import * as weatherWatch from './weather-watch.js';
-import { trackAction } from './analytics.js?v=23';
-import { planActivity } from './planning.js';
+import { trackAction } from './analytics.js?v=24';
+import { resolvePlan } from './planning.js?v=24';
+import { weatherSource } from './sources.js?v=24';
 import { calendarEvent } from './calendar.js';
-import { planReasons, renderPlanPreview, renderPlanner } from './views/planner.js?v=23';
-import { planPreferencesFromUrl, sharePlan } from './plan-share.js?v=23';
+import { planReasons, renderPlanPreview, renderPlanner } from './views/planner.js?v=24';
+import { planPreferencesFromUrl, sharePlan } from './plan-share.js?v=24';
 import {
   renderHero, renderHourly, renderDetails, renderDaily, errorPanel,
-} from './views/forecast.js';
+} from './views/forecast.js?v=24';
 import {
   renderAlerts, renderAstro, renderAir, renderAlmanac, renderCompare,
 } from './views/panels.js';
@@ -69,6 +70,7 @@ const VIEWS = {
 };
 
 const VIEW_ORDER = Object.keys(VIEWS);
+const visibleViews = () => VIEW_ORDER.filter(view => !$(`#tab-${view}`)?.hidden);
 const DEFAULT_VIEW = 'today';
 
 const RENDERERS = {
@@ -96,6 +98,8 @@ const session = {
   // Views already painted for the current data; cleared whenever it changes.
   painted: new Set(),
   measuredPlan: null,
+  planRevision: 0,
+  planLoading: false,
 };
 
 /* ---------------------------------------------------------------- render */
@@ -115,6 +119,7 @@ function buildViewModel() {
   // Keep the server's H1 ("Toronto Weather", not "Toronto"): it is what the
   // page was indexed as, and swapping it after load would be a bait-and-switch.
   if (page.heading) vm.heading = page.heading;
+  vm.planLoading = session.planLoading;
   return vm;
 }
 
@@ -128,6 +133,10 @@ function render() {
   setHTML('#hero', renderHero(vm));
   setHTML('#alerts', renderAlerts(vm));
   setHTML('#plan-preview', renderPlanPreview(vm));
+  const historical = session.data.features?.almanac !== false;
+  $('#tab-almanac').hidden = !historical;
+  if (!historical && session.view === 'almanac') setView('today');
+  $('#air').hidden = !session.data.air;
 
   paintView();
   applySky(vm);
@@ -138,10 +147,8 @@ function render() {
 
 function renderForecastSource() {
   if (!session.data) return;
-  const visualCrossing = session.data.weatherProvider === 'visual-crossing';
-  setHTML('#forecast-source', visualCrossing
-    ? 'Weather Data Provided by <a href="https://www.visualcrossing.com/" target="_blank" rel="noopener">Visual Crossing</a>'
-    : 'Weather data by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>');
+  const source = weatherSource(session.data.weatherProvider);
+  setHTML('#forecast-source', `<a href="${source.url}" target="_blank" rel="noopener">${source.text}</a>${session.data.forecastNote ? `<span><br>${esc(session.data.forecastNote)}</span>` : ''}`);
 }
 
 /** Render the active view's panels, once per data revision. */
@@ -196,7 +203,8 @@ function setView(view, { focusPanel = false } = {}) {
 }
 
 function measurePlanResults() {
-  const plan = planActivity(buildViewModel(), state.getPlanPreferences());
+  if (session.planLoading) return;
+  const plan = resolvePlan(buildViewModel(), state.getPlanPreferences());
   const key = JSON.stringify([session.place.id, session.data.fetchedAt, plan.preferences, plan.windows[0]?.start]);
   if (key === session.measuredPlan) return;
   session.measuredPlan = key;
@@ -252,6 +260,8 @@ async function loadPlace(place, { silent = false } = {}) {
   session.loading = true;
   session.place = place;
   session.selectedDay = null;
+  session.planRevision += 1;
+  session.planLoading = false;
 
   if (!silent) {
     setHTML('#hero', '<div class="skeleton skeleton-hero" aria-hidden="true"></div>');
@@ -260,7 +270,7 @@ async function loadPlace(place, { silent = false } = {}) {
   if (session.view === 'radar') mountRadar(place);
 
   try {
-    session.data = await api.fetchForecast(place.latitude, place.longitude);
+    session.data = await api.fetchForecast(place.latitude, place.longitude, state.getPlanPreferences());
     weatherWatch.evaluateAndRecord({ place, data: session.data });
     // These panels were rendered from the previous location; clear them so a
     // slow secondary request never shows stale data next to fresh data.
@@ -295,7 +305,7 @@ function loadSecondary(place) {
     refreshPanel('activities');
   });
 
-  api.soft(api.fetchAlmanac(place.latitude, place.longitude, localDate)).then((almanac) => {
+  if (session.data.features?.almanac !== false) api.soft(api.fetchAlmanac(place.latitude, place.longitude, localDate)).then((almanac) => {
     if (session.place !== place || !almanac) return;
     session.almanac = almanac;
     setHTML('#hero', renderHero(buildViewModel()));
@@ -585,7 +595,7 @@ document.addEventListener('click', (event) => {
 async function shareSelectedPlan(start, end) {
   if (!session.data) return;
   const vm = buildViewModel();
-  const plan = planActivity(vm, state.getPlanPreferences());
+  const plan = resolvePlan(vm, state.getPlanPreferences());
   const selected = plan.windows.find(w => w.start === start && w.end === end);
   if (!selected) { refreshPanel('activities'); toast('That suggestion has passed. Choose a current window.'); return; }
   const method = await sharePlan(vm, plan, selected, { toast });
@@ -595,7 +605,7 @@ async function shareSelectedPlan(start, end) {
 function downloadPlan(start, end) {
   if (!session.data) return;
   const vm = buildViewModel();
-  const plan = planActivity(vm, state.getPlanPreferences());
+  const plan = resolvePlan(vm, state.getPlanPreferences());
   const window = plan.windows.find(w => w.start === start && w.end === end);
   if (!window) { refreshPanel('activities'); toast('That suggestion has passed. Choose a current window.'); return; }
   try {
@@ -621,10 +631,33 @@ document.addEventListener('change', (event) => {
   state.setPlanPreferences(change);
   trackAction('Plan preference', state.getPlanPreferences());
   syncUrl(session.place);
+  refreshPlan();
   refreshPanel('activities');
   if (session.data) { setHTML('#plan-preview', renderPlanPreview(buildViewModel())); measurePlanResults(); }
   document.getElementById(id)?.focus();
 });
+
+async function refreshPlan() {
+  if (!session.data || !session.place) return;
+  const revision = ++session.planRevision;
+  const place = session.place;
+  const preferences = state.getPlanPreferences();
+  session.planLoading = true;
+  session.data.activityPlan = null;
+  try {
+    const result = await api.fetchPlan(place.latitude, place.longitude, preferences);
+    if (revision !== session.planRevision || place !== session.place) return;
+    session.data.activityPlan = result;
+  } catch { /* Missing input is shown as unavailable, never as dry weather. */ }
+  finally {
+    if (revision === session.planRevision && place === session.place) {
+      session.planLoading = false;
+      refreshPanel('activities');
+      setHTML('#plan-preview', renderPlanPreview(buildViewModel()));
+      measurePlanResults();
+    }
+  }
+}
 
 const tablist = $('.tabs');
 
@@ -635,13 +668,14 @@ tablist.addEventListener('click', (event) => {
 
 // Standard tablist keyboard model: arrows move between tabs, Home/End jump.
 tablist.addEventListener('keydown', (event) => {
-  const index = VIEW_ORDER.indexOf(session.view);
+  const order = visibleViews();
+  const index = order.indexOf(session.view);
   let next = null;
 
-  if (event.key === 'ArrowRight') next = VIEW_ORDER[(index + 1) % VIEW_ORDER.length];
-  else if (event.key === 'ArrowLeft') next = VIEW_ORDER[(index - 1 + VIEW_ORDER.length) % VIEW_ORDER.length];
-  else if (event.key === 'Home') next = VIEW_ORDER[0];
-  else if (event.key === 'End') next = VIEW_ORDER[VIEW_ORDER.length - 1];
+  if (event.key === 'ArrowRight') next = order[(index + 1) % order.length];
+  else if (event.key === 'ArrowLeft') next = order[(index - 1 + order.length) % order.length];
+  else if (event.key === 'Home') next = order[0];
+  else if (event.key === 'End') next = order[order.length - 1];
 
   if (!next) return;
   event.preventDefault();
@@ -748,7 +782,7 @@ if (shareButton) {
     // Loaded on demand: the canvas renderer is dead weight for the majority of
     // visits that never press it.
     trackAction('Share opened');
-    const { shareForecast } = await import('./share.js');
+    const { shareForecast } = await import('./share.js?v=24');
     shareForecast(buildViewModel(), { toast });
   });
 }
@@ -857,9 +891,10 @@ document.addEventListener('keydown', (event) => {
     render();
   }
   if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
-    const index = VIEW_ORDER.indexOf(session.view);
+    const order = visibleViews();
+    const index = order.indexOf(session.view);
     const step = event.key === 'ArrowRight' ? 1 : -1;
-    setView(VIEW_ORDER[(index + step + VIEW_ORDER.length) % VIEW_ORDER.length]);
+    setView(order[(index + step + order.length) % order.length]);
     return;
   }
   if (/^[1-9]$/.test(event.key)) {

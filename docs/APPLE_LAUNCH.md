@@ -1,3 +1,13 @@
+# Current Apple release continuation — October 13, 2026
+
+Build 3 replaces publicly returned Visual Crossing rows with openly licensed MET Norway forecasts. Visual Crossing remains server-only for derived activity recommendations. GeoNames supplies local place search; unlicensed Open-Meteo hosted fallback calls and RainViewer fallback are disabled on the release path. See [WEATHER_DATA.md](WEATHER_DATA.md) for the concrete licensing basis.
+
+All nine native tests pass, including source credits and null-probability/amount-based plan decoding. Build 3 is being archived and uploaded; build 2 is still the selected processed build until Apple's readback confirms replacement. Do not infer App Review submission from these implementation notes. The previous provider-email hold is superseded by the changed data architecture. Content Rights may be completed once the deployed endpoints and selected native build are verified against this architecture.
+
+The earlier real-iPhone checks used development build 2 and verified radar, planning, calendar cancellation, unit persistence and prior calendar-test cleanup. TestFlight installation is optional and deferred; no invitation was sent. New build 3 needs visual verification against the released server. Automatic public release after Apple approval remains selected. Professional listing assets remain prepared; final App Store status is recorded with release evidence.
+
+## Previous release history (superseded where it differs above)
+
 # WeatherView Apple launch record
 
 Updated October 10, 2026. The web future-radar release 2.2.0 is live at

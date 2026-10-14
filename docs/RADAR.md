@@ -58,3 +58,8 @@ concurrent requests, complete-horizon sampling, geographic tile bounds and
 trusted URL checks. Native tests cover the government feed contract, trusted
 host, pinned reference and Web Mercator coordinates. Release verification must
 also check actual future PNGs and the visible map on a narrow viewport.
+
+
+## October 13 licensing change
+
+Government radar remains the release source. The RainViewer fallback is disabled unless `RAINVIEWER_LICENSED=1` is explicitly configured after rights are established; its current free API is personal/educational. Unsupported geography or a government outage now returns a truthful unavailable state. Canada/US government coverage and existing-echo projections remain supported.

@@ -81,7 +81,10 @@ export function dailySeries(data) {
 /** The forecast from "now" forward, trimmed to `hours`. */
 export function upcoming(series, nowIndex, hours = 48) {
   const start = Math.max(0, nowIndex);
-  return series.slice(start, start + hours);
+  const first = series[start]?.time;
+  if (!first) return [];
+  const end = Date.parse(`${first}:00Z`) + hours * 3600000;
+  return series.slice(start).filter(row => Date.parse(`${row.time}:00Z`) < end);
 }
 
 /* ------------------------------------------------------------- comfort */

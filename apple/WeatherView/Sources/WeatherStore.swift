@@ -35,7 +35,7 @@ struct WeatherAPI {
         offline = forecast != nil
     }
     func cached(_ place: Place) -> Forecast? {
-        defaults.data(forKey: "weather.forecast.\(place.id)").flatMap { try? JSONDecoder().decode(Forecast.self, from: $0) }
+        defaults.data(forKey: "weather.forecast.v2.\(place.id)").flatMap { try? JSONDecoder().decode(Forecast.self, from: $0) }
     }
     func select(_ place: Place) async {
         selected = place; defaults.set(place.id, forKey: "weather.selected")
@@ -61,10 +61,10 @@ struct WeatherAPI {
         let place = selected
         loading = true; message = nil
         do {
-            let fresh = try await WeatherAPI.get(Forecast.self, path: "api/weather", query: WeatherAPI.point(place))
+            let fresh = try await WeatherAPI.get(Forecast.self, path: "api/weather", query: WeatherAPI.point(place).merging(["v":"3"]) { _, new in new })
             guard revision == request else { return }
             forecast = fresh; offline = false
-            defaults.set(try? JSONEncoder().encode(fresh), forKey: "weather.forecast.\(place.id)")
+            defaults.set(try? JSONEncoder().encode(fresh), forKey: "weather.forecast.v2.\(place.id)")
             loading = false
             let feed = try? await WeatherAPI.get(AlertFeed.self, path: "api/alerts", query: WeatherAPI.point(place))
             guard revision == request else { return }

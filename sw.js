@@ -10,7 +10,7 @@
  * whole store is versioned so a deploy replaces it wholesale.
  */
 
-const VERSION = 'weatherview-v24';
+const VERSION = 'weatherview-v25';
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-data`;
 const PAGE_CACHE = `${VERSION}-pages`;
@@ -21,26 +21,27 @@ const SHELL = [
   '/style.css?v=16',
   '/manifest.webmanifest?v=4',
   '/icons/weatherview-mark.svg',
-  '/js/main.js?v=23',
-  '/js/analytics.js?v=23',
+  '/js/main.js?v=24',
+  '/js/analytics.js?v=24',
   '/js/vercel-analytics.js',
-  '/js/api.js',
+  '/js/api.js?v=24',
   '/js/state.js',
   '/js/format.js',
   '/js/dom.js',
   '/js/wmo.js',
   '/js/icons.js',
   '/js/insights.js',
-  '/js/viewmodel.js',
-  '/js/planning.js',
-  '/js/plan-share.js?v=23',
-  '/js/share.js',
+  '/js/viewmodel.js?v=24',
+  '/js/planning.js?v=24',
+  '/js/sources.js?v=24',
+  '/js/plan-share.js?v=24',
+  '/js/share.js?v=24',
   '/js/calendar.js',
-  '/js/views/planner.js?v=23',
+  '/js/views/planner.js?v=24',
   '/js/radar.js?v=21',
   '/js/radar-data.js?v=21',
   '/js/weather-watch.js',
-  '/js/views/forecast.js',
+  '/js/views/forecast.js?v=24',
   '/js/views/panels.js',
   '/js/views/tables.js',
 ];

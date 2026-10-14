@@ -1,7 +1,8 @@
 import { ACTIVITIES } from './insights.js';
 import { PLAN_DURATIONS, normalizePlanPreferences } from './planning.js';
 import * as fmt from './format.js';
-import { planReasons } from './views/planner.js?v=23';
+import { planReasons } from './views/planner.js?v=24';
+import { weatherSource } from './sources.js';
 
 /** Only recognized choices from a planning link can replace saved preferences. */
 export function planPreferencesFromUrl(value, saved = {}) {
@@ -29,7 +30,8 @@ export function planShareUrl(place, preferences, origin = 'https://www.weathervi
 
 export function planShareText(vm, plan, window) {
   const when = `${fmt.dayName(window.start)} ${fmt.dayNumber(window.start)}, ${fmt.timeLabel(window.start, vm.units)}–${fmt.timeLabel(window.end, vm.units)}${window.start.slice(0,10) !== window.end.slice(0,10) ? ` (${fmt.dayName(window.end)})` : ''}`;
-  return `${plan.activity.label} in ${vm.place.name}: ${when} (${vm.timezone || 'local time'}), ${plan.preferences.duration} minutes.\n${planReasons(window, plan.activity, vm.units).join(' · ')}.\nForecast checked ${new Date(vm.updatedAt || Date.now()).toISOString()}. Open the link for updated suggestions; weather can change.`;
+  const source = weatherSource(plan.weatherProvider || vm.weatherProvider);
+  return `${plan.activity.label} in ${vm.place.name}: ${when} (${vm.timezone || 'local time'}), ${plan.preferences.duration} minutes.\n${planReasons(window, plan.activity, vm.units).join(' · ')}.\nForecast checked ${new Date(plan.updatedAt || vm.updatedAt || Date.now()).toISOString()}. Open the link for updated suggestions; weather can change.\n${source.text}: ${source.url}`;
 }
 
 export function drawPlanCard(vm, plan, window) {
@@ -50,8 +52,9 @@ export function drawPlanCard(vm, plan, window) {
   ctx.fillStyle = '#bcd5e6'; ctx.font = '400 24px system-ui';
   ctx.fillText(`Local time · ${vm.timezone || vm.place.name}${window.start.slice(0,10) !== window.end.slice(0,10) ? ` · ends ${fmt.dayName(window.end)} ${fmt.dayNumber(window.end)}` : ''}`,64,360,1072);
   ctx.fillText(planReasons(window, plan.activity, vm.units).join(' · '), 64, 419, 1072);
-  ctx.fillText(`Forecast checked ${new Date(vm.updatedAt || Date.now()).toISOString().slice(0,16).replace('T',' ')} UTC. Weather can change.`, 64, 492, 1072);
+  ctx.fillText(`Forecast checked ${new Date(plan.updatedAt || vm.updatedAt || Date.now()).toISOString().slice(0,16).replace('T',' ')} UTC. Weather can change.`, 64, 492, 1072);
   ctx.fillStyle = '#67d4c8'; ctx.fillText('Free · Ad-free · weatherview.cloud', 64, 559);
+  ctx.font = '400 20px system-ui'; ctx.fillText(weatherSource(plan.weatherProvider || vm.weatherProvider).text,64,596,1072);
   return canvas;
 }
 

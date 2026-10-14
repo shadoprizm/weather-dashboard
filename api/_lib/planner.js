@@ -10,7 +10,7 @@ async function plan(query = {}) {
       return { status: 400, body: { error: `Invalid ${key}` }, maxAge: 0 };
     }
   }
-  const response = await handlers.forecast(query);
+  const response = await handlers.planningForecast(query);
   if (response.status !== 200) return response;
   const data = response.body;
   const vm = viewmodel.buildViewModel({ data, place: data.location, units: {} });

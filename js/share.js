@@ -179,6 +179,9 @@ export function drawCard(vm, { width = WIDTH, height = HEIGHT } = {}) {
   ctx.fillText('weatherview.cloud', WIDTH - 72, HEIGHT - 60);
   ctx.textAlign = 'left';
 
+  ctx.font = `400 19px ${FONT}`;
+  ctx.fillText(vm.weatherProvider === 'met-no' ? 'Data: MET Norway · CC BY 4.0 · normalized by WeatherView' : 'Weather data: Open-Meteo',72,HEIGHT-25,WIDTH-144);
+
   return canvas;
 }
 

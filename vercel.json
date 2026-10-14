@@ -8,7 +8,7 @@
 
   "functions": {
     "api/*.js": {
-      "includeFiles": "{index.html,js/**,content/stories/**}"
+      "includeFiles": "{index.html,js/**,content/stories/**,data/**}"
     }
   },
 

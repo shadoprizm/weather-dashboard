@@ -24,7 +24,7 @@
         <a href="https://www.bigdatacloud.com/privacy-policy">BigDataCloud</a> to find the place name;
         that service receives your IP address with the request.</p>
       <h2>Radar maps</h2>
-      <p>Radar tiles are requested directly from Environment Canada’s GeoMet service or RainViewer.
+      <p>Radar tiles are requested directly from Environment Canada’s GeoMet service.
         Website map tiles come from OpenStreetMap; native maps use Apple Maps. These services
         receive your IP address and the map area you view when supplying the imagery.</p>
       <h2>Website measurement</h2>
@@ -42,12 +42,15 @@
       <h2>WeatherView for iPhone and iPad</h2>
       <p>The native app stores saved cities, preferences and the last forecast on your device.
         Searching sends the entered city or region to WeatherView's geocoding service. Search
-        results are cached on our server for up to 24 hours by search term, without an account or
+        results use a local GeoNames place index and may be cached on our server for up to 24 hours by search term, without an account or
         device identifier. Forecast
         and planning requests send the selected city's coordinates to WeatherView and its weather
         providers. The native app does not request GPS permission, create accounts or use our web
         analytics module. Hosting and providers process the network requests needed to supply data.</p>
-      <p>Native radar uses Apple Maps with Environment Canada or RainViewer imagery. Apple's calendar editor opens only when you
+      <p>Public forecast data comes from MET Norway under CC BY 4.0, normalized by WeatherView.
+        Visual Crossing forecast rows stay on our server and are used to calculate activity recommendations.
+        GeoNames supplies the local place-search data under CC BY 4.0. These data are credited beside the relevant views.</p>
+      <p>Native radar uses Apple Maps with Environment Canada / NOAA imagery. Apple's calendar editor opens only when you
         choose a suggestion; you decide whether to save the event. WeatherView cannot read your
         existing calendar events. A shared forecast includes the chosen city and its coordinates.</p>
       <h2>Managing local data</h2>
