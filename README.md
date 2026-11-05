@@ -402,6 +402,18 @@ Two details worth knowing:
   hundred redirecting URLs in the sitemap. Set it on preview deployments so
   they do not claim production's canonicals.
 
+### Website analytics (PostHog)
+
+`js/posthog-analytics.js` adds PostHog page views and three named clicks on the
+public pages, alongside the unchanged Vercel Web Analytics module. The site has
+no build step, so the project key and host are the placeholders
+`__POSTHOG_PROJECT_TOKEN__` and `__POSTHOG_API_HOST__`. While either is a
+placeholder, nothing loads. A release commit sets them to the project's public
+client key and `https://us.i.posthog.com`. The SDK is self-hosted under
+`assets/vendor/posthog-js-1.445.6/`, and the CSP allows only that ingestion
+host. The privacy page describes exactly what is sent, so change it together
+with the module. `test/posthog-analytics.mjs` checks the two against each other.
+
 ### After deploying, once
 
 Verify the domain in Google Search Console and submit `/sitemap.xml`. Nothing

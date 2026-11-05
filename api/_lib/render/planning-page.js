@@ -20,7 +20,7 @@ function renderPlanningPage() {
     <p class="eyebrow">Weather that helps you make plans · Updated October 10, 2026</p>
     <h1>Find a good time to get outside.</h1>
     <p class="lede">You have an activity in mind and a little time to spare. WeatherView helps you compare suitable times over the next 48 hours, with the conditions behind each suggestion. Free, ad-free and no account needed.</p>
-    <p><a href="/?view=plan">Find a time in the planner →</a> · <a href="/weather">Choose your city</a></p>
+    <p><a href="/?view=plan" data-event="planner_link_click">Find a time in the planner →</a> · <a href="/weather">Choose your city</a></p>
     <h2>Start with the time you actually need</h2>
     <p>Choose an activity, a duration from 30 minutes to three hours, and daylight, night or any time. Suggestions use your selected location’s local time. Every forecast hour in an outing must meet the activity’s minimum fit, and the highest average fit comes first.</p>
     <p>A suggestion is a comparison of forecast conditions, not a promise of dry weather or a safety assessment. No suitable result means no complete window fits your choices in the available forecast. Try a shorter duration or another time of day; missing data never counts as good weather.</p>

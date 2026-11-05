@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Privacy | WeatherView</title>
-  <meta name="description" content="How WeatherView handles saved places, location access and aggregate website analytics.">
+  <meta name="description" content="How WeatherView handles saved places, location access and website analytics.">
   <link rel="canonical" href="https://www.weatherview.cloud/privacy">
   <link rel="stylesheet" href="/style.css?v=13">
   <link rel="icon" href="/icons/weatherview-mark.svg" type="image/svg+xml">
@@ -14,7 +14,7 @@
     <article class="panel panel-intro">
       <p><a href="/">WeatherView home</a> · <a href="/weather">Weather by city</a></p>
       <h1>Privacy at WeatherView</h1>
-      <p>Updated October 10, 2026.</p>
+      <p>Updated November 4, 2026.</p>
       <h2>Saved places and device watches</h2>
       <p>Your saved locations, unit and outdoor-plan preferences, and device-only weather watches are stored in this browser.
         Watches do not create an account, send notifications or run while the browser is closed.</p>
@@ -27,14 +27,25 @@
       <p>Radar tiles are requested directly from Environment Canada’s GeoMet service.
         Website map tiles come from OpenStreetMap; native maps use Apple Maps. These services
         receive your IP address and the map area you view when supplying the imagery.</p>
-      <h2>Website measurement</h2>
+      <h2 id="website-analytics">Website analytics</h2>
       <p>We use <a href="https://vercel.com/docs/analytics/privacy-policy">Vercel Web Analytics</a>
         to understand visits and use of features such as forecast tabs, saving a place, opening sharing
         saving a device watch, choosing plan preferences, viewing planning results, downloading a calendar plan and completing a share. These events do not include your coordinates, search text, saved place
-        name or watch contents. Query parameters and fragments are removed from page URLs before measurement.</p>
+        name or watch contents. Query parameters and fragments are removed from page URLs before they are sent to Vercel.</p>
       <p>Vercel Web Analytics does not use analytics cookies. Its documentation explains the request
         information it processes and how it counts visitors. Hosting and weather providers also process
-        requests needed to serve the site. The embedded weather widget does not load our analytics module.</p>
+        requests needed to serve the site.</p>
+      <p>We also use <a href="https://posthog.com/privacy">PostHog</a>, a product analytics service, to understand
+        how the site is used: it measures page views and clicks on the “Share this forecast” button, the
+        “Free website widget” link and the “Find a time in the planner” link. Analytics data is processed in the US.
+        IP addresses may be processed by PostHog.</p>
+      <p>PostHog events are sent only from the site’s public pages: the dashboard, city forecast pages, the city
+        directory, outdoor planning, what’s new, the widget page, the weather guide and this page. A dashboard
+        address can contain the place you chose, its coordinates and your plan settings, so before an event is sent,
+        page and referrer addresses keep only standard campaign tags (such as <code>utm_source</code>) that are short
+        plain labels; other query values and fragments are removed. The referrer is sent with the same filtering,
+        and its path is kept.</p>
+      <p>The embedded weather widget does not load Vercel Web Analytics or PostHog.</p>
       <h2>Calendar plans</h2>
       <p>“Add to calendar” downloads a calendar file containing your chosen activity, city name,
         suggested time and forecast reasons. WeatherView does not read your calendar or save the event
@@ -45,8 +56,8 @@
         results use a local GeoNames place index and may be cached on our server for up to 24 hours by search term, without an account or
         device identifier. Forecast
         and planning requests send the selected city's coordinates to WeatherView and its weather
-        providers. The native app does not request GPS permission, create accounts or use our web
-        analytics module. Hosting and providers process the network requests needed to supply data.</p>
+        providers. The native app does not request GPS permission, create accounts or include our website
+        analytics (Vercel Web Analytics or PostHog). Hosting and providers process the network requests needed to supply data.</p>
       <p>Public forecast data comes from MET Norway under CC BY 4.0, normalized by WeatherView.
         Visual Crossing forecast rows stay on our server and are used to calculate activity recommendations.
         GeoNames supplies the local place-search data under CC BY 4.0. These data are credited beside the relevant views.</p>
@@ -59,5 +70,6 @@
     </article>
   </main>
   <script type="module" src="/js/analytics.js"></script>
+  <script type="module" src="/js/posthog-analytics.js?v=1"></script>
 </body>
 </html>
