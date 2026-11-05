@@ -85,7 +85,7 @@
             <path d="M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/>
           </svg>
         </button>
-        <button type="button" class="icon-button" id="share" title="Share this forecast" aria-label="Share this forecast">
+        <button type="button" class="icon-button" id="share" title="Share this forecast" aria-label="Share this forecast" data-event="share_click">
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <circle cx="18" cy="5.5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="18.5" r="2.6"/>
             <line x1="8.3" y1="10.8" x2="15.7" y2="6.7"/><line x1="8.3" y1="13.2" x2="15.7" y2="17.3"/>
@@ -207,7 +207,7 @@
       <a href="/">Dashboard</a> ·
       <a href="/outdoor-planning">Outdoor planning</a> ·
       <a href="/launch">What’s new</a> ·
-      <a href="/widgets">Free website widget</a> ·
+      <a href="/widgets" data-event="widget_link_click">Free website widget</a> ·
       <a href="/privacy">Privacy</a>
     </p>
     <p class="footer-keys">
@@ -277,5 +277,6 @@
 
   <script type="module" src="/js/analytics.js?v=24"></script>
   <script type="module" src="/js/main.js?v=24"></script>
+  <script type="module" src="/js/posthog-analytics.js?v=1"></script>
 </body>
 </html>
