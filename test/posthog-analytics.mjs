@@ -30,8 +30,8 @@ for (const host of ['https://evil.example', 'http://us.i.posthog.com', 'https://
 assert.equal(ph.analyticsEnabled('test-key', 'https://us.i.posthog.com'), true);
 
 const source = read('js/posthog-analytics.js');
-assert.match(source, /const POSTHOG_KEY = '__POSTHOG_PROJECT_TOKEN__';/, 'the committed key is the placeholder');
-assert.match(source, /const POSTHOG_HOST = '__POSTHOG_API_HOST__';/, 'the committed host is the placeholder');
+assert.match(source, /const POSTHOG_KEY = 'phc_[A-Za-z0-9]+';/, 'the release has a public project token');
+assert.ok(source.includes("const POSTHOG_HOST = 'https://us.i.posthog.com';"), 'the release uses US ingestion');
 
 /* A tiny DOM: enough for shouldLoad() and start() without a browser. */
 function fakeDocument(html) {
@@ -58,8 +58,17 @@ function fakeWindow(html, path, posthog) {
 const indexHtml = read('index.html');
 {
   const win = fakeWindow(indexHtml, '/');
-  assert.equal(ph.start(win), false, 'with the committed placeholders nothing starts');
-  assert.equal(win.document.appended.length, 0, 'and no script is injected');
+  assert.equal(ph.start(win), true, 'the configured release starts on a public page');
+  assert.equal(win.document.appended.length, 1, 'the configured release injects the local SDK');
+  const calls = [];
+  win.posthog = { init: (...args) => calls.push(args) };
+  win.document.appended[0].onload();
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][0], source.match(/const POSTHOG_KEY = '([^']+)';/)[1]);
+  assert.equal(calls[0][1].api_host, 'https://us.i.posthog.com');
+  const unset = fakeWindow(indexHtml, '/');
+  assert.equal(ph.start(unset, '__POSTHOG_PROJECT_TOKEN__', '__POSTHOG_API_HOST__'), false);
+  assert.equal(unset.document.appended.length, 0, 'placeholder configuration still injects nothing');
   const evil = fakeWindow(indexHtml, '/');
   assert.equal(ph.start(evil, 'test-key', 'https://evil.example'), false);
   assert.equal(evil.document.appended.length, 0);
@@ -335,7 +344,7 @@ assert.doesNotMatch(read('embed.js'), /posthog/i);
   assert.doesNotMatch(source + indexHtml + read('privacy.html'), /assets\.i\.posthog\.com|\/static\/array|array\.full/, 'no remote SDK');
 }
 
-/* --- 11. no project key anywhere in source ----------------------------- */
+/* --- 11. public project key only in release configuration ----------------------------- */
 
 {
   const skip = new Set(['node_modules', '.git', 'apple']);
@@ -352,7 +361,11 @@ assert.doesNotMatch(read('embed.js'), /posthog/i);
   assert.ok(files.length > 50);
   for (const file of files) {
     const text = read(file);
-    assert.doesNotMatch(text, /phc_[A-Za-z0-9]{20,}/, `${file} contains no PostHog project key`);
+    if (file === 'js/posthog-analytics.js') {
+      assert.equal((text.match(/phc_[A-Za-z0-9]{20,}/g) || []).length, 1, 'one public project token in release configuration');
+    } else {
+      assert.doesNotMatch(text, /phc_[A-Za-z0-9]{20,}/, `${file} contains no duplicated PostHog project key`);
+    }
     if (!file.startsWith('assets/vendor/')) assert.doesNotMatch(text, /posthog\.identify|\.identify\(/, `${file} calls no identify()`);
   }
 }

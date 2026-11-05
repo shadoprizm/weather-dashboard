@@ -23,8 +23,8 @@
  *   and the previous-page ($prev_pageview_*) properties are deleted.
  */
 
-const POSTHOG_KEY = '__POSTHOG_PROJECT_TOKEN__';
-const POSTHOG_HOST = '__POSTHOG_API_HOST__';
+const POSTHOG_KEY = 'phc_o3aSjSM36EQ5fFqLxUMUxdARW5wiPAcqH7JLr3vUzNxz';
+const POSTHOG_HOST = 'https://us.i.posthog.com';
 export const SDK_SRC = '/assets/vendor/posthog-js-1.445.6/array.js';
 
 /** Both values must be configured and the host must be PostHog US or EU ingestion. */
